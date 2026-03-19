@@ -1,0 +1,12 @@
+Source: openai-messages
+Provider: openai
+Model: gpt-4o
+Input tokens: 164 (exact)
+Headroom: 123740 remaining
+Risk: low (0.1%)
+
+Segments:
+- Provider overhead: 116 tokens | provider_overhead | provider-reported | keep
+- system message 1: 17 tokens | system | provider-reported | keep
+- Declared tools: 16 tokens | tool_schema | provider-reported | cache
+- user message 2: 15 tokens | user | provider-reported | drop
