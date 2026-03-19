@@ -1,0 +1,14 @@
+{
+  "anthropic_version": "2023-06-01",
+  "model": "claude-3-5-sonnet-latest",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Estimate the context use for the current request."
+    },
+    {
+      "role": "assistant",
+      "content": "The current request is still comfortably below the window."
+    }
+  ]
+}

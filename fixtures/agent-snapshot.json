@@ -1,0 +1,36 @@
+{
+  "agents": [
+    {
+      "id": "supervisor",
+      "model": "gpt-4o",
+      "payload": {
+        "model": "gpt-4o",
+        "messages": [
+          {
+            "role": "system",
+            "content": "Coordinate workers and watch budget."
+          },
+          {
+            "role": "user",
+            "content": "Inspect the repository and assign work."
+          }
+        ]
+      }
+    },
+    {
+      "id": "worker-a",
+      "parentAgentId": "supervisor",
+      "model": "claude-3-5-sonnet-latest",
+      "payload": {
+        "anthropic_version": "2023-06-01",
+        "model": "claude-3-5-sonnet-latest",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Check the parser implementation."
+          }
+        ]
+      }
+    }
+  ]
+}
