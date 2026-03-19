@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { getModelLimit } from "./models.js";
 import { asArray, isObject } from "./helpers.js";
 import { estimateJsonTokens, estimateTextTokens } from "./tokenizer.js";
@@ -15,6 +16,29 @@ import type {
 
 type AnyObject = Record<string, unknown>;
 
+function stableHash(parts: Array<string | number | undefined>): string {
+  const raw = parts.map((part) => String(part ?? "")).join("|");
+  return createHash("sha1").update(raw).digest("hex").slice(0, 12);
+}
+
+function normalizeSegmentText(text: string | undefined): string {
+  return (text ?? "").replace(/\s+/g, " ").trim();
+}
+
+function buildStableSegmentId(
+  type: SegmentType,
+  source: string,
+  role: string | undefined,
+  text: string | undefined,
+  _metadata: Record<string, unknown> | undefined,
+  fallbackId: string
+): string {
+  const normalizedText = normalizeSegmentText(text);
+  const fingerprint = stableHash([source, type, role, normalizedText]);
+
+  return `${type}-${fingerprint || fallbackId}`;
+}
+
 function createSegment(
   id: string,
   type: SegmentType,
@@ -28,8 +52,10 @@ function createSegment(
   metadata?: Record<string, unknown>,
   tokenOverride?: number
 ): ContextSegment {
+  const stableId = buildStableSegmentId(type, source, role, text, metadata, id);
+
   return {
-    id,
+    id: stableId,
     type,
     label,
     source,
@@ -70,6 +96,137 @@ function summarizeContent(value: unknown): string {
   }
 
   return String(value ?? "");
+}
+
+function partTypeToSegmentType(partType: string, fallbackType: SegmentType): SegmentType {
+  switch (partType) {
+    case "text":
+    case "input_text":
+    case "output_text":
+      return fallbackType;
+    case "image":
+    case "input_image":
+    case "image_url":
+    case "file":
+    case "input_file":
+    case "document":
+      return "attachment";
+    case "tool_result":
+    case "tool_output":
+    case "computer_call_output":
+      return "tool_result";
+    case "search_result":
+    case "retrieval":
+    case "retrieval_result":
+    case "document_chunk":
+      return "retrieval_context";
+    default:
+      return fallbackType;
+  }
+}
+
+function appendContentSegments(
+  segments: ContextSegment[],
+  options: {
+    baseId: string;
+    source: string;
+    labelPrefix: string;
+    role: string;
+    content: unknown;
+    confidence: CountConfidence;
+    defaultVisibility: ContextSegment["visibility"];
+    defaultMetadata?: Record<string, unknown>;
+  }
+): void {
+  const fallbackType = roleToSegment(options.role);
+  const baseMetadata = options.defaultMetadata;
+
+  if (typeof options.content === "string" || !Array.isArray(options.content)) {
+    const text = summarizeContent(options.content);
+    segments.push(
+      createSegment(
+        options.baseId,
+        fallbackType,
+        options.labelPrefix,
+        options.source,
+        text,
+        options.confidence,
+        options.defaultVisibility,
+        reclaimabilityForType(fallbackType),
+        options.role,
+        baseMetadata
+      )
+    );
+    return;
+  }
+
+  options.content.forEach((part, partIndex) => {
+    const partId = `${options.baseId}-part-${partIndex + 1}`;
+    if (typeof part === "string") {
+      segments.push(
+        createSegment(
+          partId,
+          fallbackType,
+          `${options.labelPrefix} part ${partIndex + 1}`,
+          options.source,
+          part,
+          options.confidence,
+          options.defaultVisibility,
+          reclaimabilityForType(fallbackType),
+          options.role,
+          { ...(baseMetadata ?? {}), partIndex, partType: "text" }
+        )
+      );
+      return;
+    }
+
+    if (!isObject(part)) {
+      segments.push(
+        createSegment(
+          partId,
+          fallbackType,
+          `${options.labelPrefix} part ${partIndex + 1}`,
+          options.source,
+          JSON.stringify(part),
+          "heuristic",
+          "derived",
+          reclaimabilityForType(fallbackType),
+          options.role,
+          { ...(baseMetadata ?? {}), partIndex, partType: "unknown" }
+        )
+      );
+      return;
+    }
+
+    const rawPartType = typeof part.type === "string" ? part.type : "text";
+    const segmentType = partTypeToSegmentType(rawPartType, fallbackType);
+    const partText =
+      typeof part.text === "string"
+        ? part.text
+        : typeof part.output_text === "string"
+          ? part.output_text
+          : typeof part.input_text === "string"
+            ? part.input_text
+            : JSON.stringify(part);
+
+    const visibility =
+      segmentType === fallbackType ? options.defaultVisibility : "derived";
+
+    segments.push(
+      createSegment(
+        partId,
+        segmentType,
+        `${options.labelPrefix} part ${partIndex + 1}`,
+        options.source,
+        partText,
+        options.confidence,
+        visibility,
+        reclaimabilityForType(segmentType),
+        options.role,
+        { ...(baseMetadata ?? {}), partIndex, partType: rawPartType }
+      )
+    );
+  });
 }
 
 function detectProvider(payload: AnyObject): string | undefined {
@@ -237,22 +394,16 @@ function analyzeMessagesPayload(payload: AnyObject, sourceType: string): Context
     }
 
     const role = typeof message.role === "string" ? message.role : "user";
-    const type = roleToSegment(role);
-    const content = summarizeContent(message.content);
-    segments.push(
-      createSegment(
-        `message-${index + 1}`,
-        type,
-        `${role} message ${index + 1}`,
-        sourceType,
-        content,
-        exactTotal !== undefined ? "provider-reported" : "tokenizer-based",
-        "explicit",
-        reclaimabilityForType(type),
-        role,
-        { index }
-      )
-    );
+    appendContentSegments(segments, {
+      baseId: `message-${index + 1}`,
+      labelPrefix: `${role} message ${index + 1}`,
+      source: sourceType,
+      role,
+      content: message.content,
+      confidence: exactTotal !== undefined ? "provider-reported" : "tokenizer-based",
+      defaultVisibility: "explicit",
+      defaultMetadata: { index }
+    });
 
     if (Array.isArray(message.tool_calls)) {
       segments.push(
@@ -300,19 +451,15 @@ function analyzeOpenAIInputPayload(payload: AnyObject): ContextReport {
 
   inputs.forEach((entry, index) => {
     if (typeof entry === "string") {
-      segments.push(
-        createSegment(
-          `input-${index + 1}`,
-          "user",
-          `input ${index + 1}`,
-          "openai-input",
-          entry,
-          exactTotal !== undefined ? "provider-reported" : "tokenizer-based",
-          "explicit",
-          "drop",
-          "user"
-        )
-      );
+      appendContentSegments(segments, {
+        baseId: `input-${index + 1}`,
+        labelPrefix: `input ${index + 1}`,
+        source: "openai-input",
+        role: "user",
+        content: entry,
+        confidence: exactTotal !== undefined ? "provider-reported" : "tokenizer-based",
+        defaultVisibility: "explicit"
+      });
       return;
     }
 
@@ -322,21 +469,16 @@ function analyzeOpenAIInputPayload(payload: AnyObject): ContextReport {
     }
 
     const role = typeof entry.role === "string" ? entry.role : "user";
-    const type = roleToSegment(role);
-    segments.push(
-      createSegment(
-        `input-${index + 1}`,
-        type,
-        `${role} input ${index + 1}`,
-        "openai-input",
-        summarizeContent(entry.content),
-        exactTotal !== undefined ? "provider-reported" : "tokenizer-based",
-        "explicit",
-        reclaimabilityForType(type),
-        role,
-        { index }
-      )
-    );
+    appendContentSegments(segments, {
+      baseId: `input-${index + 1}`,
+      labelPrefix: `${role} input ${index + 1}`,
+      source: "openai-input",
+      role,
+      content: entry.content,
+      confidence: exactTotal !== undefined ? "provider-reported" : "tokenizer-based",
+      defaultVisibility: "explicit",
+      defaultMetadata: { index }
+    });
   });
 
   if (Array.isArray(payload.tools)) {
@@ -371,23 +513,17 @@ function analyzeTranscript(payload: AnyObject): ContextReport {
     }
 
     const role = typeof entry.role === "string" ? entry.role : "user";
-    const type = roleToSegment(role);
     const label = typeof entry.label === "string" ? entry.label : `${role} turn ${index + 1}`;
-
-    segments.push(
-      createSegment(
-        `turn-${index + 1}`,
-        type,
-        label,
-        "transcript",
-        summarizeContent(entry.content ?? entry.text),
-        "tokenizer-based",
-        "explicit",
-        reclaimabilityForType(type),
-        role,
-        { index }
-      )
-    );
+    appendContentSegments(segments, {
+      baseId: `turn-${index + 1}`,
+      labelPrefix: label,
+      source: "transcript",
+      role,
+      content: entry.content ?? entry.text,
+      confidence: "tokenizer-based",
+      defaultVisibility: "explicit",
+      defaultMetadata: { index }
+    });
 
     if (entry.kind === "retrieval" || entry.source === "rag") {
       segments.push(
@@ -408,6 +544,48 @@ function analyzeTranscript(payload: AnyObject): ContextReport {
   });
 
   return finalizeReport("transcript", model, provider, segments, warnings);
+}
+
+function analyzeAgentPayload(payload: AnyObject): ContextReport {
+  const summary = analyzeAgentSnapshot(payload);
+  const segments = summary.agents.map((agent, index) =>
+    createSegment(
+      `agent-${index + 1}`,
+      "agent_metadata",
+      `Agent ${agent.id}`,
+      "agent-snapshot",
+      undefined,
+      "heuristic",
+      "derived",
+      "keep",
+      "agent",
+      {
+        agentId: agent.id,
+        parentAgentId: agent.parentAgentId,
+        model: agent.model,
+        provider: agent.provider,
+        turnNumber: agent.turnNumber,
+        timestamp: agent.timestamp
+      },
+      agent.report?.totalInputTokens ?? 0
+    )
+  );
+
+  const inferredModel =
+    summary.agents.length === 1 ? summary.agents[0]?.model : undefined;
+  const warnings = [
+    ...summary.warnings,
+    "Agent snapshot aggregated into a single context report. Use agent-report for per-agent detail."
+  ];
+
+  return finalizeReport(
+    "agent-snapshot",
+    inferredModel,
+    undefined,
+    segments,
+    warnings,
+    { agentCount: summary.agents.length }
+  );
 }
 
 function normalizeAgentEntry(entry: AnyObject, index: number): AgentSnapshot {
@@ -456,6 +634,10 @@ export function analyzeAgentSnapshot(payload: unknown): AgentSummary {
 export function analyzePayload(payload: unknown): ContextReport {
   if (!isObject(payload)) {
     throw new Error("Input must be a JSON object.");
+  }
+
+  if (Array.isArray(payload.agents)) {
+    return analyzeAgentPayload(payload);
   }
 
   if (Array.isArray(payload.messages)) {

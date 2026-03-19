@@ -1,0 +1,63 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+
+import { analyzeAgentSnapshot, analyzePayload, diffReports } from "../index.js";
+
+const rootDir = process.cwd();
+
+function readFixture(name: string): unknown {
+  return JSON.parse(fs.readFileSync(path.join(rootDir, "fixtures", name), "utf8"));
+}
+
+test("fixture: openai request reports exact usage and provider overhead", () => {
+  const report = analyzePayload(readFixture("openai-request.json"));
+
+  assert.equal(report.sourceType, "openai-messages");
+  assert.equal(report.totalInputTokens, 164);
+  assert.equal(report.totalConfidence, "exact");
+  assert.ok(report.segments.some((segment) => segment.type === "provider_overhead"));
+  assert.ok(report.segments.some((segment) => segment.type === "tool_schema"));
+});
+
+test("fixture: anthropic request reports tokenizer-based budget", () => {
+  const report = analyzePayload(readFixture("anthropic-request.json"));
+
+  assert.equal(report.sourceType, "anthropic-messages");
+  assert.equal(report.provider, "anthropic");
+  assert.equal(report.totalConfidence, "tokenizer-based");
+  assert.equal(report.budget.model, "claude-3-5-sonnet-latest");
+});
+
+test("fixture: transcript diff isolates the added assistant turn", () => {
+  const before = analyzePayload(readFixture("turn-1.json"));
+  const after = analyzePayload(readFixture("turn-2.json"));
+  const diff = diffReports(before, after);
+
+  assert.equal(diff.totalDelta, after.totalInputTokens - before.totalInputTokens);
+  assert.deepEqual(
+    diff.entries.map((entry) => entry.label),
+    ["assistant turn 3"]
+  );
+});
+
+test("fixture: multimodal request expands into typed content segments", () => {
+  const report = analyzePayload(readFixture("multimodal-request.json"));
+
+  assert.ok(report.segments.some((segment) => segment.type === "attachment"));
+  assert.ok(report.segments.some((segment) => segment.type === "retrieval_context"));
+  assert.ok(report.segments.some((segment) => segment.type === "tool_result"));
+  assert.ok(report.segments.some((segment) => segment.label.includes("user message 2 part 1")));
+});
+
+test("fixture: agent snapshot supports both summary and aggregate analysis", () => {
+  const snapshot = readFixture("agent-snapshot.json");
+  const summary = analyzeAgentSnapshot(snapshot);
+  const report = analyzePayload(snapshot);
+
+  assert.equal(summary.agents.length, 2);
+  assert.equal(report.sourceType, "agent-snapshot");
+  assert.equal(report.segments.length, 2);
+  assert.ok(report.totalInputTokens > 0);
+});

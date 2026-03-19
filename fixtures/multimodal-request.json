@@ -1,0 +1,35 @@
+{
+  "model": "gpt-4o",
+  "messages": [
+    {
+      "role": "system",
+      "content": "Analyze the incoming multimodal prompt."
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "text",
+          "text": "Summarize the attached design notes."
+        },
+        {
+          "type": "input_image",
+          "image_url": "https://example.com/arch.png"
+        },
+        {
+          "type": "document_chunk",
+          "text": "The worker process must preserve stable identity across turns."
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "content": [
+        {
+          "type": "tool_result",
+          "text": "{\"status\":\"ok\",\"matches\":3}"
+        }
+      ]
+    }
+  ]
+}

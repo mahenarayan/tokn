@@ -1,0 +1,3 @@
+Agents:
+- supervisor: 21 tokens | model=gpt-4o | parent=root
+- worker-a: 9 tokens | model=claude-3-5-sonnet-latest | parent=supervisor

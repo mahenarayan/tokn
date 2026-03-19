@@ -1,0 +1,6 @@
+Before: 12 tokens
+After: 27 tokens
+Delta: +15 tokens
+
+Changes:
+- assistant turn 3: 0 -> 15 (+15)
