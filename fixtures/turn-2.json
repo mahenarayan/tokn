@@ -1,0 +1,17 @@
+{
+  "model": "gpt-4o",
+  "transcript": [
+    {
+      "role": "system",
+      "content": "Be concise."
+    },
+    {
+      "role": "user",
+      "content": "Inspect the prompt budget."
+    },
+    {
+      "role": "assistant",
+      "content": "The tool schema and history are dominating the request."
+    }
+  ]
+}

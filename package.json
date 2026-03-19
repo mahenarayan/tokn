@@ -1,0 +1,43 @@
+{
+  "name": "orqis",
+  "version": "0.1.0",
+  "description": "Context visibility for LLMs and agents",
+  "type": "module",
+  "bin": {
+    "orqis": "./dist/cli.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "docs"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rm -rf dist",
+    "pretest": "npm run build",
+    "test": "node --test dist/test/**/*.test.js",
+    "start": "node dist/cli.js"
+  },
+  "keywords": [
+    "llm",
+    "agents",
+    "prompt",
+    "tokens",
+    "cli",
+    "observability"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.8.0"
+  }
+}
