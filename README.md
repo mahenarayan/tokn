@@ -8,6 +8,7 @@ Orqis is a TypeScript CLI + SDK for inspecting what occupies an LLM prompt windo
 
 ```bash
 orqis inspect ./fixtures/openai-request.json
+orqis inspect ./fixtures/openai-request.json --json
 orqis diff ./fixtures/turn-1.json ./fixtures/turn-2.json
 orqis budget ./fixtures/anthropic-request.json --model claude-3-5-sonnet-latest
 orqis agent-report ./fixtures/agent-snapshot.json

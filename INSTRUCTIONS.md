@@ -65,6 +65,7 @@ Preferred day-to-day loop:
 - Do not silently change CLI wording or ordering without updating golden files in `fixtures/golden/`.
 - When adding a new supported payload shape, add both analyzer coverage and at least one fixture-backed test.
 - When changing CLI behavior, update or add CLI integration tests.
+- When changing CLI flags or output modes, verify both text and `--json` paths.
 - Do not assume provider payload shapes from memory when official docs or real fixtures can be checked.
 - For provider-adapter work, prefer an official-shape fixture over an invented object.
 

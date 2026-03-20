@@ -18,6 +18,10 @@ function readGolden(name: string): string {
   return fs.readFileSync(path.join(rootDir, "fixtures", "golden", name), "utf8").trim();
 }
 
+function runCliJson(args: string[]): unknown {
+  return JSON.parse(runCli(args));
+}
+
 test("cli inspect prints a composition report", () => {
   const output = runCli(["inspect", "fixtures/openai-request.json"]);
 
@@ -88,4 +92,40 @@ test("cli inspect supports OpenAI Responses-style fixtures", () => {
   assert.match(output, /Source: openai-responses/);
   assert.match(output, /instructions/);
   assert.match(output, /attachment/);
+});
+
+test("cli inspect supports --json", () => {
+  const output = runCliJson(["inspect", "fixtures/openai-request.json", "--json"]) as Record<string, unknown>;
+
+  assert.equal(output.sourceType, "openai-messages");
+  assert.equal(output.totalInputTokens, 164);
+  assert.ok(Array.isArray(output.segments));
+});
+
+test("cli diff supports --json", () => {
+  const output = runCliJson(["diff", "fixtures/turn-1.json", "fixtures/turn-2.json", "--json"]) as Record<string, unknown>;
+
+  assert.equal(output.totalDelta, 15);
+  assert.ok(Array.isArray(output.entries));
+});
+
+test("cli budget supports --json", () => {
+  const output = runCliJson([
+    "budget",
+    "--json",
+    "fixtures/anthropic-request.json",
+    "--model",
+    "claude-3-5-sonnet-latest"
+  ]) as Record<string, unknown>;
+
+  assert.equal(output.model, "claude-3-5-sonnet-latest");
+  assert.equal(output.risk, "low");
+  assert.equal(output.contextWindow, 200000);
+});
+
+test("cli agent-report supports --json", () => {
+  const output = runCliJson(["agent-report", "--json", "fixtures/agent-snapshot.json"]) as Record<string, unknown>;
+
+  assert.ok(Array.isArray(output.agents));
+  assert.equal((output.agents as unknown[]).length, 2);
 });
