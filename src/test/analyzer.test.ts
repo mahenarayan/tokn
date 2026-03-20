@@ -272,3 +272,43 @@ test("analyzes Anthropic payloads with top-level system and tool blocks", () => 
   assert.ok(report.segments.some((segment) => segment.type === "tool_schema"));
   assert.ok(report.segments.some((segment) => segment.type === "tool_result"));
 });
+
+test("analyzeAgentSnapshot accepts OTLP/OpenInference-shaped traces", () => {
+  const summary = analyzeAgentSnapshot({
+    resourceSpans: [
+      {
+        scopeSpans: [
+          {
+            spans: [
+              {
+                spanId: "agent1",
+                name: "planner",
+                attributes: [
+                  { key: "openinference.span.kind", value: { stringValue: "AGENT" } },
+                  { key: "agent.name", value: { stringValue: "planner" } }
+                ]
+              },
+              {
+                spanId: "llm1",
+                parentSpanId: "agent1",
+                name: "chat.completion",
+                attributes: [
+                  { key: "openinference.span.kind", value: { stringValue: "LLM" } },
+                  { key: "llm.system", value: { stringValue: "openai" } },
+                  { key: "llm.model_name", value: { stringValue: "gpt-4o" } },
+                  { key: "llm.input_messages.0.message.role", value: { stringValue: "user" } },
+                  { key: "llm.input_messages.0.message.content", value: { stringValue: "Inspect the repo." } }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  });
+
+  assert.equal(summary.agents.length, 1);
+  assert.equal(summary.agents[0]?.id, "planner");
+  assert.equal(summary.agents[0]?.provider, "openai");
+  assert.ok((summary.agents[0]?.report?.totalInputTokens ?? 0) > 0);
+});
