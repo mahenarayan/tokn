@@ -1,0 +1,42 @@
+{
+  "model": "gpt-4.1",
+  "instructions": "You are a platform engineering assistant.",
+  "input": [
+    {
+      "type": "message",
+      "role": "user",
+      "content": [
+        {
+          "type": "input_text",
+          "text": "Summarize the attached design."
+        },
+        {
+          "type": "input_image",
+          "image_url": "https://example.com/cluster.png"
+        },
+        {
+          "type": "input_file",
+          "file_url": "https://example.com/design.pdf",
+          "filename": "design.pdf"
+        }
+      ]
+    },
+    {
+      "type": "function_call_output",
+      "call_id": "call_123",
+      "output": "{\"deployments\":4,\"services\":7}"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "listClusterObjects",
+        "description": "List cluster objects"
+      }
+    }
+  ],
+  "usage": {
+    "input_tokens": 256
+  }
+}

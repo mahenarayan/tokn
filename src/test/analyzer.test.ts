@@ -215,3 +215,60 @@ test("analyzePayload accepts agent snapshots through the main analyzer entrypoin
   assert.equal(report.segments.filter((segment) => segment.type === "agent_metadata").length, 2);
   assert.ok(report.warnings.some((warning) => warning.includes("agent-report")));
 });
+
+test("analyzes OpenAI Responses payloads with instructions and structured input items", () => {
+  const report = analyzePayload({
+    model: "gpt-4.1",
+    instructions: "You are a platform engineering assistant.",
+    input: [
+      {
+        type: "message",
+        role: "user",
+        content: [
+          { type: "input_text", text: "Summarize the attached design." },
+          { type: "input_image", image_url: "https://example.com/cluster.png" }
+        ]
+      },
+      {
+        type: "function_call_output",
+        call_id: "call_123",
+        output: "{\"deployments\":4}"
+      }
+    ],
+    usage: { input_tokens: 220 }
+  });
+
+  assert.equal(report.sourceType, "openai-responses");
+  assert.ok(report.segments.some((segment) => segment.type === "developer"));
+  assert.ok(report.segments.some((segment) => segment.type === "attachment"));
+  assert.ok(report.segments.some((segment) => segment.type === "tool_result"));
+  assert.equal(report.totalInputTokens, 220);
+});
+
+test("analyzes Anthropic payloads with top-level system and tool blocks", () => {
+  const report = analyzePayload({
+    anthropic_version: "2023-06-01",
+    model: "claude-3-7-sonnet-latest",
+    system: [{ type: "text", text: "You are a careful SRE assistant." }],
+    messages: [
+      {
+        role: "assistant",
+        content: [
+          { type: "tool_use", id: "toolu_1", name: "search_logs", input: { query: "OOMKilled" } }
+        ]
+      },
+      {
+        role: "user",
+        content: [
+          { type: "tool_result", tool_use_id: "toolu_1", content: [{ type: "text", text: "Found 3 events." }] }
+        ]
+      }
+    ],
+    usage: { input_tokens: 180 }
+  });
+
+  assert.equal(report.provider, "anthropic");
+  assert.ok(report.segments.some((segment) => segment.type === "system"));
+  assert.ok(report.segments.some((segment) => segment.type === "tool_schema"));
+  assert.ok(report.segments.some((segment) => segment.type === "tool_result"));
+});

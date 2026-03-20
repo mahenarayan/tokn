@@ -1,0 +1,75 @@
+{
+  "anthropic_version": "2023-06-01",
+  "model": "claude-3-7-sonnet-latest",
+  "system": [
+    {
+      "type": "text",
+      "text": "You are a careful SRE assistant."
+    }
+  ],
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "text",
+          "text": "Review the attached runbook."
+        },
+        {
+          "type": "image",
+          "source": {
+            "type": "url",
+            "url": "https://example.com/dashboard.png"
+          }
+        },
+        {
+          "type": "document",
+          "title": "Runbook",
+          "source": {
+            "type": "url",
+            "url": "https://example.com/runbook.pdf"
+          }
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "tool_use",
+          "id": "toolu_1",
+          "name": "search_logs",
+          "input": {
+            "query": "OOMKilled"
+          }
+        },
+        {
+          "type": "text",
+          "text": "I need the recent error excerpt."
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_1",
+          "content": [
+            {
+              "type": "text",
+              "text": "Found 3 OOMKilled events in the last hour."
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "text": "Continue the analysis."
+        }
+      ]
+    }
+  ],
+  "usage": {
+    "input_tokens": 310
+  }
+}

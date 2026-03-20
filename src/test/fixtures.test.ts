@@ -61,3 +61,34 @@ test("fixture: agent snapshot supports both summary and aggregate analysis", () 
   assert.equal(report.segments.length, 2);
   assert.ok(report.totalInputTokens > 0);
 });
+
+test("fixture: OpenAI Responses request maps instructions, attachments, and tool outputs", () => {
+  const report = analyzePayload(readFixture("openai-responses-request.json"));
+
+  assert.equal(report.sourceType, "openai-responses");
+  assert.equal(report.provider, "openai");
+  assert.equal(report.totalInputTokens, 256);
+  assert.ok(report.segments.some((segment) => segment.type === "developer"));
+  assert.ok(report.segments.some((segment) => segment.type === "attachment"));
+  assert.ok(report.segments.some((segment) => segment.type === "tool_result"));
+  assert.ok(report.segments.some((segment) => segment.type === "tool_schema"));
+});
+
+test("fixture: OpenAI Responses output is analyzable as future context", () => {
+  const report = analyzePayload(readFixture("openai-responses-output.json"));
+
+  assert.equal(report.sourceType, "openai-responses-output");
+  assert.ok(report.segments.some((segment) => segment.type === "assistant_history"));
+  assert.ok(report.segments.some((segment) => segment.type === "tool_schema"));
+  assert.ok(report.segments.some((segment) => segment.type === "retrieval_context"));
+});
+
+test("fixture: Anthropic structured payload maps system, attachments, tool use, and tool result blocks", () => {
+  const report = analyzePayload(readFixture("anthropic-structured.json"));
+
+  assert.equal(report.sourceType, "anthropic-messages");
+  assert.ok(report.segments.some((segment) => segment.type === "system"));
+  assert.ok(report.segments.some((segment) => segment.type === "attachment"));
+  assert.ok(report.segments.some((segment) => segment.type === "tool_schema"));
+  assert.ok(report.segments.some((segment) => segment.type === "tool_result"));
+});
