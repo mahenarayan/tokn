@@ -94,6 +94,14 @@ test("cli inspect supports OpenAI Responses-style fixtures", () => {
   assert.match(output, /attachment/);
 });
 
+test("cli agent-report supports trace fixtures", () => {
+  const output = runCli(["agent-report", "fixtures/openinference-trace.json"]);
+
+  assert.match(output, /planner:/);
+  assert.match(output, /worker-a:/);
+  assert.match(output, /parent=planner/);
+});
+
 test("cli inspect supports --json", () => {
   const output = runCliJson(["inspect", "fixtures/openai-request.json", "--json"]) as Record<string, unknown>;
 

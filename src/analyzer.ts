@@ -16,9 +16,82 @@ import type {
 
 type AnyObject = Record<string, unknown>;
 
+interface NormalizedTraceSpan {
+  spanId: string;
+  parentSpanId?: string;
+  name: string;
+  attributes: Record<string, unknown>;
+}
+
 function stableHash(parts: Array<string | number | undefined>): string {
   const raw = parts.map((part) => String(part ?? "")).join("|");
   return createHash("sha1").update(raw).digest("hex").slice(0, 12);
+}
+
+function decodeOtelValue(value: unknown): unknown {
+  if (!isObject(value)) {
+    return value;
+  }
+
+  const scalarKeys = [
+    "stringValue",
+    "boolValue",
+    "intValue",
+    "doubleValue"
+  ] as const;
+
+  for (const key of scalarKeys) {
+    if (!(key in value)) {
+      continue;
+    }
+
+    const candidate = value[key];
+    if (key === "intValue" && typeof candidate === "string") {
+      const parsed = Number(candidate);
+      return Number.isNaN(parsed) ? candidate : parsed;
+    }
+    return candidate;
+  }
+
+  if (isObject(value.arrayValue) && Array.isArray(value.arrayValue.values)) {
+    return value.arrayValue.values.map((item) => decodeOtelValue(item));
+  }
+
+  if (isObject(value.kvlistValue) && Array.isArray(value.kvlistValue.values)) {
+    const record: Record<string, unknown> = {};
+    for (const entry of value.kvlistValue.values) {
+      if (!isObject(entry) || typeof entry.key !== "string") {
+        continue;
+      }
+      record[entry.key] = decodeOtelValue(entry.value);
+    }
+    return record;
+  }
+
+  if ("bytesValue" in value) {
+    return value.bytesValue;
+  }
+
+  return value;
+}
+
+function normalizeTraceAttributes(attributes: unknown): Record<string, unknown> {
+  if (Array.isArray(attributes)) {
+    const record: Record<string, unknown> = {};
+    for (const entry of attributes) {
+      if (!isObject(entry) || typeof entry.key !== "string") {
+        continue;
+      }
+      record[entry.key] = decodeOtelValue(entry.value);
+    }
+    return record;
+  }
+
+  if (isObject(attributes)) {
+    return attributes;
+  }
+
+  return {};
 }
 
 function normalizeSegmentText(text: string | undefined): string {
@@ -30,11 +103,13 @@ function buildStableSegmentId(
   source: string,
   role: string | undefined,
   text: string | undefined,
-  _metadata: Record<string, unknown> | undefined,
+  metadata: Record<string, unknown> | undefined,
   fallbackId: string
 ): string {
   const normalizedText = normalizeSegmentText(text);
-  const fingerprint = stableHash([source, type, role, normalizedText]);
+  const metadataSignature =
+    text === undefined && metadata !== undefined ? JSON.stringify(metadata) : "";
+  const fingerprint = stableHash([source, type, role, normalizedText, metadataSignature]);
 
   return `${type}-${fingerprint || fallbackId}`;
 }
@@ -97,6 +172,14 @@ function summarizeContent(value: unknown): string {
   }
 
   return String(value ?? "");
+}
+
+function isTracePayload(payload: AnyObject): boolean {
+  return (
+    Array.isArray(payload.resourceSpans) ||
+    Array.isArray(payload.scopeSpans) ||
+    Array.isArray(payload.spans)
+  );
 }
 
 function partTypeToSegmentType(partType: string, fallbackType: SegmentType): SegmentType {
@@ -502,6 +585,32 @@ function usageInputTokens(payload: AnyObject): number | undefined {
   return undefined;
 }
 
+function getTraceString(attributes: Record<string, unknown>, ...keys: string[]): string | undefined {
+  for (const key of keys) {
+    const value = attributes[key];
+    if (typeof value === "string" && value.length > 0) {
+      return value;
+    }
+  }
+  return undefined;
+}
+
+function getTraceNumber(attributes: Record<string, unknown>, ...keys: string[]): number | undefined {
+  for (const key of keys) {
+    const value = attributes[key];
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return value;
+    }
+    if (typeof value === "string" && value.length > 0) {
+      const parsed = Number(value);
+      if (!Number.isNaN(parsed)) {
+        return parsed;
+      }
+    }
+  }
+  return undefined;
+}
+
 function roleToSegment(role: string): SegmentType {
   switch (role) {
     case "system":
@@ -808,8 +917,465 @@ function analyzeTranscript(payload: AnyObject): ContextReport {
   return finalizeReport("transcript", model, provider, segments, warnings);
 }
 
+function collectTraceSpans(container: AnyObject, spans: NormalizedTraceSpan[]): void {
+  if (Array.isArray(container.spans)) {
+    for (const span of container.spans) {
+      if (!isObject(span)) {
+        continue;
+      }
+
+      spans.push({
+        spanId:
+          typeof span.spanId === "string" && span.spanId.length > 0
+            ? span.spanId
+            : stableHash([span.name as string | undefined, spans.length + 1]),
+        ...(typeof span.parentSpanId === "string" && span.parentSpanId.length > 0
+          ? { parentSpanId: span.parentSpanId }
+          : {}),
+        name: typeof span.name === "string" ? span.name : `span-${spans.length + 1}`,
+        attributes: normalizeTraceAttributes(span.attributes)
+      });
+    }
+  }
+
+  if (Array.isArray(container.scopeSpans)) {
+    for (const scopeSpan of container.scopeSpans) {
+      if (isObject(scopeSpan)) {
+        collectTraceSpans(scopeSpan, spans);
+      }
+    }
+  }
+
+  if (Array.isArray(container.resourceSpans)) {
+    for (const resourceSpan of container.resourceSpans) {
+      if (isObject(resourceSpan)) {
+        collectTraceSpans(resourceSpan, spans);
+      }
+    }
+  }
+}
+
+function flattenTraceSpans(payload: AnyObject): NormalizedTraceSpan[] {
+  const spans: NormalizedTraceSpan[] = [];
+  collectTraceSpans(payload, spans);
+  return spans;
+}
+
+function parseTraceMessages(
+  attributes: Record<string, unknown>,
+  prefix: string
+): Array<{ role: string; content: unknown }> {
+  const messages = new Map<number, { role?: string; content?: string; contents: Map<number, Record<string, unknown>> }>();
+
+  for (const [key, rawValue] of Object.entries(attributes)) {
+    if (!key.startsWith(`${prefix}.`)) {
+      continue;
+    }
+
+    const remainder = key.slice(prefix.length + 1);
+    const [messageIndexRaw, ...tailParts] = remainder.split(".");
+    const messageIndex = Number(messageIndexRaw);
+    if (Number.isNaN(messageIndex)) {
+      continue;
+    }
+
+    const message = messages.get(messageIndex) ?? { contents: new Map<number, Record<string, unknown>>() };
+    const tail = tailParts.join(".");
+
+    if (tail === "message.role" && typeof rawValue === "string") {
+      message.role = rawValue;
+    } else if (tail === "message.content" && typeof rawValue === "string") {
+      message.content = rawValue;
+    } else if (tail.startsWith("message.contents.")) {
+      const contentRemainder = tail.slice("message.contents.".length);
+      const [contentIndexRaw, ...contentTailParts] = contentRemainder.split(".");
+      const contentIndex = Number(contentIndexRaw);
+      if (!Number.isNaN(contentIndex)) {
+        const contentTail = contentTailParts.join(".");
+        const contentPart = message.contents.get(contentIndex) ?? {};
+        if (contentTail === "message_content.type" && typeof rawValue === "string") {
+          contentPart.type = rawValue;
+        } else if (contentTail === "message_content.text" && typeof rawValue === "string") {
+          contentPart.text = rawValue;
+        } else if (contentTail === "message_content.image.image.url" && typeof rawValue === "string") {
+          contentPart.image = { url: rawValue };
+          if (contentPart.type === undefined) {
+            contentPart.type = "image";
+          }
+        } else if (contentTail === "message_content.audio.audio.url" && typeof rawValue === "string") {
+          contentPart.audio = { url: rawValue };
+          if (contentPart.type === undefined) {
+            contentPart.type = "audio";
+          }
+        }
+        message.contents.set(contentIndex, contentPart);
+      }
+    }
+
+    messages.set(messageIndex, message);
+  }
+
+  return [...messages.entries()]
+    .sort((left, right) => left[0] - right[0])
+    .map(([, message]) => {
+      const content =
+        message.content !== undefined
+          ? message.content
+          : [...message.contents.entries()]
+              .sort((left, right) => left[0] - right[0])
+              .map(([, item]) => item);
+
+      return {
+        role: message.role ?? "user",
+        content
+      };
+    });
+}
+
+function parseTraceTools(attributes: Record<string, unknown>): string[] {
+  const tools = new Map<number, string>();
+
+  for (const [key, value] of Object.entries(attributes)) {
+    const match = /^llm\.tools\.(\d+)\.tool\.json_schema$/.exec(key);
+    if (!match || typeof value !== "string") {
+      continue;
+    }
+    tools.set(Number(match[1]), value);
+  }
+
+  return [...tools.entries()].sort((left, right) => left[0] - right[0]).map(([, value]) => value);
+}
+
+function parseTraceRetrievalDocuments(attributes: Record<string, unknown>): string[] {
+  const documents = new Map<number, string>();
+
+  for (const [key, value] of Object.entries(attributes)) {
+    const match = /^retrieval\.documents\.(\d+)\.document\.content$/.exec(key);
+    if (!match || typeof value !== "string") {
+      continue;
+    }
+    documents.set(Number(match[1]), value);
+  }
+
+  return [...documents.entries()].sort((left, right) => left[0] - right[0]).map(([, value]) => value);
+}
+
+function collectAgentSubtreeSpans(
+  rootSpanId: string,
+  spanById: Map<string, NormalizedTraceSpan>,
+  childrenByParentId: Map<string, NormalizedTraceSpan[]>,
+  stopAtAgentSpanIds: Set<string>
+): NormalizedTraceSpan[] {
+  const collected: NormalizedTraceSpan[] = [];
+  const stack = [...(childrenByParentId.get(rootSpanId) ?? [])];
+
+  while (stack.length > 0) {
+    const span = stack.pop();
+    if (!span) {
+      continue;
+    }
+
+    collected.push(span);
+
+    if (stopAtAgentSpanIds.has(span.spanId)) {
+      continue;
+    }
+
+    const children = childrenByParentId.get(span.spanId) ?? [];
+    for (let index = children.length - 1; index >= 0; index -= 1) {
+      const child = children[index];
+      if (child) {
+        stack.push(child);
+      }
+    }
+  }
+
+  return collected;
+}
+
+function appendTraceSpanSegments(
+  segments: ContextSegment[],
+  span: NormalizedTraceSpan,
+  warnings: string[],
+  exactPromptTokens: { value: number; exact: boolean },
+  modelInfo: { models: Set<string>; providers: Set<string> },
+  externalContext: { value: boolean }
+): void {
+  const source = "openinference-trace";
+  const attributes = span.attributes;
+  const spanKind = getTraceString(attributes, "openinference.span.kind");
+
+  if (spanKind === "LLM") {
+    const messages = parseTraceMessages(attributes, "llm.input_messages");
+    messages.forEach((message, index) => {
+      appendContentSegments(segments, {
+        baseId: `${span.spanId}-message-${index + 1}`,
+        labelPrefix: `${message.role} message ${index + 1}`,
+        source,
+        role: message.role,
+        content: message.content,
+        confidence: "tokenizer-based",
+        defaultVisibility: "explicit",
+        defaultMetadata: { spanId: span.spanId, spanName: span.name, spanKind, index }
+      });
+    });
+
+    const tools = parseTraceTools(attributes);
+    tools.forEach((toolSchema, index) => {
+      segments.push(
+        createSegment(
+          `${span.spanId}-tool-${index + 1}`,
+          "tool_schema",
+          `Declared tools ${index + 1}`,
+          source,
+          toolSchema,
+          "heuristic",
+          "derived",
+          "cache",
+          "tool",
+          { spanId: span.spanId, spanName: span.name, spanKind, index }
+        )
+      );
+    });
+
+    const promptTokens = getTraceNumber(
+      attributes,
+      "llm.token_count.prompt",
+      "gen_ai.usage.input_tokens"
+    );
+    if (promptTokens !== undefined) {
+      exactPromptTokens.value += promptTokens;
+      exactPromptTokens.exact = true;
+    }
+
+    const model = getTraceString(attributes, "llm.model_name", "gen_ai.request.model");
+    if (model) {
+      modelInfo.models.add(model);
+    }
+
+    const provider = getTraceString(attributes, "llm.system", "llm.provider", "gen_ai.system");
+    if (provider) {
+      modelInfo.providers.add(provider);
+    }
+
+    if (messages.length === 0 && tools.length === 0) {
+      const inputValue = getTraceString(attributes, "input.value");
+      if (inputValue) {
+        appendContentSegments(segments, {
+          baseId: `${span.spanId}-input`,
+          labelPrefix: `llm input ${span.name}`,
+          source,
+          role: "user",
+          content: inputValue,
+          confidence: "tokenizer-based",
+          defaultVisibility: "explicit",
+          defaultMetadata: { spanId: span.spanId, spanName: span.name, spanKind }
+        });
+      } else {
+        warnings.push(`LLM span ${span.name} did not include input messages or input.value.`);
+      }
+    }
+
+    return;
+  }
+
+  if (spanKind === "RETRIEVER") {
+    const documents = parseTraceRetrievalDocuments(attributes);
+    documents.forEach((document, index) => {
+      segments.push(
+        createSegment(
+          `${span.spanId}-retrieval-${index + 1}`,
+          "retrieval_context",
+          `retrieval document ${index + 1}`,
+          source,
+          document,
+          "tokenizer-based",
+          "derived",
+          "cache",
+          undefined,
+          { spanId: span.spanId, spanName: span.name, spanKind, index }
+        )
+      );
+    });
+    if (documents.length > 0) {
+      externalContext.value = true;
+    }
+    return;
+  }
+
+  if (spanKind === "TOOL") {
+    const toolSchema =
+      getTraceString(attributes, "tool.json_schema") ??
+      getTraceString(attributes, "tool.parameters") ??
+      getTraceString(attributes, "input.value");
+    if (toolSchema) {
+      segments.push(
+        createSegment(
+          `${span.spanId}-tool-schema`,
+          "tool_schema",
+          getTraceString(attributes, "tool.name") ?? `tool ${span.name}`,
+          source,
+          toolSchema,
+          "heuristic",
+          "derived",
+          "cache",
+          "tool",
+          { spanId: span.spanId, spanName: span.name, spanKind }
+        )
+      );
+    }
+
+    const toolOutput = getTraceString(attributes, "output.value");
+    if (toolOutput) {
+      segments.push(
+        createSegment(
+          `${span.spanId}-tool-result`,
+          "tool_result",
+          `tool result ${span.name}`,
+          source,
+          toolOutput,
+          "tokenizer-based",
+          "derived",
+          "cache",
+          "tool",
+          { spanId: span.spanId, spanName: span.name, spanKind }
+        )
+      );
+    }
+
+    if (toolSchema || toolOutput) {
+      externalContext.value = true;
+    }
+  }
+}
+
+function analyzeTraceSummary(payload: AnyObject): AgentSummary {
+  const spans = flattenTraceSpans(payload);
+  if (spans.length === 0) {
+    throw new Error("Trace export did not contain any spans.");
+  }
+
+  const spanById = new Map(spans.map((span) => [span.spanId, span]));
+  const childrenByParentId = new Map<string, NormalizedTraceSpan[]>();
+  for (const span of spans) {
+    if (!span.parentSpanId) {
+      continue;
+    }
+    const siblings = childrenByParentId.get(span.parentSpanId) ?? [];
+    siblings.push(span);
+    childrenByParentId.set(span.parentSpanId, siblings);
+  }
+
+  const agentSpans = spans.filter(
+    (span) => getTraceString(span.attributes, "openinference.span.kind") === "AGENT"
+  );
+  const warnings: string[] = [];
+
+  const rootAgentSpans =
+    agentSpans.length > 0
+      ? agentSpans
+      : spans.filter((span) => !span.parentSpanId);
+
+  if (agentSpans.length === 0) {
+    warnings.push("Trace did not contain AGENT spans; root spans were treated as agents.");
+  }
+
+  const agentGraphIdToId = new Map<string, string>();
+  for (const span of rootAgentSpans) {
+    const graphNodeId = getTraceString(span.attributes, "graph.node.id");
+    const agentId = getTraceString(span.attributes, "agent.name", "graph.node.name") ?? span.name;
+    if (graphNodeId) {
+      agentGraphIdToId.set(graphNodeId, agentId);
+    }
+  }
+
+  const stopAtAgentSpanIds = new Set(agentSpans.map((span) => span.spanId));
+
+  const agents = rootAgentSpans.map((agentSpan, index) => {
+    const agentId = getTraceString(agentSpan.attributes, "agent.name", "graph.node.name") ?? agentSpan.name;
+    const graphNodeParentId = getTraceString(agentSpan.attributes, "graph.node.parent_id");
+
+    let parentAgentId: string | undefined =
+      graphNodeParentId !== undefined ? agentGraphIdToId.get(graphNodeParentId) : undefined;
+
+    if (!parentAgentId && agentSpan.parentSpanId) {
+      let currentParentId = agentSpan.parentSpanId;
+      while (currentParentId) {
+        const parentSpan = spanById.get(currentParentId);
+        if (!parentSpan) {
+          break;
+        }
+        if (getTraceString(parentSpan.attributes, "openinference.span.kind") === "AGENT") {
+          parentAgentId =
+            getTraceString(parentSpan.attributes, "agent.name", "graph.node.name") ?? parentSpan.name;
+          break;
+        }
+        currentParentId = parentSpan.parentSpanId ?? "";
+      }
+    }
+
+    const spansForAgent = collectAgentSubtreeSpans(
+      agentSpan.spanId,
+      spanById,
+      childrenByParentId,
+      stopAtAgentSpanIds
+    );
+
+    const reportWarnings: string[] = [];
+    const segments: ContextSegment[] = [];
+    const exactPromptTokens = { value: 0, exact: false };
+    const modelInfo = { models: new Set<string>(), providers: new Set<string>() };
+    const externalContext = { value: false };
+
+    for (const span of spansForAgent) {
+      appendTraceSpanSegments(segments, span, reportWarnings, exactPromptTokens, modelInfo, externalContext);
+    }
+
+    if (segments.length === 0) {
+      reportWarnings.push(`No prompt-bearing spans were found under trace agent ${agentId}.`);
+    }
+
+    const model = modelInfo.models.size === 1 ? [...modelInfo.models][0] : undefined;
+    const provider = modelInfo.providers.size === 1 ? [...modelInfo.providers][0] : undefined;
+    const exactTotal =
+      exactPromptTokens.exact && !externalContext.value ? exactPromptTokens.value : undefined;
+
+    if (exactPromptTokens.exact && externalContext.value) {
+      reportWarnings.push(
+        "Prompt token totals were present, but external retriever/tool spans were also included; total input tokens are estimated conservatively."
+      );
+    }
+
+    const report = finalizeReport(
+      "openinference-trace",
+      model,
+      provider,
+      segments,
+      reportWarnings,
+      { spanId: agentSpan.spanId, spanName: agentSpan.name },
+      exactTotal
+    );
+
+    return {
+      id: agentId,
+      ...(parentAgentId ? { parentAgentId } : {}),
+      ...(model ? { model } : {}),
+      ...(provider ? { provider } : {}),
+      report,
+      metadata: {
+        traceSpanId: agentSpan.spanId,
+        traceSpanName: agentSpan.name,
+        traceAgentIndex: index
+      }
+    };
+  });
+
+  return { agents, warnings };
+}
+
 function analyzeAgentPayload(payload: AnyObject): ContextReport {
   const summary = analyzeAgentSnapshot(payload);
+  const sourceType = isTracePayload(payload) ? "openinference-trace" : "agent-snapshot";
   const segments = summary.agents.map((agent, index) =>
     createSegment(
       `agent-${index + 1}`,
@@ -837,11 +1403,11 @@ function analyzeAgentPayload(payload: AnyObject): ContextReport {
     summary.agents.length === 1 ? summary.agents[0]?.model : undefined;
   const warnings = [
     ...summary.warnings,
-    "Agent snapshot aggregated into a single context report. Use agent-report for per-agent detail."
+    `${sourceType === "openinference-trace" ? "Trace export" : "Agent snapshot"} aggregated into a single context report. Use agent-report for per-agent detail.`
   ];
 
   return finalizeReport(
-    "agent-snapshot",
+    sourceType,
     inferredModel,
     undefined,
     segments,
@@ -877,7 +1443,15 @@ function normalizeAgentEntry(entry: AnyObject, index: number): AgentSnapshot {
 }
 
 export function analyzeAgentSnapshot(payload: unknown): AgentSummary {
-  if (!isObject(payload) || !Array.isArray(payload.agents)) {
+  if (!isObject(payload)) {
+    throw new Error("Agent input must be a JSON object.");
+  }
+
+  if (isTracePayload(payload)) {
+    return analyzeTraceSummary(payload);
+  }
+
+  if (!Array.isArray(payload.agents)) {
     throw new Error("Agent snapshot must contain an agents array.");
   }
 
@@ -896,6 +1470,10 @@ export function analyzeAgentSnapshot(payload: unknown): AgentSummary {
 export function analyzePayload(payload: unknown): ContextReport {
   if (!isObject(payload)) {
     throw new Error("Input must be a JSON object.");
+  }
+
+  if (isTracePayload(payload)) {
+    return analyzeAgentPayload(payload);
   }
 
   if (Array.isArray(payload.agents)) {

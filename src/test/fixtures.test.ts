@@ -92,3 +92,16 @@ test("fixture: Anthropic structured payload maps system, attachments, tool use, 
   assert.ok(report.segments.some((segment) => segment.type === "tool_schema"));
   assert.ok(report.segments.some((segment) => segment.type === "tool_result"));
 });
+
+test("fixture: OpenInference trace imports into agent summary and aggregate report", () => {
+  const trace = readFixture("openinference-trace.json");
+  const summary = analyzeAgentSnapshot(trace);
+  const report = analyzePayload(trace);
+
+  assert.equal(summary.agents.length, 2);
+  assert.equal(summary.agents[1]?.parentAgentId, "planner");
+  assert.ok(summary.agents[0]?.report?.segments.some((segment) => segment.type === "retrieval_context"));
+  assert.ok(summary.agents[1]?.report?.segments.some((segment) => segment.type === "tool_result"));
+  assert.equal(report.sourceType, "openinference-trace");
+  assert.equal(report.segments.length, 2);
+});
