@@ -22,6 +22,9 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "clean": "rm -rf dist",
+    "check": "npm run build && npm test",
+    "dev": "npm run build && node dist/cli.js inspect fixtures/openai-request.json",
+    "smoke": "npm run build && node dist/cli.js inspect fixtures/openai-request.json && node dist/cli.js diff fixtures/turn-1.json fixtures/turn-2.json && node dist/cli.js budget fixtures/anthropic-request.json --model claude-3-5-sonnet-latest && node dist/cli.js agent-report fixtures/agent-snapshot.json",
     "pretest": "npm run build",
     "test": "node --test dist/test/**/*.test.js",
     "start": "node dist/cli.js"
