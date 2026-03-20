@@ -27,3 +27,11 @@ orqis agent-report ./fixtures/agent-snapshot.json
 npm install
 npm test
 ```
+
+Useful local commands:
+
+```bash
+npm run check
+npm run dev
+npm run smoke
+```
