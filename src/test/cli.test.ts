@@ -81,3 +81,11 @@ test("cli agent-report matches golden output", () => {
   const output = runCli(["agent-report", "fixtures/agent-snapshot.json"]);
   assert.equal(output, readGolden("agent-report.txt"));
 });
+
+test("cli inspect supports OpenAI Responses-style fixtures", () => {
+  const output = runCli(["inspect", "fixtures/openai-responses-request.json"]);
+
+  assert.match(output, /Source: openai-responses/);
+  assert.match(output, /instructions/);
+  assert.match(output, /attachment/);
+});

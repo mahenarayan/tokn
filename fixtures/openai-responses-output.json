@@ -1,0 +1,44 @@
+{
+  "id": "resp_123",
+  "model": "gpt-4.1",
+  "output": [
+    {
+      "type": "reasoning",
+      "summary": [
+        {
+          "type": "summary_text",
+          "text": "Need to inspect the manifest before answering."
+        }
+      ]
+    },
+    {
+      "type": "file_search_call",
+      "queries": [
+        "prompt occupancy"
+      ],
+      "results": [
+        {
+          "file_id": "file_1",
+          "filename": "notes.txt",
+          "text": "Prompt windows are bounded by model context."
+        }
+      ]
+    },
+    {
+      "type": "function_call",
+      "call_id": "call_456",
+      "name": "fetchClusterSummary",
+      "arguments": "{\"namespace\":\"prod\"}"
+    },
+    {
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "output_text",
+          "text": "The cluster state is stable."
+        }
+      ]
+    }
+  ]
+}

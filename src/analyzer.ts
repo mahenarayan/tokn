@@ -59,12 +59,13 @@ function createSegment(
     type,
     label,
     source,
-    tokenCount: tokenOverride ?? (text ? estimateTextTokens(text) : estimateJsonTokens(metadata ?? {})),
+    tokenCount:
+      tokenOverride ?? (text !== undefined ? estimateTextTokens(text) : estimateJsonTokens(metadata ?? {})),
     confidence,
     visibility,
     reclaimability,
     ...(role ? { role } : {}),
-    ...(text ? { text } : {}),
+    ...(text !== undefined ? { text } : {}),
     ...(metadata ? { metadata } : {})
   };
 }
@@ -110,19 +111,70 @@ function partTypeToSegmentType(partType: string, fallbackType: SegmentType): Seg
     case "file":
     case "input_file":
     case "document":
+    case "audio":
+    case "input_audio":
       return "attachment";
+    case "tool_use":
+    case "function_call":
+    case "file_search_call":
+    case "web_search_call":
+    case "computer_call":
+    case "code_interpreter_call":
+    case "custom_tool_call":
+      return "tool_schema";
     case "tool_result":
     case "tool_output":
     case "computer_call_output":
+    case "function_call_output":
+    case "custom_tool_call_output":
       return "tool_result";
     case "search_result":
     case "retrieval":
     case "retrieval_result":
     case "document_chunk":
+    case "file_search_result":
       return "retrieval_context";
     default:
       return fallbackType;
   }
+}
+
+function extractPartText(part: AnyObject): string {
+  const directTextCandidates = [
+    part.text,
+    part.output_text,
+    part.input_text,
+    part.arguments,
+    part.output
+  ];
+
+  for (const candidate of directTextCandidates) {
+    if (typeof candidate === "string") {
+      return candidate;
+    }
+  }
+
+  if (part.content !== undefined) {
+    return summarizeContent(part.content);
+  }
+
+  if (Array.isArray(part.summary)) {
+    return summarizeContent(part.summary);
+  }
+
+  if (part.input !== undefined) {
+    return JSON.stringify(part.input);
+  }
+
+  if (Array.isArray(part.results)) {
+    return JSON.stringify(part.results);
+  }
+
+  if (isObject(part.source)) {
+    return JSON.stringify(part.source);
+  }
+
+  return JSON.stringify(part);
 }
 
 function appendContentSegments(
@@ -141,7 +193,7 @@ function appendContentSegments(
   const fallbackType = roleToSegment(options.role);
   const baseMetadata = options.defaultMetadata;
 
-  if (typeof options.content === "string" || !Array.isArray(options.content)) {
+  if (typeof options.content === "string") {
     const text = summarizeContent(options.content);
     segments.push(
       createSegment(
@@ -160,7 +212,32 @@ function appendContentSegments(
     return;
   }
 
-  options.content.forEach((part, partIndex) => {
+  const contentParts = Array.isArray(options.content)
+    ? options.content
+    : isObject(options.content)
+      ? [options.content]
+      : undefined;
+
+  if (!contentParts) {
+    const text = summarizeContent(options.content);
+    segments.push(
+      createSegment(
+        options.baseId,
+        fallbackType,
+        options.labelPrefix,
+        options.source,
+        text,
+        options.confidence,
+        options.defaultVisibility,
+        reclaimabilityForType(fallbackType),
+        options.role,
+        baseMetadata
+      )
+    );
+    return;
+  }
+
+  contentParts.forEach((part, partIndex) => {
     const partId = `${options.baseId}-part-${partIndex + 1}`;
     if (typeof part === "string") {
       segments.push(
@@ -200,14 +277,7 @@ function appendContentSegments(
 
     const rawPartType = typeof part.type === "string" ? part.type : "text";
     const segmentType = partTypeToSegmentType(rawPartType, fallbackType);
-    const partText =
-      typeof part.text === "string"
-        ? part.text
-        : typeof part.output_text === "string"
-          ? part.output_text
-          : typeof part.input_text === "string"
-            ? part.input_text
-            : JSON.stringify(part);
+    const partText = extractPartText(part);
 
     const visibility =
       segmentType === fallbackType ? options.defaultVisibility : "derived";
@@ -226,6 +296,171 @@ function appendContentSegments(
         { ...(baseMetadata ?? {}), partIndex, partType: rawPartType }
       )
     );
+  });
+}
+
+function appendOpenAIResponseItems(
+  segments: ContextSegment[],
+  warnings: string[],
+  items: unknown,
+  source: string,
+  confidence: CountConfidence,
+  defaultRole: string
+): void {
+  const normalizedItems = asArray(items);
+
+  normalizedItems.forEach((item, index) => {
+    const baseId = `${source}-${index + 1}`;
+
+    if (typeof item === "string") {
+      appendContentSegments(segments, {
+        baseId,
+        labelPrefix: `${defaultRole} item ${index + 1}`,
+        source,
+        role: defaultRole,
+        content: item,
+        confidence,
+        defaultVisibility: "explicit",
+        defaultMetadata: { index, itemType: "string" }
+      });
+      return;
+    }
+
+    if (!isObject(item)) {
+      warnings.push(`Ignored unsupported OpenAI response item at index ${index}.`);
+      return;
+    }
+
+    const itemType = typeof item.type === "string" ? item.type : "message";
+
+    if (itemType === "message" || typeof item.role === "string") {
+      const role = typeof item.role === "string" ? item.role : defaultRole;
+      appendContentSegments(segments, {
+        baseId,
+        labelPrefix: `${role} item ${index + 1}`,
+        source,
+        role,
+        content: item.content ?? item.output ?? item.text,
+        confidence,
+        defaultVisibility: "explicit",
+        defaultMetadata: { index, itemType }
+      });
+      return;
+    }
+
+    if (itemType === "reasoning") {
+      segments.push(
+        createSegment(
+          baseId,
+          "assistant_history",
+          `reasoning item ${index + 1}`,
+          source,
+          extractPartText(item),
+          "heuristic",
+          "hidden/estimated",
+          "summarize",
+          "assistant",
+          { index, itemType }
+        )
+      );
+      return;
+    }
+
+    if (itemType === "item_reference") {
+      segments.push(
+        createSegment(
+          baseId,
+          "assistant_history",
+          `item reference ${index + 1}`,
+          source,
+          extractPartText(item),
+          "heuristic",
+          "hidden/estimated",
+          "summarize",
+          "assistant",
+          { index, itemType }
+        )
+      );
+      warnings.push(`Item reference at index ${index} does not include underlying content; counts are approximate.`);
+      return;
+    }
+
+    if (itemType.endsWith("_call") || itemType === "function_call" || itemType === "tool_use") {
+      segments.push(
+        createSegment(
+          baseId,
+          "tool_schema",
+          `${itemType} ${index + 1}`,
+          source,
+          extractPartText(item),
+          confidence,
+          "derived",
+          "cache",
+          "tool",
+          {
+            index,
+            itemType,
+            ...(typeof item.call_id === "string" ? { callId: item.call_id } : {}),
+            ...(typeof item.name === "string" ? { name: item.name } : {})
+          }
+        )
+      );
+
+      if (Array.isArray(item.results) && item.results.length > 0) {
+        segments.push(
+          createSegment(
+            `${baseId}-results`,
+            "retrieval_context",
+            `${itemType} results ${index + 1}`,
+            source,
+            JSON.stringify(item.results),
+            "heuristic",
+            "derived",
+            "cache",
+            "tool",
+            { index, itemType, resultCount: item.results.length }
+          )
+        );
+      }
+      return;
+    }
+
+    if (
+      itemType === "function_call_output" ||
+      itemType === "custom_tool_call_output" ||
+      itemType === "tool_result"
+    ) {
+      segments.push(
+        createSegment(
+          baseId,
+          "tool_result",
+          `tool result ${index + 1}`,
+          source,
+          extractPartText(item),
+          confidence,
+          "derived",
+          "cache",
+          "tool",
+          {
+            index,
+            itemType,
+            ...(typeof item.call_id === "string" ? { callId: item.call_id } : {})
+          }
+        )
+      );
+      return;
+    }
+
+    appendContentSegments(segments, {
+      baseId,
+      labelPrefix: `${defaultRole} item ${index + 1}`,
+      source,
+      role: defaultRole,
+      content: [item],
+      confidence,
+      defaultVisibility: "explicit",
+      defaultMetadata: { index, itemType }
+    });
   });
 }
 
@@ -286,6 +521,7 @@ function reclaimabilityForType(type: SegmentType): Reclaimability {
   switch (type) {
     case "assistant_history":
       return "summarize";
+    case "tool_schema":
     case "tool_result":
     case "retrieval_context":
       return "cache";
@@ -387,6 +623,18 @@ function analyzeMessagesPayload(payload: AnyObject, sourceType: string): Context
   const warnings: string[] = [];
   const segments: ContextSegment[] = [];
 
+  if (provider === "anthropic" && payload.system !== undefined) {
+    appendContentSegments(segments, {
+      baseId: "anthropic-system",
+      labelPrefix: "system prompt",
+      source: sourceType,
+      role: "system",
+      content: payload.system,
+      confidence: exactTotal !== undefined ? "provider-reported" : "tokenizer-based",
+      defaultVisibility: "explicit"
+    });
+  }
+
   messages.forEach((message, index) => {
     if (!isObject(message)) {
       warnings.push(`Ignored non-object message at index ${index}.`);
@@ -441,45 +689,51 @@ function analyzeMessagesPayload(payload: AnyObject, sourceType: string): Context
   return finalizeReport(sourceType, model, provider, segments, warnings, { sourceType }, exactTotal);
 }
 
-function analyzeOpenAIInputPayload(payload: AnyObject): ContextReport {
+function analyzeOpenAIResponsesPayload(payload: AnyObject): ContextReport {
   const inputs = asArray(payload.input);
   const model = detectModel(payload);
   const provider = "openai";
-  const exactTotal = usageInputTokens(payload);
+  const hasInput = "input" in payload;
+  const exactTotal = hasInput ? usageInputTokens(payload) : undefined;
   const warnings: string[] = [];
   const segments: ContextSegment[] = [];
 
-  inputs.forEach((entry, index) => {
-    if (typeof entry === "string") {
-      appendContentSegments(segments, {
-        baseId: `input-${index + 1}`,
-        labelPrefix: `input ${index + 1}`,
-        source: "openai-input",
-        role: "user",
-        content: entry,
-        confidence: exactTotal !== undefined ? "provider-reported" : "tokenizer-based",
-        defaultVisibility: "explicit"
-      });
-      return;
-    }
-
-    if (!isObject(entry)) {
-      warnings.push(`Ignored unsupported input entry at index ${index}.`);
-      return;
-    }
-
-    const role = typeof entry.role === "string" ? entry.role : "user";
+  if (payload.instructions !== undefined) {
     appendContentSegments(segments, {
-      baseId: `input-${index + 1}`,
-      labelPrefix: `${role} input ${index + 1}`,
-      source: "openai-input",
-      role,
-      content: entry.content,
+      baseId: "openai-instructions",
+      labelPrefix: "instructions",
+      source: "openai-responses",
+      role: "developer",
+      content: payload.instructions,
       confidence: exactTotal !== undefined ? "provider-reported" : "tokenizer-based",
-      defaultVisibility: "explicit",
-      defaultMetadata: { index }
+      defaultVisibility: "explicit"
     });
-  });
+  }
+
+  if (hasInput) {
+    appendOpenAIResponseItems(
+      segments,
+      warnings,
+      inputs,
+      "openai-responses-input",
+      exactTotal !== undefined ? "provider-reported" : "tokenizer-based",
+      "user"
+    );
+  }
+
+  const hasOutput = Array.isArray(payload.output) && payload.output.length > 0;
+  if (!hasInput && hasOutput) {
+    appendOpenAIResponseItems(
+      segments,
+      warnings,
+      payload.output,
+      "openai-responses-output",
+      "tokenizer-based",
+      "assistant"
+    );
+  } else if (hasInput && hasOutput) {
+    warnings.push("Response output items were excluded from current input occupancy analysis.");
+  }
 
   if (Array.isArray(payload.tools)) {
     segments.push(
@@ -487,7 +741,7 @@ function analyzeOpenAIInputPayload(payload: AnyObject): ContextReport {
         "request-tools",
         "tool_schema",
         "Declared tools",
-        "openai-input",
+        "openai-responses",
         JSON.stringify(payload.tools),
         exactTotal !== undefined ? "provider-reported" : "heuristic",
         "derived",
@@ -496,7 +750,15 @@ function analyzeOpenAIInputPayload(payload: AnyObject): ContextReport {
     );
   }
 
-  return finalizeReport("openai-input", model, provider, segments, warnings, undefined, exactTotal);
+  return finalizeReport(
+    hasInput ? "openai-responses" : "openai-responses-output",
+    model,
+    provider,
+    segments,
+    warnings,
+    undefined,
+    exactTotal
+  );
 }
 
 function analyzeTranscript(payload: AnyObject): ContextReport {
@@ -648,8 +910,8 @@ export function analyzePayload(payload: unknown): ContextReport {
     return analyzeMessagesPayload(payload, "openai-messages");
   }
 
-  if ("input" in payload) {
-    return analyzeOpenAIInputPayload(payload);
+  if ("input" in payload || Array.isArray(payload.output) || ("instructions" in payload && !Array.isArray(payload.messages))) {
+    return analyzeOpenAIResponsesPayload(payload);
   }
 
   if ("transcript" in payload || "conversation" in payload || "turns" in payload) {
