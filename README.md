@@ -35,3 +35,7 @@ npm run check
 npm run dev
 npm run smoke
 ```
+
+Repository guide:
+
+- See [INSTRUCTIONS.md](/Users/raksha/Documents/Projects/probe/INSTRUCTIONS.md) for contributor and maintenance guidance.
