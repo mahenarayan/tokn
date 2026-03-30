@@ -1,5 +1,5 @@
 import { formatPercent } from "./helpers.js";
-import type { AgentSummary, ContextReport, DiffReport } from "./types.js";
+import type { AgentSummary, CheckResult, ContextReport, DiffReport } from "./types.js";
 
 export function formatInspectReport(report: ContextReport): string {
   const lines = [
@@ -66,6 +66,72 @@ export function formatBudgetReport(report: ContextReport): string {
     `Usage: ${formatPercent(budget.usagePercent)}`,
     `Risk: ${budget.risk}`
   ].join("\n");
+}
+
+export function formatCheckReport(result: CheckResult): string {
+  const lines = [
+    `Status: ${result.passed ? "pass" : "fail"}`,
+    `Source: ${result.report.sourceType}`,
+    `Provider: ${result.report.provider ?? "unknown"}`,
+    `Model: ${result.report.model ?? "unknown"}`,
+    `Input tokens: ${result.report.totalInputTokens} (${result.report.totalConfidence})`,
+    `Usage: ${formatPercent(result.report.budget.usagePercent)}`,
+    `Risk: ${result.report.budget.risk}`,
+    "",
+    "Thresholds:"
+  ];
+
+  if (result.thresholds.maxTotalTokens !== undefined) {
+    lines.push(`- max total tokens: ${result.thresholds.maxTotalTokens}`);
+  }
+  if (result.thresholds.maxUsagePercent !== undefined) {
+    lines.push(`- max usage percent: ${formatPercent(result.thresholds.maxUsagePercent)}`);
+  }
+  if (result.thresholds.failOnRisk !== undefined) {
+    lines.push(`- fail on risk: ${result.thresholds.failOnRisk}`);
+  }
+  const segmentThresholds = result.thresholds.maxSegmentTokens ?? {};
+  for (const [segmentType, limit] of Object.entries(segmentThresholds)) {
+    lines.push(`- max segment tokens: ${segmentType} <= ${limit}`);
+  }
+
+  lines.push("", "Violations:");
+  if (result.violations.length === 0) {
+    lines.push("- none");
+  } else {
+    for (const violation of result.violations) {
+      lines.push(`- ${violation.message}`);
+    }
+  }
+
+  if (result.baseline) {
+    lines.push(
+      "",
+      "Baseline:",
+      `- source: ${result.baseline.report.sourceType}`,
+      `- input tokens: ${result.baseline.report.totalInputTokens}`,
+      `- delta vs baseline: ${result.baseline.diff.totalDelta >= 0 ? "+" : ""}${result.baseline.diff.totalDelta} tokens`
+    );
+
+    const topChanges = result.baseline.diff.entries.slice(0, 3);
+    if (topChanges.length > 0) {
+      lines.push("Top changes:");
+      for (const entry of topChanges) {
+        lines.push(
+          `- ${entry.label}: ${entry.delta >= 0 ? "+" : ""}${entry.delta} tokens`
+        );
+      }
+    }
+  }
+
+  if (result.warnings.length > 0) {
+    lines.push("", "Warnings:");
+    for (const warning of result.warnings) {
+      lines.push(`- ${warning}`);
+    }
+  }
+
+  return lines.join("\n");
 }
 
 export function formatAgentSummary(summary: AgentSummary): string {

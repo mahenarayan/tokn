@@ -1,0 +1,28 @@
+Status: fail
+Source: openai-messages
+Provider: openai
+Model: gpt-4o
+Input tokens: 112000 (exact)
+Usage: 87.5%
+Risk: high
+
+Thresholds:
+- max total tokens: 100000
+- max usage percent: 80.0%
+- fail on risk: medium
+- max segment tokens: tool_schema <= 300
+
+Violations:
+- Total input tokens 112000 exceed the configured limit 100000.
+- Usage percent 87.5% exceeds the configured limit 80.0%.
+- Segment type tool_schema uses 375 tokens and exceeds the configured limit 300.
+- Budget risk high meets or exceeds the configured fail-on-risk threshold medium.
+
+Baseline:
+- source: anthropic-messages
+- input tokens: 30
+- delta vs baseline: +111970 tokens
+Top changes:
+- Provider overhead: +110925 tokens
+- Declared tools: +375 tokens
+- assistant message 2: +300 tokens

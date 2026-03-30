@@ -1,15 +1,26 @@
 #!/usr/bin/env node
 import { analyzeAgentSnapshot, analyzePayload, diffReports } from "./analyzer.js";
-import { formatAgentSummary, formatBudgetReport, formatDiffReport, formatInspectReport } from "./format.js";
-import { readText, safeJsonParse } from "./helpers.js";
+import { KNOWN_SEGMENT_TYPES, evaluateCheck } from "./check.js";
+import { formatAgentSummary, formatBudgetReport, formatCheckReport, formatDiffReport, formatInspectReport } from "./format.js";
+import { isObject, readText, safeJsonParse } from "./helpers.js";
+import type { CheckRiskThreshold, CheckThresholds, ContextReport, SegmentType } from "./types.js";
 
 interface ParsedArgs {
   flags: Set<string>;
-  values: Map<string, string>;
+  values: Map<string, string[]>;
   positionals: string[];
 }
 
-const VALUE_FLAGS = new Set(["--model"]);
+const VALUE_FLAGS = new Set([
+  "--model",
+  "--max-usage-percent",
+  "--max-total-tokens",
+  "--max-segment-tokens",
+  "--fail-on-risk",
+  "--baseline"
+]);
+const RISK_THRESHOLDS = new Set<CheckRiskThreshold>(["low", "medium", "high"]);
+const SEGMENT_TYPES = new Set<SegmentType>(KNOWN_SEGMENT_TYPES);
 
 function loadJson(filePath: string): unknown {
   return safeJsonParse(readText(filePath));
@@ -22,12 +33,13 @@ Usage:
   orqis inspect <file> [--json]
   orqis diff <before> <after> [--json]
   orqis budget <file> [--model <id>] [--json]
-  orqis agent-report <file> [--json]`);
+  orqis agent-report <file> [--json]
+  orqis check <file> [--model <id>] [--max-usage-percent <n>] [--max-total-tokens <n>] [--max-segment-tokens <type=n>] [--fail-on-risk <low|medium|high>] [--baseline <file>] [--json]`);
 }
 
 function parseArgs(args: string[]): ParsedArgs {
   const flags = new Set<string>();
-  const values = new Map<string, string>();
+  const values = new Map<string, string[]>();
   const positionals: string[] = [];
 
   for (let index = 0; index < args.length; index += 1) {
@@ -39,7 +51,9 @@ function parseArgs(args: string[]): ParsedArgs {
     if (token.startsWith("--")) {
       const nextToken = args[index + 1];
       if (VALUE_FLAGS.has(token) && nextToken && !nextToken.startsWith("--")) {
-        values.set(token, nextToken);
+        const existing = values.get(token) ?? [];
+        existing.push(nextToken);
+        values.set(token, existing);
         index += 1;
       } else {
         flags.add(token);
@@ -51,6 +65,127 @@ function parseArgs(args: string[]): ParsedArgs {
   }
 
   return { flags, values, positionals };
+}
+
+function getLastValue(parsed: ParsedArgs, flag: string): string | undefined {
+  const values = parsed.values.get(flag);
+  return values?.[values.length - 1];
+}
+
+function getAllValues(parsed: ParsedArgs, flag: string): string[] {
+  return parsed.values.get(flag) ?? [];
+}
+
+function parseFiniteNumber(value: string, flag: string): number {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    throw new Error(`${flag} must be a non-negative number.`);
+  }
+  return parsed;
+}
+
+function isContextReportLike(value: unknown): value is ContextReport {
+  return (
+    isObject(value) &&
+    typeof value.sourceType === "string" &&
+    Array.isArray(value.segments) &&
+    typeof value.totalInputTokens === "number" &&
+    typeof value.totalConfidence === "string" &&
+    isObject(value.budget) &&
+    Array.isArray(value.warnings)
+  );
+}
+
+function normalizeStoredReport(value: ContextReport): ContextReport {
+  return {
+    ...value,
+    suggestions: Array.isArray(value.suggestions) ? value.suggestions : []
+  };
+}
+
+function loadContextReport(filePath: string, overrideModel?: string): ContextReport {
+  const raw = loadJson(filePath);
+  if (isContextReportLike(raw)) {
+    if (overrideModel) {
+      throw new Error("--model cannot be used with a stored ContextReport file.");
+    }
+    return normalizeStoredReport(raw);
+  }
+
+  if (!isObject(raw)) {
+    throw new Error("Input must be a JSON object.");
+  }
+
+  const payload = { ...raw };
+  if (overrideModel) {
+    payload.model = overrideModel;
+  }
+  return analyzePayload(payload);
+}
+
+function parseSegmentThresholds(values: string[]): Partial<Record<SegmentType, number>> | undefined {
+  if (values.length === 0) {
+    return undefined;
+  }
+
+  const thresholds: Partial<Record<SegmentType, number>> = {};
+  for (const value of values) {
+    const separatorIndex = value.indexOf("=");
+    if (separatorIndex <= 0 || separatorIndex === value.length - 1) {
+      throw new Error("--max-segment-tokens must use the form <type>=<n>.");
+    }
+
+    const segmentType = value.slice(0, separatorIndex) as SegmentType;
+    const rawLimit = value.slice(separatorIndex + 1);
+    if (!SEGMENT_TYPES.has(segmentType)) {
+      throw new Error(`Unknown segment type for --max-segment-tokens: ${segmentType}.`);
+    }
+    if (segmentType in thresholds) {
+      throw new Error(`Duplicate --max-segment-tokens threshold for ${segmentType}.`);
+    }
+
+    thresholds[segmentType] = parseFiniteNumber(rawLimit, "--max-segment-tokens");
+  }
+
+  return thresholds;
+}
+
+function parseCheckThresholds(parsed: ParsedArgs): CheckThresholds {
+  const thresholds: CheckThresholds = {};
+
+  const maxUsagePercent = getLastValue(parsed, "--max-usage-percent");
+  if (maxUsagePercent !== undefined) {
+    thresholds.maxUsagePercent = parseFiniteNumber(maxUsagePercent, "--max-usage-percent");
+  }
+
+  const maxTotalTokens = getLastValue(parsed, "--max-total-tokens");
+  if (maxTotalTokens !== undefined) {
+    thresholds.maxTotalTokens = parseFiniteNumber(maxTotalTokens, "--max-total-tokens");
+  }
+
+  const maxSegmentTokens = parseSegmentThresholds(getAllValues(parsed, "--max-segment-tokens"));
+  if (maxSegmentTokens !== undefined) {
+    thresholds.maxSegmentTokens = maxSegmentTokens;
+  }
+
+  const failOnRisk = getLastValue(parsed, "--fail-on-risk");
+  if (failOnRisk !== undefined) {
+    if (!RISK_THRESHOLDS.has(failOnRisk as CheckRiskThreshold)) {
+      throw new Error("--fail-on-risk must be one of: low, medium, high.");
+    }
+    thresholds.failOnRisk = failOnRisk as CheckRiskThreshold;
+  }
+
+  if (
+    thresholds.maxUsagePercent === undefined &&
+    thresholds.maxTotalTokens === undefined &&
+    thresholds.maxSegmentTokens === undefined &&
+    thresholds.failOnRisk === undefined
+  ) {
+    throw new Error("check requires at least one threshold flag.");
+  }
+
+  return thresholds;
 }
 
 function printOutput(value: unknown, textFormatter: () => string, asJson: boolean): void {
@@ -102,12 +237,7 @@ async function main(): Promise<void> {
         if (!file) {
           throw new Error("budget requires a JSON file path.");
         }
-        const payload = loadJson(file) as Record<string, unknown>;
-        const overrideModel = parsed.values.get("--model");
-        if (overrideModel && typeof payload === "object" && payload !== null) {
-          payload.model = overrideModel;
-        }
-        const report = analyzePayload(payload);
+        const report = loadContextReport(file, getLastValue(parsed, "--model"));
         printOutput(report.budget, () => formatBudgetReport(report), asJson);
         return;
       }
@@ -118,6 +248,20 @@ async function main(): Promise<void> {
         }
         const summary = analyzeAgentSnapshot(loadJson(file));
         printOutput(summary, () => formatAgentSummary(summary), asJson);
+        return;
+      }
+      case "check": {
+        const file = parsed.positionals[0];
+        if (!file) {
+          throw new Error("check requires a JSON file path.");
+        }
+        const thresholds = parseCheckThresholds(parsed);
+        const report = loadContextReport(file, getLastValue(parsed, "--model"));
+        const baselineFile = getLastValue(parsed, "--baseline");
+        const baseline = baselineFile ? loadContextReport(baselineFile) : undefined;
+        const result = evaluateCheck(report, thresholds, baseline);
+        printOutput(result, () => formatCheckReport(result), asJson);
+        process.exitCode = result.exitCode;
         return;
       }
       default:

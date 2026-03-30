@@ -1,0 +1,9 @@
+{
+  "model": "custom-ctx-model",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Estimate the current context pressure without known model metadata."
+    }
+  ]
+}

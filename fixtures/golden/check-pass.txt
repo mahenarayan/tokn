@@ -1,0 +1,15 @@
+Status: pass
+Source: anthropic-messages
+Provider: anthropic
+Model: claude-3-5-sonnet-latest
+Input tokens: 30 (tokenizer-based)
+Usage: 0.0%
+Risk: low
+
+Thresholds:
+- max total tokens: 100
+- max usage percent: 1.0%
+- fail on risk: high
+
+Violations:
+- none
