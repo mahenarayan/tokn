@@ -1,7 +1,7 @@
 {
   "name": "orqis",
   "version": "0.1.0",
-  "description": "Context visibility for LLMs and agents",
+  "description": "CLI + SDK for context visibility in LLM prompts and agents",
   "type": "module",
   "bin": {
     "orqis": "./dist/cli.js"
@@ -16,14 +16,17 @@
   },
   "files": [
     "dist",
+    "LICENSE",
     "README.md",
+    "CHANGELOG.md",
     "docs"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "npm run clean && tsc -p tsconfig.json",
     "clean": "rm -rf dist",
     "check": "npm run build && npm test",
     "dev": "npm run build && node dist/cli.js inspect fixtures/openai-request.json",
+    "pack:check": "npm pack --dry-run --cache .npm-cache",
     "smoke": "npm run build && node dist/cli.js inspect fixtures/openai-request.json && node dist/cli.js diff fixtures/turn-1.json fixtures/turn-2.json && node dist/cli.js budget fixtures/anthropic-request.json --model claude-3-5-sonnet-latest && node dist/cli.js agent-report fixtures/agent-snapshot.json",
     "pretest": "npm run build",
     "test": "node --test dist/test/**/*.test.js",
@@ -37,8 +40,16 @@
     "cli",
     "observability"
   ],
-  "author": "",
+  "author": "Mahesh Narayan <maheshn1@icloud.com>",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mahenarayan/orqis.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mahenarayan/orqis/issues"
+  },
+  "homepage": "https://github.com/mahenarayan/orqis#readme",
   "devDependencies": {
     "@types/node": "^24.0.0",
     "typescript": "^5.8.0"
