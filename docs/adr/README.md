@@ -14,6 +14,7 @@ ADRs are for decisions that should remain understandable even after the original
 - [0004 Machine-Readable CLI Contract](/Users/raksha/Documents/Projects/probe/docs/adr/0004-machine-readable-cli-contract.md)
 - [0005 Trace Import Via OpenInference](/Users/raksha/Documents/Projects/probe/docs/adr/0005-trace-import-via-openinference.md)
 - [0006 Public Alpha OSS Contract](/Users/raksha/Documents/Projects/probe/docs/adr/0006-public-alpha-oss-contract.md)
+- [0007 Suggestions Embedded In Context Reports](/Users/raksha/Documents/Projects/probe/docs/adr/0007-suggestions-in-context-report.md)
 
 ## Rules
 

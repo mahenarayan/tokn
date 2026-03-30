@@ -18,6 +18,7 @@ Orqis is in public alpha.
 - separate visible prompt text from tool, retrieval, attachment, and overhead segments
 - compare turns to see why a conversation grew
 - inspect agent snapshots and trace exports
+- surface deterministic suggestions for high-pressure context
 - feed machine-readable output into CI or editor tooling with `--json`
 
 ## Supported Inputs
@@ -70,6 +71,7 @@ orqis agent-report ./fixtures/agent-snapshot.json
 - Estimates or imports token usage
 - Labels confidence as exact, provider-reported, tokenizer-based, or heuristic
 - Reports remaining context window headroom for known models
+- Surfaces deterministic read-only suggestions for high-pressure reports
 - Summarizes multi-agent context snapshots in read-only mode
 
 ## SDK

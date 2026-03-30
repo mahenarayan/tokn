@@ -9,5 +9,6 @@ export type {
   ContextSegment,
   DiffReport,
   ModelLimit,
-  SegmentType
+  SegmentType,
+  Suggestion
 } from "./types.js";

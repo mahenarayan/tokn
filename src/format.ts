@@ -20,6 +20,13 @@ export function formatInspectReport(report: ContextReport): string {
     );
   }
 
+  if (report.suggestions.length > 0) {
+    lines.push("", "Suggestions:");
+    for (const suggestion of report.suggestions) {
+      lines.push(`- [${suggestion.severity}] ${suggestion.message}`);
+    }
+  }
+
   if (report.warnings.length > 0) {
     lines.push("", "Warnings:");
     for (const warning of report.warnings) {
@@ -67,6 +74,10 @@ export function formatAgentSummary(summary: AgentSummary): string {
     lines.push(
       `- ${agent.id}: ${agent.report?.totalInputTokens ?? 0} tokens | model=${agent.model ?? "unknown"} | parent=${agent.parentAgentId ?? "root"}`
     );
+    const suggestions = agent.report?.suggestions ?? [];
+    for (const suggestion of suggestions) {
+      lines.push(`  suggestion: [${suggestion.severity}] ${suggestion.message}`);
+    }
   }
   if (summary.warnings.length > 0) {
     lines.push("", "Warnings:");

@@ -76,6 +76,7 @@ Preferred day-to-day loop:
 - When changing CLI behavior, update or add CLI integration tests.
 - When changing CLI flags or output modes, verify both text and `--json` paths.
 - When changing package metadata, exports, README installation instructions, or public docs, verify the package path with `npm run pack:check`.
+- When changing suggestion rules, keep one high-pressure fixture and one no-suggestion fixture in coverage.
 - Do not assume provider payload shapes from memory when official docs or real fixtures can be checked.
 - For provider-adapter work, prefer an official-shape fixture over an invented object.
 - For major changes, write or update a spec under `docs/specs/` or use the spec template under `docs/templates/`.
@@ -118,6 +119,7 @@ If you change analyzer behavior:
 - prefer adding fixture-backed coverage in `src/test/fixtures.test.ts` for real payload shapes
 - add a provider fixture under `fixtures/` when behavior depends on external request/response formats
 - if the change affects a supported command path, make sure at least one CLI test covers it
+- if the change affects suggestions, verify both `inspect` and `agent-report` outputs when suggestions are present
 
 If you change provider adapters:
 
