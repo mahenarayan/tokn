@@ -9,6 +9,7 @@ The repository currently focuses on read-only inspection:
 - token accounting confidence
 - context-window headroom
 - conversation diffs
+- threshold-based CI checks
 - multi-agent snapshot summaries
 
 Do not expand the scope casually into hosted observability, policy enforcement, or runtime steering without explicitly deciding that direction.
@@ -16,7 +17,8 @@ Do not expand the scope casually into hosted observability, policy enforcement, 
 ## Repository Layout
 
 - `src/analyzer.ts`: core normalization and analysis logic
-- `src/cli.ts`: CLI entrypoint for `inspect`, `diff`, `budget`, and `agent-report`
+- `src/cli.ts`: CLI entrypoint for `inspect`, `diff`, `budget`, `agent-report`, and `check`
+- `src/check.ts`: threshold evaluation for `orqis check`
 - `src/format.ts`: human-readable report formatting
 - `src/models.ts`: model context-window registry
 - `src/tokenizer.ts`: local token estimation helpers
@@ -75,6 +77,7 @@ Preferred day-to-day loop:
 - When adding a new supported payload shape, add both analyzer coverage and at least one fixture-backed test.
 - When changing CLI behavior, update or add CLI integration tests.
 - When changing CLI flags or output modes, verify both text and `--json` paths.
+- When changing `orqis check`, verify both pass and fail exit-code paths.
 - When changing package metadata, exports, README installation instructions, or public docs, verify the package path with `npm run pack:check`.
 - When changing suggestion rules, keep one high-pressure fixture and one no-suggestion fixture in coverage.
 - Do not assume provider payload shapes from memory when official docs or real fixtures can be checked.
@@ -120,6 +123,7 @@ If you change analyzer behavior:
 - add a provider fixture under `fixtures/` when behavior depends on external request/response formats
 - if the change affects a supported command path, make sure at least one CLI test covers it
 - if the change affects suggestions, verify both `inspect` and `agent-report` outputs when suggestions are present
+- if the change affects `check`, cover threshold evaluation, CLI exit codes, and baseline behavior
 
 If you change provider adapters:
 
@@ -146,7 +150,7 @@ If you change public-facing documentation or packaging behavior:
 High-value extensions should usually be one of:
 
 - richer provider adapters
-- OpenTelemetry/OpenInference trace import
-- better context-part segmentation
+- markdown or shareable report output
+- example-driven usage docs
 - stronger model metadata coverage
 - more realistic fixtures from real-world conversations

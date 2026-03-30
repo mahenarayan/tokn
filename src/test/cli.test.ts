@@ -1,17 +1,24 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 
 const rootDir = process.cwd();
 const cliPath = path.join(rootDir, "dist", "cli.js");
 
-function runCli(args: string[]): string {
-  return execFileSync("node", [cliPath, ...args], {
+function runCliProcess(args: string[]) {
+  return spawnSync("node", [cliPath, ...args], {
     cwd: rootDir,
     encoding: "utf8"
-  }).trim();
+  });
+}
+
+function runCli(args: string[]): string {
+  const result = runCliProcess(args);
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  return result.stdout.trim();
 }
 
 function readGolden(name: string): string {
@@ -170,4 +177,159 @@ test("cli inspect --json includes suggestions", () => {
 
   assert.ok(Array.isArray(output.suggestions));
   assert.ok((output.suggestions as unknown[]).length > 0);
+});
+
+test("cli check passes when thresholds are satisfied", () => {
+  const result = runCliProcess([
+    "check",
+    "fixtures/anthropic-request.json",
+    "--model",
+    "claude-3-5-sonnet-latest",
+    "--max-total-tokens",
+    "100",
+    "--max-usage-percent",
+    "1",
+    "--fail-on-risk",
+    "high"
+  ]);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Status: pass/);
+  assert.match(result.stdout, /Violations:\n- none/);
+});
+
+test("cli check fails with exit code 2 when thresholds are exceeded", () => {
+  const result = runCliProcess([
+    "check",
+    "fixtures/suggestions-high-pressure.json",
+    "--max-total-tokens",
+    "100000",
+    "--max-usage-percent",
+    "80",
+    "--max-segment-tokens",
+    "tool_schema=300",
+    "--fail-on-risk",
+    "medium",
+    "--baseline",
+    "fixtures/anthropic-request.json"
+  ]);
+
+  assert.equal(result.status, 2, result.stderr);
+  assert.match(result.stdout, /Status: fail/);
+  assert.match(result.stdout, /Budget risk high meets or exceeds/);
+  assert.match(result.stdout, /Baseline:/);
+  assert.match(result.stdout, /delta vs baseline: \+111970 tokens/);
+});
+
+test("cli check matches golden output for pass case", () => {
+  const output = runCli([
+    "check",
+    "fixtures/anthropic-request.json",
+    "--model",
+    "claude-3-5-sonnet-latest",
+    "--max-total-tokens",
+    "100",
+    "--max-usage-percent",
+    "1",
+    "--fail-on-risk",
+    "high"
+  ]);
+
+  assert.equal(output, readGolden("check-pass.txt"));
+});
+
+test("cli check matches golden output for failure case", () => {
+  const result = runCliProcess([
+    "check",
+    "fixtures/suggestions-high-pressure.json",
+    "--max-total-tokens",
+    "100000",
+    "--max-usage-percent",
+    "80",
+    "--max-segment-tokens",
+    "tool_schema=300",
+    "--fail-on-risk",
+    "medium",
+    "--baseline",
+    "fixtures/anthropic-request.json"
+  ]);
+
+  assert.equal(result.status, 2, result.stderr);
+  assert.equal(result.stdout.trim(), readGolden("check-fail.txt"));
+});
+
+test("cli check supports --json", () => {
+  const result = runCliProcess([
+    "check",
+    "fixtures/suggestions-high-pressure.json",
+    "--max-total-tokens",
+    "100000",
+    "--max-usage-percent",
+    "80",
+    "--max-segment-tokens",
+    "tool_schema=300",
+    "--fail-on-risk",
+    "medium",
+    "--baseline",
+    "fixtures/anthropic-request.json",
+    "--json"
+  ]);
+
+  assert.equal(result.status, 2, result.stderr);
+  const output = JSON.parse(result.stdout) as Record<string, unknown>;
+  assert.equal(output.passed, false);
+  assert.equal(output.exitCode, 2);
+  assert.ok(Array.isArray(output.violations));
+});
+
+test("cli check warns when model metadata is unavailable", () => {
+  const result = runCliProcess([
+    "check",
+    "fixtures/unknown-model-request.json",
+    "--max-usage-percent",
+    "80",
+    "--fail-on-risk",
+    "medium"
+  ]);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Warnings:/);
+  assert.match(result.stdout, /Usage percent is unavailable/);
+  assert.match(result.stdout, /Budget risk is unavailable/);
+});
+
+test("cli check accepts a stored ContextReport as baseline input", () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "orqis-cli-check-"));
+  const baselinePath = path.join(tempDir, "baseline-report.json");
+  const baselineReport = runCliJson([
+    "inspect",
+    "fixtures/anthropic-request.json",
+    "--json"
+  ]);
+  fs.writeFileSync(baselinePath, JSON.stringify(baselineReport, null, 2));
+
+  const result = runCliProcess([
+    "check",
+    "fixtures/suggestions-high-pressure.json",
+    "--max-total-tokens",
+    "100000",
+    "--baseline",
+    baselinePath
+  ]);
+
+  assert.equal(result.status, 2, result.stderr);
+  assert.match(result.stdout, /Baseline:/);
+  assert.match(result.stdout, /source: anthropic-messages/);
+});
+
+test("cli check rejects unknown segment types", () => {
+  const result = runCliProcess([
+    "check",
+    "fixtures/anthropic-request.json",
+    "--max-segment-tokens",
+    "unknown=10"
+  ]);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /Unknown segment type/);
 });

@@ -10,6 +10,8 @@ export type SegmentType =
   | "provider_overhead"
   | "agent_metadata";
 
+export type CheckRiskThreshold = "low" | "medium" | "high";
+
 export type CountConfidence =
   | "exact"
   | "provider-reported"
@@ -90,6 +92,34 @@ export interface DiffReport {
   totalAfter: number;
   totalDelta: number;
   entries: DiffEntry[];
+}
+
+export interface CheckThresholds {
+  maxUsagePercent?: number;
+  maxTotalTokens?: number;
+  maxSegmentTokens?: Partial<Record<SegmentType, number>>;
+  failOnRisk?: CheckRiskThreshold;
+}
+
+export interface CheckViolation {
+  code: string;
+  message: string;
+  actual: number | string;
+  expected: number | string;
+  segmentType?: SegmentType;
+}
+
+export interface CheckResult {
+  passed: boolean;
+  exitCode: 0 | 2;
+  thresholds: CheckThresholds;
+  violations: CheckViolation[];
+  warnings: string[];
+  report: ContextReport;
+  baseline?: {
+    report: ContextReport;
+    diff: DiffReport;
+  };
 }
 
 export interface AgentSnapshot {

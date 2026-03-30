@@ -19,6 +19,7 @@ Orqis is in public alpha.
 - compare turns to see why a conversation grew
 - inspect agent snapshots and trace exports
 - surface deterministic suggestions for high-pressure context
+- fail CI-friendly threshold checks with `orqis check`
 - feed machine-readable output into CI or editor tooling with `--json`
 
 ## Supported Inputs
@@ -63,6 +64,7 @@ orqis inspect ./fixtures/openai-request.json --json
 orqis diff ./fixtures/turn-1.json ./fixtures/turn-2.json
 orqis budget ./fixtures/anthropic-request.json --model claude-3-5-sonnet-latest
 orqis agent-report ./fixtures/agent-snapshot.json
+orqis check ./fixtures/suggestions-high-pressure.json --max-total-tokens 100000 --max-usage-percent 80 --max-segment-tokens tool_schema=300 --fail-on-risk medium
 ```
 
 ## What It Does
@@ -72,6 +74,7 @@ orqis agent-report ./fixtures/agent-snapshot.json
 - Labels confidence as exact, provider-reported, tokenizer-based, or heuristic
 - Reports remaining context window headroom for known models
 - Surfaces deterministic read-only suggestions for high-pressure reports
+- Supports threshold-based CI checks with deterministic exit codes
 - Summarizes multi-agent context snapshots in read-only mode
 
 ## SDK
