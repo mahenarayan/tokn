@@ -1,0 +1,10 @@
+# Orqis Budget Report
+
+## Summary
+- Model: claude-3-5-sonnet-latest
+- Input tokens used: 30
+- Context window: 200000
+- Reserved output: 4096
+- Remaining input headroom: 195874
+- Usage: 0.0%
+- Risk: low

@@ -1,7 +1,17 @@
 #!/usr/bin/env node
 import { analyzeAgentSnapshot, analyzePayload, diffReports } from "./analyzer.js";
 import { KNOWN_SEGMENT_TYPES, evaluateCheck } from "./check.js";
-import { formatAgentSummary, formatBudgetReport, formatCheckReport, formatDiffReport, formatInspectReport } from "./format.js";
+import {
+  formatAgentSummary,
+  formatAgentSummaryMarkdown,
+  formatBudgetReport,
+  formatBudgetReportMarkdown,
+  formatCheckReport,
+  formatDiffReport,
+  formatDiffReportMarkdown,
+  formatInspectReport,
+  formatInspectReportMarkdown
+} from "./format.js";
 import { isObject, readText, safeJsonParse } from "./helpers.js";
 import type { CheckRiskThreshold, CheckThresholds, ContextReport, SegmentType } from "./types.js";
 
@@ -17,10 +27,13 @@ const VALUE_FLAGS = new Set([
   "--max-total-tokens",
   "--max-segment-tokens",
   "--fail-on-risk",
-  "--baseline"
+  "--baseline",
+  "--format"
 ]);
 const RISK_THRESHOLDS = new Set<CheckRiskThreshold>(["low", "medium", "high"]);
 const SEGMENT_TYPES = new Set<SegmentType>(KNOWN_SEGMENT_TYPES);
+const OUTPUT_FORMATS = new Set(["text", "json", "markdown"]);
+type OutputMode = "text" | "json" | "markdown";
 
 function loadJson(filePath: string): unknown {
   return safeJsonParse(readText(filePath));
@@ -31,9 +44,13 @@ function printUsage(): void {
 
 Usage:
   orqis inspect <file> [--json]
+  orqis inspect <file> [--format <text|json|markdown>]
   orqis diff <before> <after> [--json]
+  orqis diff <before> <after> [--format <text|json|markdown>]
   orqis budget <file> [--model <id>] [--json]
+  orqis budget <file> [--model <id>] [--format <text|json|markdown>]
   orqis agent-report <file> [--json]
+  orqis agent-report <file> [--format <text|json|markdown>]
   orqis check <file> [--model <id>] [--max-usage-percent <n>] [--max-total-tokens <n>] [--max-segment-tokens <type=n>] [--fail-on-risk <low|medium|high>] [--baseline <file>] [--json]`);
 }
 
@@ -188,13 +205,30 @@ function parseCheckThresholds(parsed: ParsedArgs): CheckThresholds {
   return thresholds;
 }
 
-function printOutput(value: unknown, textFormatter: () => string, asJson: boolean): void {
-  if (asJson) {
+function resolveOutputMode(parsed: ParsedArgs): OutputMode {
+  const format = getLastValue(parsed, "--format");
+  const jsonFlag = parsed.flags.has("--json");
+
+  if (format !== undefined) {
+    if (!OUTPUT_FORMATS.has(format)) {
+      throw new Error("--format must be one of: text, json, markdown.");
+    }
+    if (jsonFlag && format !== "json") {
+      throw new Error("--json cannot be combined with a non-json --format.");
+    }
+    return format as OutputMode;
+  }
+
+  return jsonFlag ? "json" : "text";
+}
+
+function printOutput(value: unknown, formatter: Record<Exclude<OutputMode, "json">, () => string>, outputMode: OutputMode): void {
+  if (outputMode === "json") {
     console.log(JSON.stringify(value, null, 2));
     return;
   }
 
-  console.log(textFormatter());
+  console.log(formatter[outputMode]());
 }
 
 async function main(): Promise<void> {
@@ -208,7 +242,7 @@ async function main(): Promise<void> {
 
   try {
     const parsed = parseArgs(args);
-    const asJson = parsed.flags.has("--json");
+    const outputMode = resolveOutputMode(parsed);
 
     switch (command) {
       case "inspect": {
@@ -217,7 +251,14 @@ async function main(): Promise<void> {
           throw new Error("inspect requires a JSON file path.");
         }
         const report = analyzePayload(loadJson(file));
-        printOutput(report, () => formatInspectReport(report), asJson);
+        printOutput(
+          report,
+          {
+            text: () => formatInspectReport(report),
+            markdown: () => formatInspectReportMarkdown(report)
+          },
+          outputMode
+        );
         return;
       }
       case "diff": {
@@ -229,7 +270,14 @@ async function main(): Promise<void> {
         const before = analyzePayload(loadJson(beforeFile));
         const after = analyzePayload(loadJson(afterFile));
         const report = diffReports(before, after);
-        printOutput(report, () => formatDiffReport(report), asJson);
+        printOutput(
+          report,
+          {
+            text: () => formatDiffReport(report),
+            markdown: () => formatDiffReportMarkdown(report)
+          },
+          outputMode
+        );
         return;
       }
       case "budget": {
@@ -238,7 +286,14 @@ async function main(): Promise<void> {
           throw new Error("budget requires a JSON file path.");
         }
         const report = loadContextReport(file, getLastValue(parsed, "--model"));
-        printOutput(report.budget, () => formatBudgetReport(report), asJson);
+        printOutput(
+          report.budget,
+          {
+            text: () => formatBudgetReport(report),
+            markdown: () => formatBudgetReportMarkdown(report)
+          },
+          outputMode
+        );
         return;
       }
       case "agent-report": {
@@ -247,7 +302,14 @@ async function main(): Promise<void> {
           throw new Error("agent-report requires a JSON file path.");
         }
         const summary = analyzeAgentSnapshot(loadJson(file));
-        printOutput(summary, () => formatAgentSummary(summary), asJson);
+        printOutput(
+          summary,
+          {
+            text: () => formatAgentSummary(summary),
+            markdown: () => formatAgentSummaryMarkdown(summary)
+          },
+          outputMode
+        );
         return;
       }
       case "check": {
@@ -260,7 +322,14 @@ async function main(): Promise<void> {
         const baselineFile = getLastValue(parsed, "--baseline");
         const baseline = baselineFile ? loadContextReport(baselineFile) : undefined;
         const result = evaluateCheck(report, thresholds, baseline);
-        printOutput(result, () => formatCheckReport(result), asJson);
+        printOutput(
+          result,
+          {
+            text: () => formatCheckReport(result),
+            markdown: () => formatCheckReport(result)
+          },
+          outputMode
+        );
         process.exitCode = result.exitCode;
         return;
       }

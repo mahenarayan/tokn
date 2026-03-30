@@ -1,0 +1,15 @@
+# Orqis Agent Report
+
+## Agents
+| Agent | Tokens | Model | Parent |
+| --- | --- | --- | --- |
+| planner | 112000 | gpt-4o | root |
+| worker-a | 19 | claude-3-5-sonnet-latest | planner |
+
+### planner Suggestions
+- **warning**: Tool schema uses 375 tokens (34.9%) of visible context. Review whether every declared tool needs to be present in this request.
+- **warning**: Assistant history uses 300 tokens (27.9%) of visible context. Older assistant turns may be crowding out the current task.
+- **warning**: Retrieval context uses 364 tokens (33.9%) of visible context. Retrieved material may be dominating the prompt.
+- **warning**: Provider overhead accounts for 110925 tokens (99.0%) of total input. Hidden request framing or serialization overhead is materially above the visible segments.
+- **warning**: Input usage is at 87.5% of the model context window. Small prompt growth may push this request into truncation or summarization decisions.
+- **info**: Repeated retrieval context content appears 2 times and accounts for 364 tokens (33.9%) of visible context. Duplicate context may be inflating the prompt.

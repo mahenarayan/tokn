@@ -1,6 +1,14 @@
 import { formatPercent } from "./helpers.js";
 import type { AgentSummary, CheckResult, ContextReport, DiffReport } from "./types.js";
 
+function markdownTable(headers: string[], rows: string[][]): string[] {
+  return [
+    `| ${headers.join(" | ")} |`,
+    `| ${headers.map(() => "---").join(" | ")} |`,
+    ...rows.map((row) => `| ${row.join(" | ")} |`)
+  ];
+}
+
 export function formatInspectReport(report: ContextReport): string {
   const lines = [
     `Source: ${report.sourceType}`,
@@ -55,6 +63,87 @@ export function formatDiffReport(report: DiffReport): string {
   return lines.join("\n");
 }
 
+export function formatInspectReportMarkdown(report: ContextReport): string {
+  const lines = [
+    "# Orqis Inspect Report",
+    "",
+    "## Summary",
+    `- Source: ${report.sourceType}`,
+    `- Provider: ${report.provider ?? "unknown"}`,
+    `- Model: ${report.model ?? "unknown"}`,
+    `- Input tokens: ${report.totalInputTokens} (${report.totalConfidence})`,
+    `- Headroom: ${report.budget.remainingInputHeadroom ?? "unknown"} remaining`,
+    `- Risk: ${report.budget.risk} (${formatPercent(report.budget.usagePercent)})`,
+    "",
+    "## Segments"
+  ];
+
+  const sorted = [...report.segments].sort((left, right) => right.tokenCount - left.tokenCount);
+  if (sorted.length === 0) {
+    lines.push("- none");
+  } else {
+    lines.push(
+      ...markdownTable(
+        ["Label", "Tokens", "Type", "Confidence", "Reclaimability"],
+        sorted.map((segment) => [
+          segment.label,
+          String(segment.tokenCount),
+          segment.type,
+          segment.confidence,
+          segment.reclaimability
+        ])
+      )
+    );
+  }
+
+  if (report.suggestions.length > 0) {
+    lines.push("", "## Suggestions");
+    for (const suggestion of report.suggestions) {
+      lines.push(`- **${suggestion.severity}**: ${suggestion.message}`);
+    }
+  }
+
+  if (report.warnings.length > 0) {
+    lines.push("", "## Warnings");
+    for (const warning of report.warnings) {
+      lines.push(`- ${warning}`);
+    }
+  }
+
+  return lines.join("\n");
+}
+
+export function formatDiffReportMarkdown(report: DiffReport): string {
+  const lines = [
+    "# Orqis Diff Report",
+    "",
+    "## Summary",
+    `- Before: ${report.totalBefore} tokens`,
+    `- After: ${report.totalAfter} tokens`,
+    `- Delta: ${report.totalDelta >= 0 ? "+" : ""}${report.totalDelta} tokens`,
+    "",
+    "## Changes"
+  ];
+
+  if (report.entries.length === 0) {
+    lines.push("- none");
+  } else {
+    lines.push(
+      ...markdownTable(
+        ["Label", "Before", "After", "Delta"],
+        report.entries.map((entry) => [
+          entry.label,
+          String(entry.before),
+          String(entry.after),
+          `${entry.delta >= 0 ? "+" : ""}${entry.delta}`
+        ])
+      )
+    );
+  }
+
+  return lines.join("\n");
+}
+
 export function formatBudgetReport(report: ContextReport): string {
   const budget = report.budget;
   return [
@@ -65,6 +154,22 @@ export function formatBudgetReport(report: ContextReport): string {
     `Remaining input headroom: ${budget.remainingInputHeadroom ?? "unknown"}`,
     `Usage: ${formatPercent(budget.usagePercent)}`,
     `Risk: ${budget.risk}`
+  ].join("\n");
+}
+
+export function formatBudgetReportMarkdown(report: ContextReport): string {
+  const budget = report.budget;
+  return [
+    "# Orqis Budget Report",
+    "",
+    "## Summary",
+    `- Model: ${budget.model ?? report.model ?? "unknown"}`,
+    `- Input tokens used: ${budget.usedInputTokens}`,
+    `- Context window: ${budget.contextWindow ?? "unknown"}`,
+    `- Reserved output: ${budget.reservedOutput}`,
+    `- Remaining input headroom: ${budget.remainingInputHeadroom ?? "unknown"}`,
+    `- Usage: ${formatPercent(budget.usagePercent)}`,
+    `- Risk: ${budget.risk}`
   ].join("\n");
 }
 
@@ -151,5 +256,49 @@ export function formatAgentSummary(summary: AgentSummary): string {
       lines.push(`- ${warning}`);
     }
   }
+  return lines.join("\n");
+}
+
+export function formatAgentSummaryMarkdown(summary: AgentSummary): string {
+  const lines = [
+    "# Orqis Agent Report",
+    "",
+    "## Agents"
+  ];
+
+  if (summary.agents.length === 0) {
+    lines.push("- none");
+  } else {
+    lines.push(
+      ...markdownTable(
+        ["Agent", "Tokens", "Model", "Parent"],
+        summary.agents.map((agent) => [
+          agent.id,
+          String(agent.report?.totalInputTokens ?? 0),
+          agent.model ?? "unknown",
+          agent.parentAgentId ?? "root"
+        ])
+      )
+    );
+
+    for (const agent of summary.agents) {
+      const suggestions = agent.report?.suggestions ?? [];
+      if (suggestions.length === 0) {
+        continue;
+      }
+      lines.push("", `### ${agent.id} Suggestions`);
+      for (const suggestion of suggestions) {
+        lines.push(`- **${suggestion.severity}**: ${suggestion.message}`);
+      }
+    }
+  }
+
+  if (summary.warnings.length > 0) {
+    lines.push("", "## Warnings");
+    for (const warning of summary.warnings) {
+      lines.push(`- ${warning}`);
+    }
+  }
+
   return lines.join("\n");
 }
