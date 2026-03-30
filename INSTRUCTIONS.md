@@ -25,8 +25,12 @@ Do not expand the scope casually into hosted observability, policy enforcement, 
 - `fixtures/golden/`: exact expected CLI outputs
 - `docs/architecture.md`: high-level architecture and boundaries
 - `docs/spec-driven-development.md`: required workflow for non-trivial changes
+- `docs/specs/`: implementation specs for major work
 - `docs/adr/`: architecture decision records
 - `.github/workflows/ci.yml`: CI workflow for `main` and pull requests
+- `CONTRIBUTING.md`: contributor workflow and expectations
+- `SECURITY.md`: vulnerability reporting process
+- `CHANGELOG.md`: notable release history
 
 ## Local Workflow
 
@@ -42,6 +46,7 @@ Useful commands:
 npm run dev
 npm run smoke
 npm run check
+npm run pack:check
 npm test
 ```
 
@@ -50,6 +55,7 @@ Command meanings:
 - `npm run dev`: quick build + one `inspect` run
 - `npm run smoke`: build + all main CLI commands against fixtures
 - `npm run check`: build + full test suite
+- `npm run pack:check`: verify npm package contents and packaging path
 - `npm test`: compile and run all automated tests
 
 Preferred day-to-day loop:
@@ -69,10 +75,13 @@ Preferred day-to-day loop:
 - When adding a new supported payload shape, add both analyzer coverage and at least one fixture-backed test.
 - When changing CLI behavior, update or add CLI integration tests.
 - When changing CLI flags or output modes, verify both text and `--json` paths.
+- When changing package metadata, exports, README installation instructions, or public docs, verify the package path with `npm run pack:check`.
 - Do not assume provider payload shapes from memory when official docs or real fixtures can be checked.
 - For provider-adapter work, prefer an official-shape fixture over an invented object.
 - For major changes, write or update a spec under `docs/specs/` or use the spec template under `docs/templates/`.
 - For major lasting decisions, add or update an ADR under `docs/adr/`.
+- Treat public documentation as product surface once published.
+- Do not make undocumented breaking changes to JSON output, exports, or command behavior.
 
 ## Testing Expectations
 
@@ -83,6 +92,12 @@ npm run check
 ```
 
 Always verify against the test bed, not just one manual CLI command.
+
+For package, install, export, or other public-OSS-surface changes, also run:
+
+```bash
+npm run pack:check
+```
 
 For any non-trivial feature or architecture change:
 
@@ -110,12 +125,19 @@ If you change provider adapters:
 - encode that shape in a fixture
 - keep unsupported or unknown fields conservative rather than guessing precise semantics
 
+If you change public-facing documentation or packaging behavior:
+
+- update `README.md` if install, supported inputs, or limitations changed
+- update `CHANGELOG.md` when the change is release-worthy
+- verify `npm run pack:check`
+
 ## Current Constraints
 
 - Model limits are local registry data, not live provider metadata.
 - Token accounting is approximate unless usage is provider-reported.
 - Agent support is snapshot-based; it is not a live orchestration protocol.
 - CI is intentionally minimal and only runs the Node test suite.
+- Orqis is public alpha software; prefer explicit scope and compatibility notes over marketing language.
 
 ## Preferred Next Work
 
