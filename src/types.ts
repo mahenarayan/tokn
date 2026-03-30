@@ -52,11 +52,22 @@ export interface BudgetSummary {
   risk: "unknown" | "low" | "medium" | "high";
 }
 
+export interface Suggestion {
+  code: string;
+  severity: "info" | "warning";
+  message: string;
+  segmentType?: SegmentType;
+  tokenCount?: number;
+  sharePercent?: number;
+  metadata?: Record<string, unknown>;
+}
+
 export interface ContextReport {
   sourceType: string;
   model?: string;
   provider?: string;
   segments: ContextSegment[];
+  suggestions: Suggestion[];
   totalInputTokens: number;
   totalConfidence: CountConfidence;
   budget: BudgetSummary;

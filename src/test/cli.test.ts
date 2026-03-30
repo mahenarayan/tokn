@@ -137,3 +137,37 @@ test("cli agent-report supports --json", () => {
   assert.ok(Array.isArray(output.agents));
   assert.equal((output.agents as unknown[]).length, 2);
 });
+
+test("cli inspect prints suggestions for high-pressure payloads", () => {
+  const output = runCli(["inspect", "fixtures/suggestions-high-pressure.json"]);
+
+  assert.match(output, /Suggestions:/);
+  assert.match(output, /\[warning\] Tool schema uses/);
+  assert.match(output, /\[warning\] Provider overhead accounts for/);
+  assert.match(output, /\[warning\] Input usage is at/);
+});
+
+test("cli agent-report prints per-agent suggestions when present", () => {
+  const output = runCli(["agent-report", "fixtures/agent-snapshot-suggestions.json"]);
+
+  assert.match(output, /planner:/);
+  assert.match(output, /suggestion: \[warning\] Tool schema uses/);
+  assert.match(output, /worker-a:/);
+});
+
+test("cli inspect matches golden output for suggestions", () => {
+  const output = runCli(["inspect", "fixtures/suggestions-high-pressure.json"]);
+  assert.equal(output, readGolden("inspect-suggestions.txt"));
+});
+
+test("cli agent-report matches golden output for suggestions", () => {
+  const output = runCli(["agent-report", "fixtures/agent-snapshot-suggestions.json"]);
+  assert.equal(output, readGolden("agent-report-suggestions.txt"));
+});
+
+test("cli inspect --json includes suggestions", () => {
+  const output = runCliJson(["inspect", "fixtures/suggestions-high-pressure.json", "--json"]) as Record<string, unknown>;
+
+  assert.ok(Array.isArray(output.suggestions));
+  assert.ok((output.suggestions as unknown[]).length > 0);
+});

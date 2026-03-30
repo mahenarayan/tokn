@@ -4,6 +4,10 @@
 
 This document defines the next implementation wave for Orqis after the initial CLI, SDK, analyzer, regression suite, and CI setup.
 
+Immediate priority is now defined by [docs/specs/traction-mvp.md](/Users/raksha/Documents/Projects/probe/docs/specs/traction-mvp.md).
+That spec is the active near-term plan for field adoption.
+npm publishing and release automation are intentionally deferred until the MVP proves value.
+
 The goal of the next phase is to make Orqis useful on real production payloads and traces, while preserving the current read-only product boundary.
 
 Priorities for this phase:

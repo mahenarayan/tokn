@@ -105,3 +105,20 @@ test("fixture: OpenInference trace imports into agent summary and aggregate repo
   assert.equal(report.sourceType, "openinference-trace");
   assert.equal(report.segments.length, 2);
 });
+
+test("fixture: high-pressure request emits actionable suggestions", () => {
+  const report = analyzePayload(readFixture("suggestions-high-pressure.json"));
+
+  const codes = report.suggestions.map((suggestion) => suggestion.code);
+  assert.ok(codes.includes("tool-schema-heavy"));
+  assert.ok(codes.includes("assistant-history-heavy"));
+  assert.ok(codes.includes("retrieval-context-heavy"));
+  assert.ok(codes.includes("provider-overhead-heavy"));
+  assert.ok(codes.includes("budget-pressure-high"));
+  assert.ok(codes.includes("repeated-large-segments"));
+});
+
+test("fixture: low-pressure request can still produce zero suggestions", () => {
+  const report = analyzePayload(readFixture("anthropic-request.json"));
+  assert.deepEqual(report.suggestions, []);
+});

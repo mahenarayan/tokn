@@ -273,6 +273,63 @@ test("analyzes Anthropic payloads with top-level system and tool blocks", () => 
   assert.ok(report.segments.some((segment) => segment.type === "tool_result"));
 });
 
+test("adds deterministic suggestions for high-pressure prompt composition", () => {
+  const report = analyzePayload({
+    model: "gpt-4o",
+    messages: [
+      {
+        role: "assistant",
+        content:
+          "Carry forward the parser findings, the retrieval sizing notes, and the unresolved cleanup items. ".repeat(16)
+      },
+      {
+        role: "user",
+        content: [
+          {
+            type: "document_chunk",
+            text:
+              "Retriever excerpt: the analyzer keeps the segment taxonomy stable and falls back to conservative estimates when provider token totals are missing. ".repeat(8)
+          },
+          {
+            type: "document_chunk",
+            text:
+              "Retriever excerpt: the analyzer keeps the segment taxonomy stable and falls back to conservative estimates when provider token totals are missing. ".repeat(8)
+          }
+        ]
+      }
+    ],
+    tools: [
+      {
+        type: "function",
+        function: {
+          name: "searchWorkspace",
+          description:
+            "Search the workspace and preserve enough surrounding source context to explain prompt classification decisions. ".repeat(12)
+        }
+      }
+    ],
+    usage: { prompt_tokens: 112000 }
+  });
+
+  const codes = report.suggestions.map((suggestion) => suggestion.code);
+
+  assert.ok(codes.includes("assistant-history-heavy"));
+  assert.ok(codes.includes("retrieval-context-heavy"));
+  assert.ok(codes.includes("provider-overhead-heavy"));
+  assert.ok(codes.includes("budget-pressure-high"));
+  assert.ok(codes.includes("repeated-large-segments"));
+});
+
+test("does not add suggestions for low-pressure payloads", () => {
+  const report = analyzePayload({
+    anthropic_version: "2023-06-01",
+    model: "claude-3-5-sonnet-latest",
+    messages: [{ role: "user", content: "Inspect the budget." }]
+  });
+
+  assert.deepEqual(report.suggestions, []);
+});
+
 test("analyzeAgentSnapshot accepts OTLP/OpenInference-shaped traces", () => {
   const summary = analyzeAgentSnapshot({
     resourceSpans: [

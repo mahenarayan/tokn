@@ -1,0 +1,23 @@
+Source: openai-messages
+Provider: openai
+Model: gpt-4o
+Input tokens: 112000 (exact)
+Headroom: 11904 remaining
+Risk: high (87.5%)
+
+Segments:
+- Provider overhead: 110925 tokens | provider_overhead | provider-reported | keep
+- Declared tools: 375 tokens | tool_schema | provider-reported | cache
+- assistant message 2: 300 tokens | assistant_history | provider-reported | summarize
+- user message 3 part 2: 182 tokens | retrieval_context | provider-reported | cache
+- user message 3 part 3: 182 tokens | retrieval_context | provider-reported | cache
+- system message 1: 20 tokens | system | provider-reported | keep
+- user message 3 part 1: 16 tokens | user | provider-reported | drop
+
+Suggestions:
+- [warning] Tool schema uses 375 tokens (34.9%) of visible context. Review whether every declared tool needs to be present in this request.
+- [warning] Assistant history uses 300 tokens (27.9%) of visible context. Older assistant turns may be crowding out the current task.
+- [warning] Retrieval context uses 364 tokens (33.9%) of visible context. Retrieved material may be dominating the prompt.
+- [warning] Provider overhead accounts for 110925 tokens (99.0%) of total input. Hidden request framing or serialization overhead is materially above the visible segments.
+- [warning] Input usage is at 87.5% of the model context window. Small prompt growth may push this request into truncation or summarization decisions.
+- [info] Repeated retrieval context content appears 2 times and accounts for 364 tokens (33.9%) of visible context. Duplicate context may be inflating the prompt.

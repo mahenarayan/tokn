@@ -1,0 +1,79 @@
+{
+  "agents": [
+    {
+      "id": "planner",
+      "model": "gpt-4o",
+      "payload": {
+        "model": "gpt-4o",
+        "messages": [
+          {
+            "role": "system",
+            "content": "Explain context pressure conservatively and call out the dominant segments."
+          },
+          {
+            "role": "assistant",
+            "content": "Carry forward the parser findings, the retrieval sizing notes, and the unresolved cleanup items. Carry forward the parser findings, the retrieval sizing notes, and the unresolved cleanup items. Carry forward the parser findings, the retrieval sizing notes, and the unresolved cleanup items. Carry forward the parser findings, the retrieval sizing notes, and the unresolved cleanup items. Carry forward the parser findings, the retrieval sizing notes, and the unresolved cleanup items. Carry forward the parser findings, the retrieval sizing notes, and the unresolved cleanup items. Carry forward the parser findings, the retrieval sizing notes, and the unresolved cleanup items. Carry forward the parser findings, the retrieval sizing notes, and the unresolved cleanup items. Carry forward the parser findings, the retrieval sizing notes, and the unresolved cleanup items. Carry forward the parser findings, the retrieval sizing notes, and the unresolved cleanup items. Carry forward the parser findings, the retrieval sizing notes, and the unresolved cleanup items. Carry forward the parser findings, the retrieval sizing notes, and the unresolved cleanup items."
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "Audit the prompt for context pressure and duplicate context."
+              },
+              {
+                "type": "document_chunk",
+                "text": "Retriever excerpt: the analyzer keeps the segment taxonomy stable, preserves confidence labels, and falls back to conservative estimates when provider token totals are missing. Retriever excerpt: the analyzer keeps the segment taxonomy stable, preserves confidence labels, and falls back to conservative estimates when provider token totals are missing. Retriever excerpt: the analyzer keeps the segment taxonomy stable, preserves confidence labels, and falls back to conservative estimates when provider token totals are missing. Retriever excerpt: the analyzer keeps the segment taxonomy stable, preserves confidence labels, and falls back to conservative estimates when provider token totals are missing."
+              },
+              {
+                "type": "document_chunk",
+                "text": "Retriever excerpt: the analyzer keeps the segment taxonomy stable, preserves confidence labels, and falls back to conservative estimates when provider token totals are missing. Retriever excerpt: the analyzer keeps the segment taxonomy stable, preserves confidence labels, and falls back to conservative estimates when provider token totals are missing. Retriever excerpt: the analyzer keeps the segment taxonomy stable, preserves confidence labels, and falls back to conservative estimates when provider token totals are missing. Retriever excerpt: the analyzer keeps the segment taxonomy stable, preserves confidence labels, and falls back to conservative estimates when provider token totals are missing."
+              }
+            ]
+          }
+        ],
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "searchWorkspace",
+              "description": "Search the workspace for parser, tokenizer, retriever, and prompt-budget related files. Include enough surrounding source context to explain why a segment was classified the way it was. Search the workspace for parser, tokenizer, retriever, and prompt-budget related files. Include enough surrounding source context to explain why a segment was classified the way it was."
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "loadTraceExport",
+              "description": "Load a trace export and preserve agent relationships, token metadata, retriever material, tool calls, and model identifiers. Load a trace export and preserve agent relationships, token metadata, retriever material, tool calls, and model identifiers. Load a trace export and preserve agent relationships, token metadata, retriever material, tool calls, and model identifiers."
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "comparePromptWindows",
+              "description": "Compare prompt windows across runs and highlight duplicate retrieval chunks, repeated assistant turns, hidden provider overhead, and oversized tool declarations. Compare prompt windows across runs and highlight duplicate retrieval chunks, repeated assistant turns, hidden provider overhead, and oversized tool declarations. Compare prompt windows across runs and highlight duplicate retrieval chunks, repeated assistant turns, hidden provider overhead, and oversized tool declarations."
+            }
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 112000
+        }
+      }
+    },
+    {
+      "id": "worker-a",
+      "parentAgentId": "planner",
+      "model": "claude-3-5-sonnet-latest",
+      "payload": {
+        "anthropic_version": "2023-06-01",
+        "model": "claude-3-5-sonnet-latest",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Check whether the analyzer still handles tool_result segments correctly."
+          }
+        ]
+      }
+    }
+  ]
+}

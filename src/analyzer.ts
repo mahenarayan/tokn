@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { getModelLimit } from "./models.js";
 import { asArray, isObject } from "./helpers.js";
+import { buildSuggestions } from "./suggestions.js";
 import { estimateJsonTokens, estimateTextTokens } from "./tokenizer.js";
 import type {
   AgentSnapshot,
@@ -704,14 +705,14 @@ function finalizeReport(
   }
 
   const totalInputTokens = exactTotal ?? segments.reduce((sum, segment) => sum + segment.tokenCount, 0);
-  const totalConfidence =
+  const totalConfidence: CountConfidence =
     exactTotal !== undefined
       ? "exact"
       : segments.some((segment) => segment.confidence === "heuristic")
         ? "heuristic"
         : "tokenizer-based";
 
-  return {
+  const reportWithoutSuggestions: Omit<ContextReport, "suggestions"> = {
     sourceType,
     segments,
     totalInputTokens,
@@ -721,6 +722,11 @@ function finalizeReport(
     ...(model ? { model } : {}),
     ...(provider ? { provider } : {}),
     ...(metadata ? { metadata } : {})
+  };
+
+  return {
+    ...reportWithoutSuggestions,
+    suggestions: buildSuggestions(reportWithoutSuggestions)
   };
 }
 
