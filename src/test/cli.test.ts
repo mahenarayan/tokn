@@ -179,6 +179,58 @@ test("cli inspect --json includes suggestions", () => {
   assert.ok((output.suggestions as unknown[]).length > 0);
 });
 
+test("cli inspect supports --format markdown", () => {
+  const output = runCli(["inspect", "fixtures/suggestions-high-pressure.json", "--format", "markdown"]);
+  assert.equal(output, readGolden("inspect-suggestions.md"));
+});
+
+test("cli diff supports --format markdown", () => {
+  const output = runCli(["diff", "fixtures/turn-1.json", "fixtures/turn-2.json", "--format", "markdown"]);
+  assert.equal(output, readGolden("diff-turns.md"));
+});
+
+test("cli budget supports --format markdown", () => {
+  const output = runCli([
+    "budget",
+    "fixtures/anthropic-request.json",
+    "--model",
+    "claude-3-5-sonnet-latest",
+    "--format",
+    "markdown"
+  ]);
+  assert.equal(output, readGolden("budget-anthropic.md"));
+});
+
+test("cli agent-report supports --format markdown", () => {
+  const output = runCli([
+    "agent-report",
+    "fixtures/agent-snapshot-suggestions.json",
+    "--format",
+    "markdown"
+  ]);
+  assert.equal(output, readGolden("agent-report-suggestions.md"));
+});
+
+test("cli inspect supports --format json as an alias for json output", () => {
+  const output = runCliJson(["inspect", "fixtures/openai-request.json", "--format", "json"]) as Record<string, unknown>;
+
+  assert.equal(output.sourceType, "openai-messages");
+  assert.equal(output.totalInputTokens, 164);
+});
+
+test("cli rejects conflicting --json and --format markdown", () => {
+  const result = runCliProcess([
+    "inspect",
+    "fixtures/openai-request.json",
+    "--json",
+    "--format",
+    "markdown"
+  ]);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /--json cannot be combined with a non-json --format/);
+});
+
 test("cli check passes when thresholds are satisfied", () => {
   const result = runCliProcess([
     "check",

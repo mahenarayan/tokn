@@ -77,6 +77,7 @@ Preferred day-to-day loop:
 - When adding a new supported payload shape, add both analyzer coverage and at least one fixture-backed test.
 - When changing CLI behavior, update or add CLI integration tests.
 - When changing CLI flags or output modes, verify both text and `--json` paths.
+- When changing output format behavior, verify markdown output with golden files.
 - When changing `orqis check`, verify both pass and fail exit-code paths.
 - When changing package metadata, exports, README installation instructions, or public docs, verify the package path with `npm run pack:check`.
 - When changing suggestion rules, keep one high-pressure fixture and one no-suggestion fixture in coverage.
@@ -115,6 +116,7 @@ If you change formatting or command output:
 - run the relevant CLI command locally
 - update the matching file in `fixtures/golden/`
 - ensure `src/test/cli.test.ts` still passes
+- if markdown output changed, update the corresponding `.md` golden files too
 
 If you change analyzer behavior:
 
@@ -150,7 +152,6 @@ If you change public-facing documentation or packaging behavior:
 High-value extensions should usually be one of:
 
 - richer provider adapters
-- markdown or shareable report output
 - example-driven usage docs
 - stronger model metadata coverage
 - more realistic fixtures from real-world conversations

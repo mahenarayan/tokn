@@ -21,6 +21,7 @@ Orqis is in public alpha.
 - surface deterministic suggestions for high-pressure context
 - fail CI-friendly threshold checks with `orqis check`
 - feed machine-readable output into CI or editor tooling with `--json`
+- generate shareable GitHub-friendly output with `--format markdown`
 
 ## Supported Inputs
 
@@ -61,9 +62,13 @@ orqis inspect ./fixtures/openai-request.json
 ```bash
 orqis inspect ./fixtures/openai-request.json
 orqis inspect ./fixtures/openai-request.json --json
+orqis inspect ./fixtures/suggestions-high-pressure.json --format markdown
 orqis diff ./fixtures/turn-1.json ./fixtures/turn-2.json
+orqis diff ./fixtures/turn-1.json ./fixtures/turn-2.json --format markdown
 orqis budget ./fixtures/anthropic-request.json --model claude-3-5-sonnet-latest
+orqis budget ./fixtures/anthropic-request.json --model claude-3-5-sonnet-latest --format markdown
 orqis agent-report ./fixtures/agent-snapshot.json
+orqis agent-report ./fixtures/agent-snapshot-suggestions.json --format markdown
 orqis check ./fixtures/suggestions-high-pressure.json --max-total-tokens 100000 --max-usage-percent 80 --max-segment-tokens tool_schema=300 --fail-on-risk medium
 ```
 
@@ -75,6 +80,7 @@ orqis check ./fixtures/suggestions-high-pressure.json --max-total-tokens 100000 
 - Reports remaining context window headroom for known models
 - Surfaces deterministic read-only suggestions for high-pressure reports
 - Supports threshold-based CI checks with deterministic exit codes
+- Supports `--format markdown` for shareable report output
 - Summarizes multi-agent context snapshots in read-only mode
 
 ## SDK

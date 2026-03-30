@@ -16,6 +16,7 @@ ADRs are for decisions that should remain understandable even after the original
 - [0006 Public Alpha OSS Contract](/Users/raksha/Documents/Projects/probe/docs/adr/0006-public-alpha-oss-contract.md)
 - [0007 Suggestions Embedded In Context Reports](/Users/raksha/Documents/Projects/probe/docs/adr/0007-suggestions-in-context-report.md)
 - [0008 Threshold-Based Check Command](/Users/raksha/Documents/Projects/probe/docs/adr/0008-threshold-based-check-command.md)
+- [0009 Multi-Format CLI Output](/Users/raksha/Documents/Projects/probe/docs/adr/0009-multi-format-cli-output.md)
 
 ## Rules
 
