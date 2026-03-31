@@ -28,6 +28,7 @@ Do not expand the scope casually into hosted observability, policy enforcement, 
 - `docs/architecture.md`: high-level architecture and boundaries
 - `docs/spec-driven-development.md`: required workflow for non-trivial changes
 - `docs/specs/`: implementation specs for major work
+- `docs/examples/`: executable example workflows tied to checked-in fixtures
 - `docs/adr/`: architecture decision records
 - `.github/workflows/ci.yml`: CI workflow for `main` and pull requests
 - `CONTRIBUTING.md`: contributor workflow and expectations
@@ -83,6 +84,7 @@ Preferred day-to-day loop:
 - When changing suggestion rules, keep one high-pressure fixture and one no-suggestion fixture in coverage.
 - Do not assume provider payload shapes from memory when official docs or real fixtures can be checked.
 - For provider-adapter work, prefer an official-shape fixture over an invented object.
+- For example-driven docs, prefer existing fixtures and runnable commands over pasted output screenshots or invented transcripts.
 - For major changes, write or update a spec under `docs/specs/` or use the spec template under `docs/templates/`.
 - For major lasting decisions, add or update an ADR under `docs/adr/`.
 - Treat public documentation as product surface once published.
@@ -136,6 +138,7 @@ If you change provider adapters:
 If you change public-facing documentation or packaging behavior:
 
 - update `README.md` if install, supported inputs, or limitations changed
+- update `docs/examples/` when a new adoption path becomes important enough to demo publicly
 - update `CHANGELOG.md` when the change is release-worthy
 - verify `npm run pack:check`
 
