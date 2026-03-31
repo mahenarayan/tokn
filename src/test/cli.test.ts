@@ -109,6 +109,22 @@ test("cli agent-report supports trace fixtures", () => {
   assert.match(output, /parent=planner/);
 });
 
+test("cli inspect supports Langfuse trace fixtures", () => {
+  const output = runCli(["inspect", "fixtures/langfuse-trace.json"]);
+
+  assert.match(output, /Source: langfuse-trace/);
+  assert.match(output, /Agent planner/);
+  assert.match(output, /Agent worker-a/);
+});
+
+test("cli agent-report supports Langfuse trace fixtures", () => {
+  const output = runCli(["agent-report", "fixtures/langfuse-trace.json"]);
+
+  assert.match(output, /planner:/);
+  assert.match(output, /worker-a:/);
+  assert.match(output, /parent=planner/);
+});
+
 test("cli inspect supports --json", () => {
   const output = runCliJson(["inspect", "fixtures/openai-request.json", "--json"]) as Record<string, unknown>;
 

@@ -146,7 +146,7 @@ If you change public-facing documentation or packaging behavior:
 
 - Model limits are local registry data, not live provider metadata.
 - Token accounting is approximate unless usage is provider-reported.
-- Agent support is snapshot-based; it is not a live orchestration protocol.
+- Agent support is snapshot and trace-import based; it is not a live orchestration protocol.
 - CI is intentionally minimal and only runs the Node test suite.
 - Orqis is public alpha software; prefer explicit scope and compatibility notes over marketing language.
 
