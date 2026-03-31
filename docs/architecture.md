@@ -98,6 +98,7 @@ Current architecture supports:
 - transcript-style offline conversations
 - handcrafted `agents[]` snapshots
 - OTLP/OpenInference-shaped trace exports
+- Langfuse full trace payloads
 
 All of these must converge into the same internal segment/report model.
 
@@ -126,7 +127,7 @@ These are treated as architectural contracts:
 - `src/analyzer.ts` is growing into a large module and will likely need adapter extraction.
 - model registry data is still local and static
 - token estimation remains heuristic in many paths
-- trace import currently targets OpenInference-style attributes, not every OpenTelemetry variant
+- trace import currently supports OpenInference-style exports and Langfuse full trace payloads, but not every ecosystem export variant
 
 ## Extension Strategy
 

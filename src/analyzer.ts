@@ -24,6 +24,19 @@ interface NormalizedTraceSpan {
   attributes: Record<string, unknown>;
 }
 
+interface NormalizedLangfuseObservation {
+  id: string;
+  parentObservationId?: string;
+  type: string;
+  name: string;
+  input?: unknown;
+  output?: unknown;
+  model?: string;
+  modelParameters?: unknown;
+  metadata?: Record<string, unknown>;
+  usageDetails?: Record<string, unknown>;
+}
+
 function stableHash(parts: Array<string | number | undefined>): string {
   const raw = parts.map((part) => String(part ?? "")).join("|");
   return createHash("sha1").update(raw).digest("hex").slice(0, 12);
@@ -181,6 +194,10 @@ function isTracePayload(payload: AnyObject): boolean {
     Array.isArray(payload.scopeSpans) ||
     Array.isArray(payload.spans)
   );
+}
+
+function isLangfuseTracePayload(payload: AnyObject): boolean {
+  return Array.isArray(payload.observations);
 }
 
 function partTypeToSegmentType(partType: string, fallbackType: SegmentType): SegmentType {
@@ -586,6 +603,140 @@ function usageInputTokens(payload: AnyObject): number | undefined {
   return undefined;
 }
 
+function usageDetailInputTokens(details: unknown, legacyUsage?: unknown): number | undefined {
+  if (isObject(details)) {
+    const candidates = [
+      details.input,
+      details.prompt,
+      details.inputTokens,
+      details.promptTokens,
+      details.input_tokens,
+      details.prompt_tokens
+    ];
+
+    for (const candidate of candidates) {
+      if (typeof candidate === "number") {
+        return candidate;
+      }
+      if (typeof candidate === "string") {
+        const parsed = Number(candidate);
+        if (!Number.isNaN(parsed)) {
+          return parsed;
+        }
+      }
+    }
+  }
+
+  if (isObject(legacyUsage)) {
+    const candidates = [
+      legacyUsage.promptTokens,
+      legacyUsage.inputTokens,
+      legacyUsage.prompt_tokens,
+      legacyUsage.input_tokens
+    ];
+
+    for (const candidate of candidates) {
+      if (typeof candidate === "number") {
+        return candidate;
+      }
+      if (typeof candidate === "string") {
+        const parsed = Number(candidate);
+        if (!Number.isNaN(parsed)) {
+          return parsed;
+        }
+      }
+    }
+  }
+
+  return undefined;
+}
+
+function parseLangfuseMessages(input: unknown): Array<{ role: string; content: unknown }> | undefined {
+  const messages = Array.isArray(input)
+    ? input
+    : isObject(input) && Array.isArray(input.messages)
+      ? input.messages
+      : undefined;
+
+  if (!messages) {
+    return undefined;
+  }
+
+  const normalized: Array<{ role: string; content: unknown }> = [];
+  for (const message of messages) {
+    if (!isObject(message)) {
+      continue;
+    }
+
+    const role = typeof message.role === "string" ? message.role : "user";
+    const content =
+      message.content ?? (typeof message.text === "string" ? message.text : undefined);
+
+    if (content === undefined) {
+      continue;
+    }
+
+    normalized.push({ role, content });
+  }
+
+  return normalized.length > 0 ? normalized : undefined;
+}
+
+function extractLangfuseRetrievalTexts(value: unknown): string[] {
+  if (typeof value === "string") {
+    return [value];
+  }
+
+  if (Array.isArray(value)) {
+    return value.flatMap((entry) => extractLangfuseRetrievalTexts(entry));
+  }
+
+  if (isObject(value)) {
+    const nestedArrayKeys = ["documents", "results", "chunks", "items", "data"] as const;
+    for (const key of nestedArrayKeys) {
+      if (Array.isArray(value[key])) {
+        const nested = extractLangfuseRetrievalTexts(value[key]);
+        if (nested.length > 0) {
+          return nested;
+        }
+      }
+    }
+
+    const directTextKeys = ["content", "text", "pageContent", "document"] as const;
+    for (const key of directTextKeys) {
+      if (typeof value[key] === "string") {
+        return [value[key]];
+      }
+    }
+
+    return [JSON.stringify(value)];
+  }
+
+  if (value === undefined || value === null) {
+    return [];
+  }
+
+  return [String(value)];
+}
+
+function extractLangfuseToolSchemas(observation: NormalizedLangfuseObservation): unknown[] {
+  const schemas: unknown[] = [];
+
+  if (Array.isArray((observation as unknown as AnyObject).tools)) {
+    schemas.push(...(observation as unknown as AnyObject).tools as unknown[]);
+  }
+
+  if (isObject(observation.modelParameters) && Array.isArray(observation.modelParameters.tools)) {
+    schemas.push(...observation.modelParameters.tools);
+  }
+
+  if (isObject(observation.input) && Array.isArray(observation.input.tools)) {
+    schemas.push(...observation.input.tools);
+  }
+
+  return schemas;
+}
+
 function getTraceString(attributes: Record<string, unknown>, ...keys: string[]): string | undefined {
   for (const key of keys) {
     const value = attributes[key];
@@ -921,6 +1072,380 @@ function analyzeTranscript(payload: AnyObject): ContextReport {
   });
 
   return finalizeReport("transcript", model, provider, segments, warnings);
+}
+
+function normalizeLangfuseObservation(entry: unknown, index: number): NormalizedLangfuseObservation | undefined {
+  if (!isObject(entry)) {
+    return undefined;
+  }
+
+  return {
+    id:
+      typeof entry.id === "string" && entry.id.length > 0
+        ? entry.id
+        : `langfuse-observation-${index + 1}`,
+    ...(typeof entry.parentObservationId === "string" && entry.parentObservationId.length > 0
+      ? { parentObservationId: entry.parentObservationId }
+      : {}),
+    type:
+      typeof entry.type === "string" && entry.type.length > 0
+        ? entry.type.toUpperCase()
+        : "SPAN",
+    name:
+      typeof entry.name === "string" && entry.name.length > 0
+        ? entry.name
+        : `observation-${index + 1}`,
+    ...(entry.input !== undefined ? { input: entry.input } : {}),
+    ...(entry.output !== undefined ? { output: entry.output } : {}),
+    ...(typeof entry.model === "string" && entry.model.length > 0 ? { model: entry.model } : {}),
+    ...(entry.modelParameters !== undefined ? { modelParameters: entry.modelParameters } : {}),
+    ...(isObject(entry.metadata) ? { metadata: entry.metadata } : {}),
+    ...(isObject(entry.usageDetails) ? { usageDetails: entry.usageDetails as Record<string, unknown> } : {})
+  };
+}
+
+function collectLangfuseObservationSubtree(
+  rootObservationId: string,
+  childrenByParentId: Map<string, NormalizedLangfuseObservation[]>,
+  stopAtAgentObservationIds: Set<string>
+): NormalizedLangfuseObservation[] {
+  const collected: NormalizedLangfuseObservation[] = [];
+  const stack = [...(childrenByParentId.get(rootObservationId) ?? [])];
+
+  while (stack.length > 0) {
+    const observation = stack.pop();
+    if (!observation) {
+      continue;
+    }
+
+    collected.push(observation);
+
+    if (stopAtAgentObservationIds.has(observation.id)) {
+      continue;
+    }
+
+    const children = childrenByParentId.get(observation.id) ?? [];
+    for (let index = children.length - 1; index >= 0; index -= 1) {
+      const child = children[index];
+      if (child) {
+        stack.push(child);
+      }
+    }
+  }
+
+  return collected;
+}
+
+function appendLangfuseObservationSegments(
+  segments: ContextSegment[],
+  observation: NormalizedLangfuseObservation,
+  exactPromptTokens: { value: number; exact: boolean },
+  modelInfo: { models: Set<string> },
+  externalContext: { value: boolean }
+): void {
+  const source = "langfuse-trace";
+
+  switch (observation.type) {
+    case "GENERATION": {
+      const messages = parseLangfuseMessages(observation.input);
+
+      if (messages) {
+        messages.forEach((message, index) => {
+          appendContentSegments(segments, {
+            baseId: `${observation.id}-message-${index + 1}`,
+            labelPrefix: `${message.role} message ${index + 1}`,
+            source,
+            role: message.role,
+            content: message.content,
+            confidence: "tokenizer-based",
+            defaultVisibility: "explicit",
+            defaultMetadata: {
+              observationId: observation.id,
+              observationName: observation.name,
+              observationType: observation.type,
+              index
+            }
+          });
+        });
+      } else if (observation.input !== undefined) {
+        appendContentSegments(segments, {
+          baseId: `${observation.id}-input`,
+          labelPrefix: `${observation.name} input`,
+          source,
+          role: "user",
+          content: observation.input,
+          confidence: "tokenizer-based",
+          defaultVisibility: "explicit",
+          defaultMetadata: {
+            observationId: observation.id,
+            observationName: observation.name,
+            observationType: observation.type
+          }
+        });
+      }
+
+      extractLangfuseToolSchemas(observation).forEach((toolSchema, index) => {
+        segments.push(
+          createSegment(
+            `${observation.id}-tool-${index + 1}`,
+            "tool_schema",
+            `Declared tools ${index + 1}`,
+            source,
+            JSON.stringify(toolSchema),
+            "heuristic",
+            "derived",
+            "cache",
+            "tool",
+            {
+              observationId: observation.id,
+              observationName: observation.name,
+              observationType: observation.type,
+              index
+            }
+          )
+        );
+      });
+
+      const promptTokens = usageDetailInputTokens(
+        observation.usageDetails,
+        (observation as unknown as AnyObject).usage
+      );
+      if (promptTokens !== undefined) {
+        exactPromptTokens.value += promptTokens;
+        exactPromptTokens.exact = true;
+      }
+
+      if (observation.model) {
+        modelInfo.models.add(observation.model);
+      }
+
+      return;
+    }
+
+    case "TOOL": {
+      if (observation.input !== undefined) {
+        segments.push(
+          createSegment(
+            `${observation.id}-tool-schema`,
+            "tool_schema",
+            observation.name,
+            source,
+            summarizeContent(observation.input),
+            "heuristic",
+            "derived",
+            "cache",
+            "tool",
+            {
+              observationId: observation.id,
+              observationName: observation.name,
+              observationType: observation.type
+            }
+          )
+        );
+      }
+
+      if (observation.output !== undefined) {
+        segments.push(
+          createSegment(
+            `${observation.id}-tool-result`,
+            "tool_result",
+            `tool result ${observation.name}`,
+            source,
+            summarizeContent(observation.output),
+            "tokenizer-based",
+            "derived",
+            "cache",
+            "tool",
+            {
+              observationId: observation.id,
+              observationName: observation.name,
+              observationType: observation.type
+            }
+          )
+        );
+      }
+
+      if (observation.input !== undefined || observation.output !== undefined) {
+        externalContext.value = true;
+      }
+
+      return;
+    }
+
+    case "RETRIEVER": {
+      const retrievalTexts = extractLangfuseRetrievalTexts(
+        observation.output ?? observation.input
+      );
+
+      retrievalTexts.forEach((text, index) => {
+        segments.push(
+          createSegment(
+            `${observation.id}-retrieval-${index + 1}`,
+            "retrieval_context",
+            `retrieval document ${index + 1}`,
+            source,
+            text,
+            "tokenizer-based",
+            "derived",
+            "cache",
+            undefined,
+            {
+              observationId: observation.id,
+              observationName: observation.name,
+              observationType: observation.type,
+              index
+            }
+          )
+        );
+      });
+
+      if (retrievalTexts.length > 0) {
+        externalContext.value = true;
+      }
+
+      return;
+    }
+
+    default:
+      return;
+  }
+}
+
+function analyzeLangfuseTraceSummary(payload: AnyObject): AgentSummary {
+  if (!Array.isArray(payload.observations)) {
+    throw new Error("Langfuse trace must contain an observations array.");
+  }
+
+  if (
+    payload.observations.length > 0 &&
+    payload.observations.every((entry) => typeof entry === "string")
+  ) {
+    throw new Error(
+      "Langfuse trace must include full observation objects from GET /api/public/traces/{traceId}."
+    );
+  }
+
+  const warnings: string[] = [];
+  const observations = payload.observations
+    .map((entry, index) => {
+      const normalized = normalizeLangfuseObservation(entry, index);
+      if (!normalized && entry !== undefined) {
+        warnings.push(`Ignored invalid Langfuse observation at index ${index}.`);
+      }
+      return normalized;
+    })
+    .filter((entry): entry is NormalizedLangfuseObservation => entry !== undefined);
+
+  if (observations.length === 0) {
+    throw new Error("Langfuse trace did not contain any full observation objects.");
+  }
+
+  const observationById = new Map(observations.map((observation) => [observation.id, observation]));
+  const childrenByParentId = new Map<string, NormalizedLangfuseObservation[]>();
+  for (const observation of observations) {
+    if (!observation.parentObservationId) {
+      continue;
+    }
+    const siblings = childrenByParentId.get(observation.parentObservationId) ?? [];
+    siblings.push(observation);
+    childrenByParentId.set(observation.parentObservationId, siblings);
+  }
+
+  const agentObservations = observations.filter((observation) => observation.type === "AGENT");
+  const rootAgentObservations =
+    agentObservations.length > 0
+      ? agentObservations
+      : observations.filter((observation) => !observation.parentObservationId);
+
+  if (agentObservations.length === 0) {
+    warnings.push("Langfuse trace did not contain AGENT observations; root observations were treated as agents.");
+  }
+
+  const stopAtAgentObservationIds = new Set(agentObservations.map((observation) => observation.id));
+
+  const agents = rootAgentObservations.map((agentObservation, index) => {
+    let parentAgentId: string | undefined;
+
+    if (agentObservation.parentObservationId) {
+      let currentParentId = agentObservation.parentObservationId;
+      while (currentParentId) {
+        const parentObservation = observationById.get(currentParentId);
+        if (!parentObservation) {
+          break;
+        }
+
+        if (parentObservation.type === "AGENT") {
+          parentAgentId = parentObservation.name;
+          break;
+        }
+
+        currentParentId = parentObservation.parentObservationId ?? "";
+      }
+    }
+
+    const observationsForAgent = collectLangfuseObservationSubtree(
+      agentObservation.id,
+      childrenByParentId,
+      stopAtAgentObservationIds
+    );
+
+    const reportWarnings: string[] = [];
+    const segments: ContextSegment[] = [];
+    const exactPromptTokens = { value: 0, exact: false };
+    const modelInfo = { models: new Set<string>() };
+    const externalContext = { value: false };
+
+    for (const observation of observationsForAgent) {
+      appendLangfuseObservationSegments(
+        segments,
+        observation,
+        exactPromptTokens,
+        modelInfo,
+        externalContext
+      );
+    }
+
+    if (segments.length === 0) {
+      reportWarnings.push(
+        `No prompt-bearing observations were found under Langfuse agent ${agentObservation.name}.`
+      );
+    }
+
+    const model = modelInfo.models.size === 1 ? [...modelInfo.models][0] : undefined;
+    const exactTotal =
+      exactPromptTokens.exact && !externalContext.value ? exactPromptTokens.value : undefined;
+
+    if (exactPromptTokens.exact && externalContext.value) {
+      reportWarnings.push(
+        "Generation input token totals were present, but external retriever/tool observations were also included; total input tokens are estimated conservatively."
+      );
+    }
+
+    const report = finalizeReport(
+      "langfuse-trace",
+      model,
+      "langfuse",
+      segments,
+      reportWarnings,
+      { observationId: agentObservation.id, observationName: agentObservation.name },
+      exactTotal
+    );
+
+    return {
+      id: agentObservation.name,
+      ...(parentAgentId ? { parentAgentId } : {}),
+      ...(model ? { model } : {}),
+      provider: "langfuse",
+      report,
+      metadata: {
+        langfuseObservationId: agentObservation.id,
+        langfuseObservationType: agentObservation.type,
+        langfuseAgentIndex: index
+      }
+    };
+  });
+
+  return { agents, warnings };
 }
 
 function collectTraceSpans(container: AnyObject, spans: NormalizedTraceSpan[]): void {
@@ -1381,7 +1906,11 @@ function analyzeTraceSummary(payload: AnyObject): AgentSummary {
 
 function analyzeAgentPayload(payload: AnyObject): ContextReport {
   const summary = analyzeAgentSnapshot(payload);
-  const sourceType = isTracePayload(payload) ? "openinference-trace" : "agent-snapshot";
+  const sourceType = isTracePayload(payload)
+    ? "openinference-trace"
+    : isLangfuseTracePayload(payload)
+      ? "langfuse-trace"
+      : "agent-snapshot";
   const segments = summary.agents.map((agent, index) =>
     createSegment(
       `agent-${index + 1}`,
@@ -1409,7 +1938,13 @@ function analyzeAgentPayload(payload: AnyObject): ContextReport {
     summary.agents.length === 1 ? summary.agents[0]?.model : undefined;
   const warnings = [
     ...summary.warnings,
-    `${sourceType === "openinference-trace" ? "Trace export" : "Agent snapshot"} aggregated into a single context report. Use agent-report for per-agent detail.`
+    `${
+      sourceType === "openinference-trace"
+        ? "Trace export"
+        : sourceType === "langfuse-trace"
+          ? "Langfuse trace"
+          : "Agent snapshot"
+    } aggregated into a single context report. Use agent-report for per-agent detail.`
   ];
 
   return finalizeReport(
@@ -1457,6 +1992,10 @@ export function analyzeAgentSnapshot(payload: unknown): AgentSummary {
     return analyzeTraceSummary(payload);
   }
 
+  if (isLangfuseTracePayload(payload)) {
+    return analyzeLangfuseTraceSummary(payload);
+  }
+
   if (!Array.isArray(payload.agents)) {
     throw new Error("Agent snapshot must contain an agents array.");
   }
@@ -1482,6 +2021,10 @@ export function analyzePayload(payload: unknown): ContextReport {
     return analyzeAgentPayload(payload);
   }
 
+  if (isLangfuseTracePayload(payload)) {
+    return analyzeAgentPayload(payload);
+  }
+
   if (Array.isArray(payload.agents)) {
     return analyzeAgentPayload(payload);
   }
@@ -1503,7 +2046,7 @@ export function analyzePayload(payload: unknown): ContextReport {
   }
 
   throw new Error(
-    "Unsupported payload shape. Expected messages, input, transcript/conversation/turns, or agent snapshot."
+    "Unsupported payload shape. Expected messages, input, transcript/conversation/turns, Langfuse trace, OpenInference trace, or agent snapshot."
   );
 }
 

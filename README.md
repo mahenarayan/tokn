@@ -2,7 +2,7 @@
 
 Context visibility for LLMs and agents.
 
-Orqis is a TypeScript CLI + SDK for inspecting what occupies an LLM prompt window. It normalizes OpenAI-style payloads, Anthropic messages, OpenAI Responses-style payloads, generic transcripts, agent snapshots, and OpenInference-style traces into a single context report so engineers can reason about token pressure, prompt composition, and remaining headroom.
+Orqis is a TypeScript CLI + SDK for inspecting what occupies an LLM prompt window. It normalizes OpenAI-style payloads, Anthropic messages, OpenAI Responses-style payloads, generic transcripts, agent snapshots, OpenInference-style traces, and Langfuse full trace payloads into a single context report so engineers can reason about token pressure, prompt composition, and remaining headroom.
 
 ## Status
 
@@ -31,12 +31,13 @@ Orqis is in public alpha.
 - offline transcripts
 - handcrafted agent snapshots
 - OTLP/OpenInference-shaped trace exports
+- Langfuse full trace payloads from `GET /api/public/traces/{traceId}`
 
 ## Current Limits
 
 - token counts are approximate unless the provider reports usage
 - model limits are local registry data
-- trace import currently targets OpenInference-style attributes, not every OpenTelemetry variant
+- trace import currently supports OpenInference-style exports and Langfuse full trace payloads, not every ecosystem export variant
 - v1 is intentionally read-only
 
 ## Install For Local Use
@@ -69,6 +70,7 @@ orqis budget ./fixtures/anthropic-request.json --model claude-3-5-sonnet-latest
 orqis budget ./fixtures/anthropic-request.json --model claude-3-5-sonnet-latest --format markdown
 orqis agent-report ./fixtures/agent-snapshot.json
 orqis agent-report ./fixtures/agent-snapshot-suggestions.json --format markdown
+orqis agent-report ./fixtures/langfuse-trace.json --format markdown
 orqis check ./fixtures/suggestions-high-pressure.json --max-total-tokens 100000 --max-usage-percent 80 --max-segment-tokens tool_schema=300 --fail-on-risk medium
 ```
 

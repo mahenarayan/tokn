@@ -1,0 +1,196 @@
+{
+  "id": "trace-langfuse-1",
+  "name": "repository-context-audit",
+  "timestamp": "2026-03-31T10:00:00.000Z",
+  "tags": [
+    "agents",
+    "context"
+  ],
+  "public": false,
+  "environment": "default",
+  "htmlPath": "/project/traces/trace-langfuse-1",
+  "input": "Inspect the repository and delegate work.",
+  "output": "Delegated parser analysis to worker-a.",
+  "metadata": {
+    "feature": "orqis"
+  },
+  "observations": [
+    {
+      "id": "obs-agent-planner",
+      "traceId": "trace-langfuse-1",
+      "type": "AGENT",
+      "name": "planner",
+      "startTime": "2026-03-31T10:00:00.000Z",
+      "endTime": "2026-03-31T10:00:08.000Z",
+      "model": null,
+      "modelParameters": {},
+      "input": {
+        "task": "Inspect the repository and delegate work."
+      },
+      "version": null,
+      "metadata": {
+        "framework": "manual"
+      },
+      "output": {
+        "status": "delegated"
+      },
+      "usage": {},
+      "level": "DEFAULT",
+      "statusMessage": null,
+      "parentObservationId": null,
+      "promptId": null,
+      "usageDetails": {},
+      "costDetails": {},
+      "environment": "default"
+    },
+    {
+      "id": "obs-gen-planner",
+      "traceId": "trace-langfuse-1",
+      "type": "GENERATION",
+      "name": "plan",
+      "startTime": "2026-03-31T10:00:01.000Z",
+      "endTime": "2026-03-31T10:00:03.000Z",
+      "model": "gpt-4o",
+      "modelParameters": {
+        "temperature": 0.2
+      },
+      "input": [
+        {
+          "role": "system",
+          "content": "Coordinate workers."
+        },
+        {
+          "role": "user",
+          "content": "Inspect the repository and delegate work."
+        }
+      ],
+      "version": null,
+      "metadata": {},
+      "output": "Assign parser analysis to worker-a.",
+      "usage": {},
+      "level": "DEFAULT",
+      "statusMessage": null,
+      "parentObservationId": "obs-agent-planner",
+      "promptId": null,
+      "usageDetails": {
+        "input": 52,
+        "output": 20,
+        "total": 72
+      },
+      "costDetails": {},
+      "environment": "default"
+    },
+    {
+      "id": "obs-retriever-planner",
+      "traceId": "trace-langfuse-1",
+      "type": "RETRIEVER",
+      "name": "load-runbook",
+      "startTime": "2026-03-31T10:00:03.000Z",
+      "endTime": "2026-03-31T10:00:04.000Z",
+      "model": null,
+      "modelParameters": {},
+      "input": {
+        "query": "parser analyzer budget"
+      },
+      "version": null,
+      "metadata": {},
+      "output": [
+        {
+          "content": "src/analyzer.ts normalizes provider payloads and computes budget."
+        }
+      ],
+      "usage": {},
+      "level": "DEFAULT",
+      "statusMessage": null,
+      "parentObservationId": "obs-agent-planner",
+      "promptId": null,
+      "usageDetails": {},
+      "costDetails": {},
+      "environment": "default"
+    },
+    {
+      "id": "obs-agent-worker",
+      "traceId": "trace-langfuse-1",
+      "type": "AGENT",
+      "name": "worker-a",
+      "startTime": "2026-03-31T10:00:04.000Z",
+      "endTime": "2026-03-31T10:00:08.000Z",
+      "model": null,
+      "modelParameters": {},
+      "input": {
+        "task": "Check parser behavior."
+      },
+      "version": null,
+      "metadata": {},
+      "output": {
+        "status": "completed"
+      },
+      "usage": {},
+      "level": "DEFAULT",
+      "statusMessage": null,
+      "parentObservationId": "obs-agent-planner",
+      "promptId": null,
+      "usageDetails": {},
+      "costDetails": {},
+      "environment": "default"
+    },
+    {
+      "id": "obs-tool-worker",
+      "traceId": "trace-langfuse-1",
+      "type": "TOOL",
+      "name": "searchWorkspace",
+      "startTime": "2026-03-31T10:00:04.500Z",
+      "endTime": "2026-03-31T10:00:05.000Z",
+      "model": null,
+      "modelParameters": {},
+      "input": {
+        "query": "parser"
+      },
+      "version": null,
+      "metadata": {},
+      "output": "Found 3 parser-related files.",
+      "usage": {},
+      "level": "DEFAULT",
+      "statusMessage": null,
+      "parentObservationId": "obs-agent-worker",
+      "promptId": null,
+      "usageDetails": {},
+      "costDetails": {},
+      "environment": "default"
+    },
+    {
+      "id": "obs-gen-worker",
+      "traceId": "trace-langfuse-1",
+      "type": "GENERATION",
+      "name": "summarize-parser",
+      "startTime": "2026-03-31T10:00:05.000Z",
+      "endTime": "2026-03-31T10:00:07.000Z",
+      "model": "claude-3-5-sonnet-latest",
+      "modelParameters": {
+        "temperature": 0.1
+      },
+      "input": [
+        {
+          "role": "user",
+          "content": "Check parser behavior."
+        }
+      ],
+      "version": null,
+      "metadata": {},
+      "output": "The parser keeps stable segment identity across inserted turns.",
+      "usage": {},
+      "level": "DEFAULT",
+      "statusMessage": null,
+      "parentObservationId": "obs-agent-worker",
+      "promptId": null,
+      "usageDetails": {
+        "input": 18,
+        "output": 12,
+        "total": 30
+      },
+      "costDetails": {},
+      "environment": "default"
+    }
+  ],
+  "scores": []
+}

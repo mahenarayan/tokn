@@ -106,6 +106,20 @@ test("fixture: OpenInference trace imports into agent summary and aggregate repo
   assert.equal(report.segments.length, 2);
 });
 
+test("fixture: Langfuse trace imports into agent summary and aggregate report", () => {
+  const trace = readFixture("langfuse-trace.json");
+  const summary = analyzeAgentSnapshot(trace);
+  const report = analyzePayload(trace);
+
+  assert.equal(summary.agents.length, 2);
+  assert.equal(summary.agents[1]?.parentAgentId, "planner");
+  assert.equal(summary.agents[0]?.provider, "langfuse");
+  assert.ok(summary.agents[0]?.report?.segments.some((segment) => segment.type === "retrieval_context"));
+  assert.ok(summary.agents[1]?.report?.segments.some((segment) => segment.type === "tool_result"));
+  assert.equal(report.sourceType, "langfuse-trace");
+  assert.equal(report.segments.length, 2);
+});
+
 test("fixture: high-pressure request emits actionable suggestions", () => {
   const report = analyzePayload(readFixture("suggestions-high-pressure.json"));
 

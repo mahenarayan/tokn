@@ -273,6 +273,90 @@ test("analyzes Anthropic payloads with top-level system and tool blocks", () => 
   assert.ok(report.segments.some((segment) => segment.type === "tool_result"));
 });
 
+test("analyzes Langfuse traces with agent observations and conservative external-context accounting", () => {
+  const trace = {
+    id: "trace-langfuse-inline",
+    timestamp: "2026-03-31T12:00:00.000Z",
+    tags: [],
+    public: false,
+    environment: "default",
+    htmlPath: "/project/traces/trace-langfuse-inline",
+    observations: [
+      {
+        id: "agent-planner",
+        type: "AGENT",
+        name: "planner",
+        startTime: "2026-03-31T12:00:00.000Z",
+        endTime: "2026-03-31T12:00:05.000Z",
+        modelParameters: {},
+        input: { task: "Inspect the repo." },
+        metadata: {},
+        output: { status: "delegated" },
+        usage: {},
+        level: "DEFAULT",
+        usageDetails: {},
+        costDetails: {},
+        environment: "default"
+      },
+      {
+        id: "gen-planner",
+        type: "GENERATION",
+        parentObservationId: "agent-planner",
+        name: "plan",
+        startTime: "2026-03-31T12:00:01.000Z",
+        endTime: "2026-03-31T12:00:02.000Z",
+        model: "gpt-4o",
+        modelParameters: {},
+        input: [
+          { role: "system", content: "Coordinate workers." },
+          { role: "user", content: "Inspect the repo." }
+        ],
+        metadata: {},
+        output: "Delegate parser analysis.",
+        usage: {},
+        level: "DEFAULT",
+        usageDetails: { input: 40, output: 10, total: 50 },
+        costDetails: {},
+        environment: "default"
+      },
+      {
+        id: "ret-planner",
+        type: "RETRIEVER",
+        parentObservationId: "agent-planner",
+        name: "load-docs",
+        startTime: "2026-03-31T12:00:02.000Z",
+        endTime: "2026-03-31T12:00:03.000Z",
+        modelParameters: {},
+        input: { query: "parser" },
+        metadata: {},
+        output: [{ content: "src/analyzer.ts computes budget." }],
+        usage: {},
+        level: "DEFAULT",
+        usageDetails: {},
+        costDetails: {},
+        environment: "default"
+      }
+    ]
+  };
+
+  const summary = analyzeAgentSnapshot(trace);
+  const report = analyzePayload(trace);
+
+  assert.equal(summary.agents.length, 1);
+  assert.equal(summary.agents[0]?.provider, "langfuse");
+  assert.equal(summary.agents[0]?.report?.sourceType, "langfuse-trace");
+  assert.ok(summary.agents[0]?.report?.segments.some((segment) => segment.type === "system"));
+  assert.ok(summary.agents[0]?.report?.segments.some((segment) => segment.type === "retrieval_context"));
+  assert.ok(
+    summary.agents[0]?.report?.warnings.some((warning) =>
+      warning.includes("estimated conservatively")
+    )
+  );
+  assert.equal(report.sourceType, "langfuse-trace");
+  assert.equal(report.provider, undefined);
+  assert.ok(report.warnings.some((warning) => warning.includes("Langfuse trace")));
+});
+
 test("adds deterministic suggestions for high-pressure prompt composition", () => {
   const report = analyzePayload({
     model: "gpt-4o",
