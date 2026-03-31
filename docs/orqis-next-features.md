@@ -10,6 +10,11 @@ npm publishing and release automation are intentionally deferred until the MVP p
 
 The goal of the next phase is to make Orqis useful on real production payloads and traces, while preserving the current read-only product boundary.
 
+Security note:
+
+- LiteLLM-specific adapter work is deferred as of March 31, 2026 following the March 24, 2026 malicious PyPI release incident.
+- The next adapter priority is OpenAI-compatible request logs.
+
 Priorities for this phase:
 
 1. improve adapter realism
@@ -163,3 +168,12 @@ For every milestone:
 3. OpenTelemetry/OpenInference trace import
 4. suggestion engine
 5. model registry refactor
+
+## Current Adapter Focus
+
+- completed: OpenAI Responses-style payloads
+- completed: richer Anthropic payloads
+- completed: OpenInference trace import
+- completed: Langfuse full trace import
+- next: OpenAI-compatible request logs
+- deferred: LiteLLM-specific adapter work pending a future security review

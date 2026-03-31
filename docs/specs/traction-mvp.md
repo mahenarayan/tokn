@@ -44,8 +44,12 @@ Candidate ecosystems should be chosen by practical adoption value, for example:
 
 - Langfuse exports
 - OpenInference/OpenTelemetry traces emitted by agent frameworks
-- common OpenAI-compatible runtime payloads
-- LiteLLM or editor/runtime exports if they can be verified with real fixtures
+- common OpenAI-compatible runtime payloads and request logs
+- editor or runtime exports if they can be verified with real fixtures
+
+Deferred for now:
+
+- LiteLLM-specific adapter work is deferred as of March 31, 2026 following the March 24, 2026 supply-chain incident, and should not be treated as the next adapter milestone.
 
 ## Outputs
 

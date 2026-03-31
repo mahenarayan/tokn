@@ -134,6 +134,7 @@ If you change provider adapters:
 - verify the shape against official provider documentation first
 - encode that shape in a fixture
 - keep unsupported or unknown fields conservative rather than guessing precise semantics
+- if an ecosystem has an active or recent security incident, prefer static fixture support and reconsider whether it should be a prioritized adapter target at all
 
 If you change public-facing documentation or packaging behavior:
 
@@ -158,3 +159,11 @@ High-value extensions should usually be one of:
 - example-driven usage docs
 - stronger model metadata coverage
 - more realistic fixtures from real-world conversations
+
+Current adapter priority:
+
+- OpenAI-compatible request logs
+
+Currently deferred:
+
+- LiteLLM-specific adapter work pending a future security review
