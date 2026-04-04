@@ -2,7 +2,7 @@
 
 Context visibility for LLMs and agents.
 
-Orqis is a TypeScript CLI + SDK for inspecting what occupies an LLM prompt window. It normalizes OpenAI-style payloads, Anthropic messages, OpenAI Responses-style payloads, generic transcripts, agent snapshots, OpenInference-style traces, and Langfuse full trace payloads into a single context report so engineers can reason about token pressure, prompt composition, and remaining headroom.
+Orqis is a TypeScript CLI + SDK for inspecting what occupies an LLM prompt window. It normalizes OpenAI-style payloads, OpenAI-compatible request logs, Anthropic messages, OpenAI Responses-style payloads, generic transcripts, agent snapshots, OpenInference-style traces, and Langfuse full trace payloads into a single context report so engineers can reason about token pressure, prompt composition, and remaining headroom.
 
 ## Status
 
@@ -26,6 +26,7 @@ Orqis is in public alpha.
 ## Supported Inputs
 
 - OpenAI-style chat payloads
+- OpenAI-compatible request logs
 - OpenAI Responses-style payloads
 - Anthropic structured message payloads
 - offline transcripts
@@ -63,6 +64,7 @@ orqis inspect ./fixtures/openai-request.json
 ```bash
 orqis inspect ./fixtures/openai-request.json
 orqis inspect ./fixtures/openai-request.json --json
+orqis inspect ./fixtures/openai-compatible-chat-log.json
 orqis inspect ./fixtures/suggestions-high-pressure.json --format markdown
 orqis diff ./fixtures/turn-1.json ./fixtures/turn-2.json
 orqis diff ./fixtures/turn-1.json ./fixtures/turn-2.json --format markdown
@@ -116,7 +118,7 @@ Project docs:
 - See [INSTRUCTIONS.md](/Users/raksha/Documents/Projects/probe/INSTRUCTIONS.md) for contributor and maintenance guidance.
 - See [architecture.md](/Users/raksha/Documents/Projects/probe/docs/architecture.md) for the system architecture.
 - See [spec-driven-development.md](/Users/raksha/Documents/Projects/probe/docs/spec-driven-development.md) for the development workflow.
-- See [openai-compatible-request-logs-v1.md](/Users/raksha/Documents/Projects/probe/docs/specs/openai-compatible-request-logs-v1.md) for the next adapter milestone.
+- See [openai-compatible-request-logs-v1.md](/Users/raksha/Documents/Projects/probe/docs/specs/openai-compatible-request-logs-v1.md) for the request-log adapter spec.
 - See [docs/examples/README.md](/Users/raksha/Documents/Projects/probe/docs/examples/README.md) for executable example workflows.
 - See [docs/adr/README.md](/Users/raksha/Documents/Projects/probe/docs/adr/README.md) for architectural decisions.
 - See [CONTRIBUTING.md](/Users/raksha/Documents/Projects/probe/CONTRIBUTING.md) for contribution rules.

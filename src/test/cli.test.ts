@@ -101,6 +101,22 @@ test("cli inspect supports OpenAI Responses-style fixtures", () => {
   assert.match(output, /attachment/);
 });
 
+test("cli inspect supports OpenAI-compatible chat log fixtures", () => {
+  const output = runCli(["inspect", "fixtures/openai-compatible-chat-log.json"]);
+
+  assert.match(output, /Source: openai-compatible-request-log/);
+  assert.match(output, /Provider: openai/);
+  assert.match(output, /Wrapped request body extracted from request_body/);
+});
+
+test("cli inspect supports OpenAI-compatible responses log fixtures", () => {
+  const output = runCli(["inspect", "fixtures/openai-compatible-responses-log.json"]);
+
+  assert.match(output, /Source: openai-compatible-request-log/);
+  assert.match(output, /Provider: openai/);
+  assert.match(output, /Wrapped request body extracted from body/);
+});
+
 test("cli agent-report supports trace fixtures", () => {
   const output = runCli(["agent-report", "fixtures/openinference-trace.json"]);
 

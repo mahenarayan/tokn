@@ -1,0 +1,8 @@
+{
+  "requestId": "responses-log-1",
+  "provider": "openai-proxy",
+  "method": "POST",
+  "path": "/v1/responses",
+  "statusCode": 200,
+  "body": "{\"model\":\"gpt-4.1\",\"instructions\":\"You are a platform engineering assistant.\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"Summarize the attached design.\"},{\"type\":\"input_image\",\"image_url\":\"https://example.com/cluster.png\"}]},{\"type\":\"function_call_output\",\"call_id\":\"call_123\",\"output\":\"{\\\"deployments\\\":4}\"}],\"tools\":[{\"type\":\"function\",\"function\":{\"name\":\"listClusterObjects\",\"description\":\"List cluster objects\"}}],\"usage\":{\"input_tokens\":220}}"
+}

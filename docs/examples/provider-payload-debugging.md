@@ -51,3 +51,26 @@ Why it matters:
 
 Provider payloads are not just plain chat history anymore.
 This is the fastest way to verify whether Orqis is classifying modern request structure the way you expect before you trust the rest of the diagnosis.
+
+## OpenAI-Compatible Request Log Example
+
+Fixture:
+
+- `fixtures/openai-compatible-chat-log.json`
+
+Command:
+
+```bash
+node dist/cli.js inspect fixtures/openai-compatible-chat-log.json
+```
+
+What this demonstrates:
+
+- wrapped request extraction from common log fields such as `request_body`
+- reuse of the normal OpenAI message analyzer after extraction
+- wrapper metadata preserved in report metadata instead of being misclassified as prompt segments
+
+Why it matters:
+
+Many gateways and wrappers persist request logs instead of raw provider payloads.
+This path lets you inspect those logs directly without hand-copying the nested request body first.
