@@ -1,0 +1,32 @@
+{
+  "id": "chat-log-1",
+  "provider": "gateway-openai",
+  "route": "/v1/chat/completions",
+  "timestamp": "2026-04-04T10:00:00.000Z",
+  "status": 200,
+  "request_body": {
+    "model": "gpt-4o",
+    "messages": [
+      {
+        "role": "system",
+        "content": "Explain prompt occupancy clearly."
+      },
+      {
+        "role": "user",
+        "content": "Inspect the build-debugging prompt."
+      }
+    ],
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "searchWorkspace",
+          "description": "Search the workspace for build, prompt, and token related files."
+        }
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 140
+    }
+  }
+}

@@ -37,6 +37,12 @@ interface NormalizedLangfuseObservation {
   usageDetails?: Record<string, unknown>;
 }
 
+interface ExtractedOpenAICompatibleRequestLog {
+  field: string;
+  requestBody: AnyObject;
+  wrapperMetadata?: Record<string, unknown>;
+}
+
 function stableHash(parts: Array<string | number | undefined>): string {
   const raw = parts.map((part) => String(part ?? "")).join("|");
   return createHash("sha1").update(raw).digest("hex").slice(0, 12);
@@ -198,6 +204,141 @@ function isTracePayload(payload: AnyObject): boolean {
 
 function isLangfuseTracePayload(payload: AnyObject): boolean {
   return Array.isArray(payload.observations);
+}
+
+function normalizeComparableValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((entry) => normalizeComparableValue(entry));
+  }
+
+  if (isObject(value)) {
+    const normalizedEntries = Object.entries(value)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, entryValue]) => [key, normalizeComparableValue(entryValue)] as const);
+    return Object.fromEntries(normalizedEntries);
+  }
+
+  return value;
+}
+
+function comparableJsonSignature(value: unknown): string {
+  return JSON.stringify(normalizeComparableValue(value));
+}
+
+function parseWrappedRequestCandidate(value: unknown): AnyObject | undefined {
+  if (isObject(value)) {
+    return value;
+  }
+
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  try {
+    const parsed = JSON.parse(value);
+    return isObject(parsed) ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function isOpenAICompatibleRequestBody(payload: AnyObject): boolean {
+  if ("anthropic_version" in payload || payload.type === "anthropic_request") {
+    return false;
+  }
+
+  return (
+    Array.isArray(payload.messages) ||
+    "input" in payload ||
+    Array.isArray(payload.output) ||
+    ("instructions" in payload && !Array.isArray(payload.messages))
+  );
+}
+
+function collectOpenAICompatibleLogMetadata(payload: AnyObject): Record<string, unknown> | undefined {
+  const metadataKeys = [
+    "id",
+    "request_id",
+    "requestId",
+    "provider",
+    "route",
+    "path",
+    "method",
+    "url",
+    "timestamp",
+    "created_at",
+    "createdAt",
+    "status",
+    "status_code",
+    "statusCode",
+    "response_status",
+    "responseStatus"
+  ] as const;
+
+  const metadata: Record<string, unknown> = {};
+  for (const key of metadataKeys) {
+    if (payload[key] !== undefined) {
+      metadata[key] = payload[key];
+    }
+  }
+
+  return Object.keys(metadata).length > 0 ? metadata : undefined;
+}
+
+function extractOpenAICompatibleRequestLog(
+  payload: AnyObject
+): ExtractedOpenAICompatibleRequestLog | undefined {
+  const candidateFields = ["request", "request_body", "body", "payload"] as const;
+  const presentFields = candidateFields.filter((field) => payload[field] !== undefined);
+
+  if (presentFields.length === 0) {
+    return undefined;
+  }
+
+  const candidates = presentFields.flatMap((field) => {
+    const parsed = parseWrappedRequestCandidate(payload[field]);
+    if (!parsed || !isOpenAICompatibleRequestBody(parsed)) {
+      return [];
+    }
+
+    return [
+      {
+        field,
+        requestBody: parsed,
+        signature: comparableJsonSignature(parsed)
+      }
+    ];
+  });
+
+  if (candidates.length === 0) {
+    throw new Error(
+      "OpenAI-compatible request log did not contain a recognizable wrapped request body under request, request_body, body, or payload."
+    );
+  }
+
+  const uniqueSignatures = [...new Set(candidates.map((candidate) => candidate.signature))];
+  if (uniqueSignatures.length > 1) {
+    throw new Error(
+      `Ambiguous OpenAI-compatible request log. Multiple wrapped request bodies were found under ${candidates.map((candidate) => candidate.field).join(", ")}.`
+    );
+  }
+
+  const selectedCandidate = candidates[0];
+  if (!selectedCandidate) {
+    return undefined;
+  }
+
+  const result: ExtractedOpenAICompatibleRequestLog = {
+    field: selectedCandidate.field,
+    requestBody: selectedCandidate.requestBody
+  };
+
+  const wrapperMetadata = collectOpenAICompatibleLogMetadata(payload);
+  if (wrapperMetadata) {
+    result.wrapperMetadata = wrapperMetadata;
+  }
+
+  return result;
 }
 
 function partTypeToSegmentType(partType: string, fallbackType: SegmentType): SegmentType {
@@ -878,6 +1019,33 @@ function finalizeReport(
   return {
     ...reportWithoutSuggestions,
     suggestions: buildSuggestions(reportWithoutSuggestions)
+  };
+}
+
+function analyzeOpenAICompatibleRequestLog(payload: AnyObject): ContextReport {
+  const extracted = extractOpenAICompatibleRequestLog(payload);
+  if (!extracted) {
+    throw new Error(
+      "OpenAI-compatible request log did not contain a recognizable wrapped request body under request, request_body, body, or payload."
+    );
+  }
+
+  const nestedReport = analyzePayload(extracted.requestBody);
+  const nestedMetadata = nestedReport.metadata;
+
+  return {
+    ...nestedReport,
+    sourceType: "openai-compatible-request-log",
+    warnings: [
+      ...nestedReport.warnings,
+      `Wrapped request body extracted from ${extracted.field} and analyzed as ${nestedReport.sourceType}.`
+    ],
+    metadata: {
+      wrapperField: extracted.field,
+      wrappedSourceType: nestedReport.sourceType,
+      ...(extracted.wrapperMetadata ? { wrapperMetadata: extracted.wrapperMetadata } : {}),
+      ...(nestedMetadata ? { wrappedReportMetadata: nestedMetadata } : {})
+    }
   };
 }
 
@@ -2045,8 +2213,13 @@ export function analyzePayload(payload: unknown): ContextReport {
     return analyzeTranscript(payload);
   }
 
+  const extractedRequestLog = extractOpenAICompatibleRequestLog(payload);
+  if (extractedRequestLog) {
+    return analyzeOpenAICompatibleRequestLog(payload);
+  }
+
   throw new Error(
-    "Unsupported payload shape. Expected messages, input, transcript/conversation/turns, Langfuse trace, OpenInference trace, or agent snapshot."
+    "Unsupported payload shape. Expected messages, input, transcript/conversation/turns, OpenAI-compatible request log, Langfuse trace, OpenInference trace, or agent snapshot."
   );
 }
 

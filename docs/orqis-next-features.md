@@ -175,5 +175,5 @@ For every milestone:
 - completed: richer Anthropic payloads
 - completed: OpenInference trace import
 - completed: Langfuse full trace import
-- next: OpenAI-compatible request logs
+- completed: OpenAI-compatible request logs
 - deferred: LiteLLM-specific adapter work pending a future security review

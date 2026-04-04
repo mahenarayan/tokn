@@ -245,6 +245,81 @@ test("analyzes OpenAI Responses payloads with instructions and structured input 
   assert.equal(report.totalInputTokens, 220);
 });
 
+test("analyzes OpenAI-compatible request logs that wrap chat-style payloads", () => {
+  const report = analyzePayload({
+    id: "log-chat-1",
+    provider: "gateway-openai",
+    route: "/v1/chat/completions",
+    request_body: {
+      model: "gpt-4o",
+      messages: [
+        { role: "system", content: "Explain prompt occupancy clearly." },
+        { role: "user", content: "Inspect the build-debugging prompt." }
+      ],
+      usage: { prompt_tokens: 140 }
+    }
+  });
+
+  assert.equal(report.sourceType, "openai-compatible-request-log");
+  assert.equal(report.provider, "openai");
+  assert.equal(report.totalInputTokens, 140);
+  assert.equal(report.metadata?.wrapperField, "request_body");
+  assert.equal(report.metadata?.wrappedSourceType, "openai-messages");
+});
+
+test("analyzes OpenAI-compatible request logs that wrap responses-style payloads", () => {
+  const report = analyzePayload({
+    requestId: "responses-log-1",
+    path: "/v1/responses",
+    body: JSON.stringify({
+      model: "gpt-4.1",
+      instructions: "You are a platform engineering assistant.",
+      input: [
+        {
+          type: "message",
+          role: "user",
+          content: [
+            { type: "input_text", text: "Summarize the attached design." },
+            { type: "input_image", image_url: "https://example.com/cluster.png" }
+          ]
+        }
+      ],
+      usage: { input_tokens: 210 }
+    })
+  });
+
+  assert.equal(report.sourceType, "openai-compatible-request-log");
+  assert.equal(report.provider, "openai");
+  assert.equal(report.totalInputTokens, 210);
+  assert.equal(report.metadata?.wrapperField, "body");
+  assert.equal(report.metadata?.wrappedSourceType, "openai-responses");
+  assert.ok(report.segments.some((segment) => segment.type === "developer"));
+  assert.ok(report.segments.some((segment) => segment.type === "attachment"));
+});
+
+test("rejects ambiguous OpenAI-compatible request logs with conflicting wrapped bodies", () => {
+  assert.throws(
+    () =>
+      analyzePayload({
+        request: {
+          model: "gpt-4o",
+          messages: [{ role: "user", content: "Inspect the prompt." }]
+        },
+        body: JSON.stringify({
+          model: "gpt-4.1",
+          input: [
+            {
+              type: "message",
+              role: "user",
+              content: [{ type: "input_text", text: "Inspect the prompt." }]
+            }
+          ]
+        })
+      }),
+    /Ambiguous OpenAI-compatible request log/
+  );
+});
+
 test("analyzes Anthropic payloads with top-level system and tool blocks", () => {
   const report = analyzePayload({
     anthropic_version: "2023-06-01",

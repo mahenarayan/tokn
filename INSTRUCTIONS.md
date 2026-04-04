@@ -160,9 +160,9 @@ High-value extensions should usually be one of:
 - stronger model metadata coverage
 - more realistic fixtures from real-world conversations
 
-Current adapter priority:
+Current adapter status:
 
-- OpenAI-compatible request logs
+- OpenAI-compatible request logs are implemented
 
 Currently deferred:
 

@@ -83,6 +83,30 @@ test("fixture: OpenAI Responses output is analyzable as future context", () => {
   assert.ok(report.segments.some((segment) => segment.type === "retrieval_context"));
 });
 
+test("fixture: OpenAI-compatible chat log preserves direct message analysis semantics", () => {
+  const report = analyzePayload(readFixture("openai-compatible-chat-log.json"));
+
+  assert.equal(report.sourceType, "openai-compatible-request-log");
+  assert.equal(report.provider, "openai");
+  assert.equal(report.totalInputTokens, 140);
+  assert.equal((report.metadata as Record<string, unknown>)?.wrapperField, "request_body");
+  assert.equal((report.metadata as Record<string, unknown>)?.wrappedSourceType, "openai-messages");
+  assert.ok(report.segments.some((segment) => segment.type === "tool_schema"));
+});
+
+test("fixture: OpenAI-compatible responses log preserves direct responses analysis semantics", () => {
+  const report = analyzePayload(readFixture("openai-compatible-responses-log.json"));
+
+  assert.equal(report.sourceType, "openai-compatible-request-log");
+  assert.equal(report.provider, "openai");
+  assert.equal(report.totalInputTokens, 220);
+  assert.equal((report.metadata as Record<string, unknown>)?.wrapperField, "body");
+  assert.equal((report.metadata as Record<string, unknown>)?.wrappedSourceType, "openai-responses");
+  assert.ok(report.segments.some((segment) => segment.type === "developer"));
+  assert.ok(report.segments.some((segment) => segment.type === "attachment"));
+  assert.ok(report.segments.some((segment) => segment.type === "tool_result"));
+});
+
 test("fixture: Anthropic structured payload maps system, attachments, tool use, and tool result blocks", () => {
   const report = analyzePayload(readFixture("anthropic-structured.json"));
 
