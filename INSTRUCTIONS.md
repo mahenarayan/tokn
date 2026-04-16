@@ -11,6 +11,7 @@ The repository currently focuses on read-only inspection:
 - conversation diffs
 - threshold-based CI checks
 - multi-agent snapshot summaries
+- Copilot instruction linting for file shape, overlap, and context economy
 
 Do not expand the scope casually into hosted observability, policy enforcement, or runtime steering without explicitly deciding that direction.
 
@@ -19,11 +20,13 @@ Do not expand the scope casually into hosted observability, policy enforcement, 
 - `src/analyzer.ts`: core normalization and analysis logic
 - `src/cli.ts`: CLI entrypoint for `inspect`, `diff`, `budget`, `agent-report`, and `check`
 - `src/check.ts`: threshold evaluation for `orqis check`
+- `src/instructions/`: Copilot instruction discovery, parsing, and lint rules
 - `src/format.ts`: human-readable report formatting
 - `src/models.ts`: model context-window registry
 - `src/tokenizer.ts`: local token estimation helpers
 - `src/test/`: analyzer, fixture, and CLI regression coverage
 - `fixtures/`: sample payloads used for testing and local smoke checks
+- `fixtures/instructions/`: sample Copilot instruction repositories for lint coverage
 - `fixtures/golden/`: exact expected CLI outputs
 - `docs/architecture.md`: high-level architecture and boundaries
 - `docs/spec-driven-development.md`: required workflow for non-trivial changes
@@ -73,6 +76,7 @@ Preferred day-to-day loop:
 
 - Keep the SDK read-only in behavior unless the project direction changes explicitly.
 - Prefer extending the normalized context model over adding provider-specific behavior directly to CLI code.
+- Keep instruction linting in the dedicated `src/instructions/` subsystem rather than folding it into `ContextReport`.
 - Preserve the distinction between `exact`, `provider-reported`, `tokenizer-based`, and `heuristic` counts.
 - Do not silently change CLI wording or ordering without updating golden files in `fixtures/golden/`.
 - When adding a new supported payload shape, add both analyzer coverage and at least one fixture-backed test.
@@ -80,6 +84,7 @@ Preferred day-to-day loop:
 - When changing CLI flags or output modes, verify both text and `--json` paths.
 - When changing output format behavior, verify markdown output with golden files.
 - When changing `orqis check`, verify both pass and fail exit-code paths.
+- When changing `instructions-lint`, verify both pass and fail exit-code paths and both directory and single-file inputs.
 - When changing package metadata, exports, README installation instructions, or public docs, verify the package path with `npm run pack:check`.
 - When changing suggestion rules, keep one high-pressure fixture and one no-suggestion fixture in coverage.
 - Do not assume provider payload shapes from memory when official docs or real fixtures can be checked.
@@ -128,6 +133,7 @@ If you change analyzer behavior:
 - if the change affects a supported command path, make sure at least one CLI test covers it
 - if the change affects suggestions, verify both `inspect` and `agent-report` outputs when suggestions are present
 - if the change affects `check`, cover threshold evaluation, CLI exit codes, and baseline behavior
+- if the change affects `instructions-lint`, cover frontmatter parsing, applyTo matching, overlap findings, and golden output
 
 If you change provider adapters:
 

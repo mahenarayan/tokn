@@ -1,0 +1,15 @@
+Status: pass
+Profile: standard
+Fail on severity: error
+Files: 2
+Statements: 5
+Chars: 324
+Matched scope files: 7
+Findings: 0 (0 errors, 0 warnings)
+
+Files:
+- .github/copilot-instructions.md: repository-wide | chars=176 | statements=3 | matches=5 | findings=0
+- .github/instructions/typescript.instructions.md: path-specific | chars=148 | statements=2 | matches=2 | findings=0 | applyTo=**/*.ts,**/*.tsx
+
+Findings:
+- none

@@ -19,6 +19,7 @@ ADRs are for decisions that should remain understandable even after the original
 - [0009 Multi-Format CLI Output](/Users/raksha/Documents/Projects/probe/docs/adr/0009-multi-format-cli-output.md)
 - [0010 Langfuse Trace Import](/Users/raksha/Documents/Projects/probe/docs/adr/0010-langfuse-trace-import.md)
 - [0011 Defer LiteLLM Adapter And Prioritize OpenAI-Compatible Request Logs](/Users/raksha/Documents/Projects/probe/docs/adr/0011-defer-litellm-prioritize-openai-compatible-logs.md)
+- [0012 Separate Instruction Lint Report Family](/Users/raksha/Documents/Projects/probe/docs/adr/0012-separate-instruction-lint-report-family.md)
 
 ## Rules
 

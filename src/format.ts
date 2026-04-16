@@ -1,5 +1,12 @@
 import { formatPercent } from "./helpers.js";
-import type { AgentSummary, CheckResult, ContextReport, DiffReport } from "./types.js";
+import type {
+  AgentSummary,
+  CheckResult,
+  ContextReport,
+  DiffReport,
+  InstructionFileKind,
+  InstructionLintReport
+} from "./types.js";
 
 function markdownTable(headers: string[], rows: string[][]): string[] {
   return [
@@ -7,6 +14,17 @@ function markdownTable(headers: string[], rows: string[][]): string[] {
     `| ${headers.map(() => "---").join(" | ")} |`,
     ...rows.map((row) => `| ${row.join(" | ")} |`)
   ];
+}
+
+function formatInstructionFileKind(kind: InstructionFileKind): string {
+  switch (kind) {
+    case "copilot-repository":
+      return "repository-wide";
+    case "copilot-path-specific":
+      return "path-specific";
+    case "unsupported":
+      return "unsupported";
+  }
 }
 
 export function formatInspectReport(report: ContextReport): string {
@@ -239,6 +257,53 @@ export function formatCheckReport(result: CheckResult): string {
   return lines.join("\n");
 }
 
+export function formatInstructionLintReport(report: InstructionLintReport): string {
+  const lines = [
+    `Status: ${report.passed ? "pass" : "fail"}`,
+    `Profile: ${report.profile}`,
+    `Fail on severity: ${report.failOnSeverity}`,
+    `Files: ${report.stats.totalFiles}`,
+    `Statements: ${report.stats.totalStatements}`,
+    `Chars: ${report.stats.totalChars}`,
+    `Matched scope files: ${report.stats.totalMatchedFiles}`,
+    `Findings: ${report.findings.length} (${report.stats.errorCount} errors, ${report.stats.warningCount} warnings)`,
+    "",
+    "Files:"
+  ];
+
+  if (report.files.length === 0) {
+    lines.push("- none");
+  } else {
+    for (const file of report.files) {
+      const applyTo = file.applyTo && file.applyTo.length > 0 ? ` | applyTo=${file.applyTo.join(",")}` : "";
+      const matched = file.matchedFileCount !== undefined ? ` | matches=${file.matchedFileCount}` : "";
+      lines.push(
+        `- ${file.file}: ${formatInstructionFileKind(file.kind)} | chars=${file.chars} | statements=${file.statementCount}${matched} | findings=${file.findings.length}${applyTo}`
+      );
+    }
+  }
+
+  lines.push("", "Findings:");
+  if (report.findings.length === 0) {
+    lines.push("- none");
+  } else {
+    for (const finding of report.findings) {
+      lines.push(
+        `- [${finding.severity}] ${finding.file}:${finding.line} ${finding.ruleId}: ${finding.message}`
+      );
+    }
+  }
+
+  if (report.warnings.length > 0) {
+    lines.push("", "Warnings:");
+    for (const warning of report.warnings) {
+      lines.push(`- ${warning}`);
+    }
+  }
+
+  return lines.join("\n");
+}
+
 export function formatAgentSummary(summary: AgentSummary): string {
   const lines = ["Agents:"];
   for (const agent of summary.agents) {
@@ -296,6 +361,63 @@ export function formatAgentSummaryMarkdown(summary: AgentSummary): string {
   if (summary.warnings.length > 0) {
     lines.push("", "## Warnings");
     for (const warning of summary.warnings) {
+      lines.push(`- ${warning}`);
+    }
+  }
+
+  return lines.join("\n");
+}
+
+export function formatInstructionLintReportMarkdown(report: InstructionLintReport): string {
+  const lines = [
+    "# Orqis Instructions Lint Report",
+    "",
+    "## Summary",
+    `- Status: ${report.passed ? "pass" : "fail"}`,
+    `- Profile: ${report.profile}`,
+    `- Fail on severity: ${report.failOnSeverity}`,
+    `- Files: ${report.stats.totalFiles}`,
+    `- Statements: ${report.stats.totalStatements}`,
+    `- Chars: ${report.stats.totalChars}`,
+    `- Matched scope files: ${report.stats.totalMatchedFiles}`,
+    `- Findings: ${report.findings.length} (${report.stats.errorCount} errors, ${report.stats.warningCount} warnings)`,
+    "",
+    "## Files"
+  ];
+
+  if (report.files.length === 0) {
+    lines.push("- none");
+  } else {
+    lines.push(
+      ...markdownTable(
+        ["File", "Kind", "Apply To", "Chars", "Statements", "Matched", "Findings"],
+        report.files.map((file) => [
+          file.file,
+          formatInstructionFileKind(file.kind),
+          file.applyTo?.join(", ") ?? "-",
+          String(file.chars),
+          String(file.statementCount),
+          String(file.matchedFileCount ?? 0),
+          String(file.findings.length)
+        ])
+      )
+    );
+  }
+
+  lines.push("", "## Findings");
+  if (report.findings.length === 0) {
+    lines.push("- none");
+  } else {
+    for (const finding of report.findings) {
+      lines.push(
+        `- **${finding.severity}** \`${finding.file}:${finding.line}\` \`${finding.ruleId}\`: ${finding.message}`
+      );
+    }
+  }
+
+  if (report.warnings.length > 0) {
+    lines.push("", "## Warnings");
+    for (const warning of report.warnings) {
       lines.push(`- ${warning}`);
     }
   }

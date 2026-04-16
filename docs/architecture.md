@@ -2,8 +2,8 @@
 
 ## Purpose
 
-Orqis is a read-only analysis system for LLM context visibility.
-It ingests heterogeneous payloads and traces, normalizes them into a single internal model, computes token and budget metadata, and exposes the result through a CLI and SDK.
+Orqis is a read-only analysis system for LLM context visibility and Copilot instruction quality.
+It ingests heterogeneous payloads and traces, normalizes them into a single internal model for prompt analysis, computes token and budget metadata, and exposes the result through a CLI and SDK. It also includes a dedicated instruction-lint subsystem for GitHub Copilot instruction files.
 
 The architecture should optimize for:
 
@@ -24,10 +24,15 @@ flowchart LR
   D --> F["CLI text formatting"]
   D --> G["CLI JSON output"]
   D --> H["SDK consumers"]
+  J["Copilot instruction files"] --> K["Instruction lint subsystem"]
+  K --> F
+  K --> G
+  K --> H
   I["Fixtures and tests"] --> C
   I --> E
   I --> F
   I --> G
+  I --> K
 ```
 
 ## Module Boundaries
@@ -53,6 +58,10 @@ flowchart LR
   Conservative token estimation helpers.
   This is heuristic infrastructure, not a source of exact truth.
 
+- `src/instructions/`
+  Instruction lint discovery, parsing, scope matching, and rule evaluation for GitHub Copilot instruction files.
+  This is a second report family and should not be forced into `ContextReport`.
+
 - `src/format.ts`
   Human-readable rendering only.
   It should not mutate or reinterpret report semantics.
@@ -63,7 +72,7 @@ flowchart LR
 
 ## Core Internal Model
 
-The architecture is centered on two types:
+The prompt-analysis architecture is centered on two types:
 
 - `ContextSegment`
 - `ContextReport`
@@ -87,6 +96,11 @@ This makes Orqis similar to a compiler pipeline:
 2. normalize into internal IR
 3. analyze IR
 4. render for different consumers
+
+Instruction linting uses a separate report family because the source objects are Markdown files and file-scope relationships, not prompt segments:
+
+- `InstructionFileReport`
+- `InstructionLintReport`
 
 ## Supported Input Classes
 
@@ -136,6 +150,7 @@ New work should usually fit one of these extension points:
 - add a new input adapter
 - improve normalization fidelity for an existing adapter
 - add a new analysis pass on top of `ContextReport`
+- add a new instruction-lint rule or scope-matching improvement in `src/instructions/`
 - add a new presentation path that consumes existing report objects
 
 Avoid adding provider-specific behavior directly to:
