@@ -2,6 +2,13 @@
 
 All notable changes to Orqis should be recorded in this file.
 
+## Unreleased
+
+- add `instructions-lint` for GitHub Copilot instruction files
+- add Copilot instruction fixtures, golden outputs, and CLI coverage
+- add SDK exports for instruction lint reports
+- add docs and examples for Copilot instruction linting
+
 ## 0.1.0
 
 - initial public alpha release candidate

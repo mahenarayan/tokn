@@ -417,3 +417,98 @@ test("cli check rejects unknown segment types", () => {
   assert.equal(result.status, 1);
   assert.match(result.stderr, /Unknown segment type/);
 });
+
+test("cli instructions-lint passes on a valid repository fixture", () => {
+  const result = runCliProcess(["instructions-lint", "fixtures/instructions/valid-repo"]);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Status: pass/);
+  assert.match(result.stdout, /Files: 2/);
+  assert.match(result.stdout, /Findings:\n- none/);
+});
+
+test("cli instructions-lint fails with exit code 2 on invalid repository fixture", () => {
+  const result = runCliProcess(["instructions-lint", "fixtures/instructions/invalid-repo"]);
+
+  assert.equal(result.status, 2, result.stderr);
+  assert.match(result.stdout, /Status: fail/);
+  assert.match(result.stdout, /global-applyto-overlap/);
+  assert.match(result.stdout, /invalid-file-path/);
+});
+
+test("cli instructions-lint matches golden output for pass case", () => {
+  const output = runCli(["instructions-lint", "fixtures/instructions/valid-repo"]);
+  assert.equal(output, readGolden("instructions-lint-pass.txt"));
+});
+
+test("cli instructions-lint matches golden output for failure case", () => {
+  const result = runCliProcess(["instructions-lint", "fixtures/instructions/invalid-repo"]);
+
+  assert.equal(result.status, 2, result.stderr);
+  assert.equal(result.stdout.trim(), readGolden("instructions-lint-fail.txt"));
+});
+
+test("cli instructions-lint supports --json", () => {
+  const result = runCliProcess([
+    "instructions-lint",
+    "fixtures/instructions/invalid-repo",
+    "--json"
+  ]);
+
+  assert.equal(result.status, 2, result.stderr);
+  const output = JSON.parse(result.stdout) as Record<string, unknown>;
+  assert.equal(output.passed, false);
+  assert.equal(output.exitCode, 2);
+  assert.ok(Array.isArray(output.files));
+  assert.ok(Array.isArray(output.findings));
+});
+
+test("cli instructions-lint supports --format markdown", () => {
+  const output = runCli([
+    "instructions-lint",
+    "fixtures/instructions/valid-repo",
+    "--format",
+    "markdown"
+  ]);
+
+  assert.equal(output, readGolden("instructions-lint-pass.md"));
+});
+
+test("cli instructions-lint supports markdown for failure output", () => {
+  const result = runCliProcess([
+    "instructions-lint",
+    "fixtures/instructions/invalid-repo",
+    "--format",
+    "markdown"
+  ]);
+
+  assert.equal(result.status, 2, result.stderr);
+  assert.equal(result.stdout.trim(), readGolden("instructions-lint-fail.md"));
+});
+
+test("cli instructions-lint supports single-file lint", () => {
+  const output = runCli([
+    "instructions-lint",
+    "fixtures/instructions/valid-repo/.github/instructions/typescript.instructions.md"
+  ]);
+
+  assert.match(output, /typescript.instructions.md/);
+  assert.match(output, /matches=2/);
+});
+
+test("cli instructions-lint respects --fail-on-severity", () => {
+  const defaultResult = runCliProcess([
+    "instructions-lint",
+    "fixtures/instructions/verbose-repo"
+  ]);
+  const warningResult = runCliProcess([
+    "instructions-lint",
+    "fixtures/instructions/verbose-repo",
+    "--fail-on-severity",
+    "warning"
+  ]);
+
+  assert.equal(defaultResult.status, 0, defaultResult.stderr);
+  assert.equal(warningResult.status, 2, warningResult.stderr);
+  assert.match(warningResult.stdout, /statement-too-long/);
+});

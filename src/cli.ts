@@ -10,10 +10,20 @@ import {
   formatDiffReport,
   formatDiffReportMarkdown,
   formatInspectReport,
-  formatInspectReportMarkdown
+  formatInspectReportMarkdown,
+  formatInstructionLintReport,
+  formatInstructionLintReportMarkdown
 } from "./format.js";
 import { isObject, readText, safeJsonParse } from "./helpers.js";
-import type { CheckRiskThreshold, CheckThresholds, ContextReport, SegmentType } from "./types.js";
+import { lintInstructions } from "./instructions/lint.js";
+import type {
+  CheckRiskThreshold,
+  CheckThresholds,
+  ContextReport,
+  InstructionLintProfile,
+  InstructionLintSeverity,
+  SegmentType
+} from "./types.js";
 
 interface ParsedArgs {
   flags: Set<string>;
@@ -28,9 +38,13 @@ const VALUE_FLAGS = new Set([
   "--max-segment-tokens",
   "--fail-on-risk",
   "--baseline",
-  "--format"
+  "--format",
+  "--profile",
+  "--fail-on-severity"
 ]);
 const RISK_THRESHOLDS = new Set<CheckRiskThreshold>(["low", "medium", "high"]);
+const INSTRUCTION_PROFILES = new Set<InstructionLintProfile>(["lite", "standard", "strict"]);
+const INSTRUCTION_SEVERITIES = new Set<InstructionLintSeverity>(["warning", "error"]);
 const SEGMENT_TYPES = new Set<SegmentType>(KNOWN_SEGMENT_TYPES);
 const OUTPUT_FORMATS = new Set(["text", "json", "markdown"]);
 type OutputMode = "text" | "json" | "markdown";
@@ -51,7 +65,8 @@ Usage:
   orqis budget <file> [--model <id>] [--format <text|json|markdown>]
   orqis agent-report <file> [--json]
   orqis agent-report <file> [--format <text|json|markdown>]
-  orqis check <file> [--model <id>] [--max-usage-percent <n>] [--max-total-tokens <n>] [--max-segment-tokens <type=n>] [--fail-on-risk <low|medium|high>] [--baseline <file>] [--json]`);
+  orqis check <file> [--model <id>] [--max-usage-percent <n>] [--max-total-tokens <n>] [--max-segment-tokens <type=n>] [--fail-on-risk <low|medium|high>] [--baseline <file>] [--json]
+  orqis instructions-lint <path> [--profile <lite|standard|strict>] [--fail-on-severity <warning|error>] [--format <text|json|markdown>]`);
 }
 
 function parseArgs(args: string[]): ParsedArgs {
@@ -222,6 +237,28 @@ function resolveOutputMode(parsed: ParsedArgs): OutputMode {
   return jsonFlag ? "json" : "text";
 }
 
+function parseInstructionProfile(parsed: ParsedArgs): InstructionLintProfile | undefined {
+  const profile = getLastValue(parsed, "--profile");
+  if (profile === undefined) {
+    return undefined;
+  }
+  if (!INSTRUCTION_PROFILES.has(profile as InstructionLintProfile)) {
+    throw new Error("--profile must be one of: lite, standard, strict.");
+  }
+  return profile as InstructionLintProfile;
+}
+
+function parseInstructionFailSeverity(parsed: ParsedArgs): InstructionLintSeverity | undefined {
+  const severity = getLastValue(parsed, "--fail-on-severity");
+  if (severity === undefined) {
+    return undefined;
+  }
+  if (!INSTRUCTION_SEVERITIES.has(severity as InstructionLintSeverity)) {
+    throw new Error("--fail-on-severity must be one of: warning, error.");
+  }
+  return severity as InstructionLintSeverity;
+}
+
 function printOutput(value: unknown, formatter: Record<Exclude<OutputMode, "json">, () => string>, outputMode: OutputMode): void {
   if (outputMode === "json") {
     console.log(JSON.stringify(value, null, 2));
@@ -331,6 +368,29 @@ async function main(): Promise<void> {
           outputMode
         );
         process.exitCode = result.exitCode;
+        return;
+      }
+      case "instructions-lint": {
+        const inputPath = parsed.positionals[0];
+        if (!inputPath) {
+          throw new Error("instructions-lint requires a file or directory path.");
+        }
+
+        const profile = parseInstructionProfile(parsed);
+        const failOnSeverity = parseInstructionFailSeverity(parsed);
+        const report = lintInstructions(inputPath, {
+          ...(profile ? { profile } : {}),
+          ...(failOnSeverity ? { failOnSeverity } : {})
+        });
+        printOutput(
+          report,
+          {
+            text: () => formatInstructionLintReport(report),
+            markdown: () => formatInstructionLintReportMarkdown(report)
+          },
+          outputMode
+        );
+        process.exitCode = report.exitCode;
         return;
       }
       default:

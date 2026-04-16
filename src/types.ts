@@ -11,6 +11,12 @@ export type SegmentType =
   | "agent_metadata";
 
 export type CheckRiskThreshold = "low" | "medium" | "high";
+export type InstructionLintProfile = "lite" | "standard" | "strict";
+export type InstructionLintSeverity = "warning" | "error";
+export type InstructionFileKind =
+  | "copilot-repository"
+  | "copilot-path-specific"
+  | "unsupported";
 
 export type CountConfidence =
   | "exact"
@@ -120,6 +126,55 @@ export interface CheckResult {
     report: ContextReport;
     diff: DiffReport;
   };
+}
+
+export interface InstructionLintOptions {
+  profile?: InstructionLintProfile;
+  failOnSeverity?: InstructionLintSeverity;
+}
+
+export interface InstructionFinding {
+  ruleId: string;
+  severity: InstructionLintSeverity;
+  message: string;
+  file: string;
+  line: number;
+  suggestion?: string;
+}
+
+export interface InstructionFileReport {
+  file: string;
+  kind: InstructionFileKind;
+  applyTo?: string[];
+  chars: number;
+  words: number;
+  estimatedTokens: number;
+  statementCount: number;
+  matchedFileCount?: number;
+  findings: InstructionFinding[];
+}
+
+export interface InstructionLintStats {
+  totalFiles: number;
+  repositoryFiles: number;
+  pathSpecificFiles: number;
+  unsupportedFiles: number;
+  totalStatements: number;
+  totalChars: number;
+  totalMatchedFiles: number;
+  warningCount: number;
+  errorCount: number;
+}
+
+export interface InstructionLintReport {
+  profile: InstructionLintProfile;
+  passed: boolean;
+  exitCode: 0 | 2;
+  failOnSeverity: InstructionLintSeverity;
+  stats: InstructionLintStats;
+  files: InstructionFileReport[];
+  findings: InstructionFinding[];
+  warnings: string[];
 }
 
 export interface AgentSnapshot {

@@ -2,7 +2,7 @@
 
 Context visibility for LLMs and agents.
 
-Orqis is a TypeScript CLI + SDK for inspecting what occupies an LLM prompt window. It normalizes OpenAI-style payloads, OpenAI-compatible request logs, Anthropic messages, OpenAI Responses-style payloads, generic transcripts, agent snapshots, OpenInference-style traces, and Langfuse full trace payloads into a single context report so engineers can reason about token pressure, prompt composition, and remaining headroom.
+Orqis is a TypeScript CLI + SDK for inspecting what occupies an LLM prompt window and for linting GitHub Copilot instruction files. It normalizes OpenAI-style payloads, OpenAI-compatible request logs, Anthropic messages, OpenAI Responses-style payloads, generic transcripts, agent snapshots, OpenInference-style traces, and Langfuse full trace payloads into a single context report so engineers can reason about token pressure, prompt composition, and remaining headroom. It also lint-checks `.github/copilot-instructions.md` and `.github/instructions/*.instructions.md` files for overlap, ambiguity, and context-economy issues.
 
 ## Status
 
@@ -20,6 +20,7 @@ Orqis is in public alpha.
 - inspect agent snapshots and trace exports
 - surface deterministic suggestions for high-pressure context
 - fail CI-friendly threshold checks with `orqis check`
+- lint Copilot instructions for scope overlap, verbosity, and file-shape issues
 - feed machine-readable output into CI or editor tooling with `--json`
 - generate shareable GitHub-friendly output with `--format markdown`
 
@@ -33,6 +34,7 @@ Orqis is in public alpha.
 - handcrafted agent snapshots
 - OTLP/OpenInference-shaped trace exports
 - Langfuse full trace payloads from `GET /api/public/traces/{traceId}`
+- GitHub Copilot instruction repositories or single instruction files via `instructions-lint`
 
 ## Current Limits
 
@@ -74,6 +76,8 @@ orqis agent-report ./fixtures/agent-snapshot.json
 orqis agent-report ./fixtures/agent-snapshot-suggestions.json --format markdown
 orqis agent-report ./fixtures/langfuse-trace.json --format markdown
 orqis check ./fixtures/suggestions-high-pressure.json --max-total-tokens 100000 --max-usage-percent 80 --max-segment-tokens tool_schema=300 --fail-on-risk medium
+orqis instructions-lint ./fixtures/instructions/valid-repo
+orqis instructions-lint ./fixtures/instructions/invalid-repo --format markdown
 ```
 
 ## What It Does
@@ -86,6 +90,7 @@ orqis check ./fixtures/suggestions-high-pressure.json --max-total-tokens 100000 
 - Supports threshold-based CI checks with deterministic exit codes
 - Supports `--format markdown` for shareable report output
 - Summarizes multi-agent context snapshots in read-only mode
+- Lints GitHub Copilot instruction files for compatibility, clarity, and cross-file scope overlap
 
 ## SDK
 
@@ -120,6 +125,7 @@ Project docs:
 - See [spec-driven-development.md](/Users/raksha/Documents/Projects/probe/docs/spec-driven-development.md) for the development workflow.
 - See [openai-compatible-request-logs-v1.md](/Users/raksha/Documents/Projects/probe/docs/specs/openai-compatible-request-logs-v1.md) for the request-log adapter spec.
 - See [docs/examples/README.md](/Users/raksha/Documents/Projects/probe/docs/examples/README.md) for executable example workflows.
+- See [docs/examples/copilot-instructions-lint.md](/Users/raksha/Documents/Projects/probe/docs/examples/copilot-instructions-lint.md) for a Copilot instructions linting workflow.
 - See [docs/adr/README.md](/Users/raksha/Documents/Projects/probe/docs/adr/README.md) for architectural decisions.
 - See [CONTRIBUTING.md](/Users/raksha/Documents/Projects/probe/CONTRIBUTING.md) for contribution rules.
 - See [SECURITY.md](/Users/raksha/Documents/Projects/probe/SECURITY.md) for vulnerability reporting.
