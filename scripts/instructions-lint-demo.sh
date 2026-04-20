@@ -5,6 +5,10 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DEMO_ROOT="${DEMO_ROOT:-${TMPDIR:-/tmp}/orqis-instructions-demo}"
 ORQIS_BIN=(node "$ROOT_DIR/dist/cli.js")
 
+log() {
+  printf '%s\n' "$*" >&2
+}
+
 usage() {
   cat <<'EOF'
 Usage:
@@ -29,7 +33,7 @@ ensure_built() {
     return
   fi
 
-  echo "Building Orqis..."
+  log "Building Orqis..."
   (
     cd "$ROOT_DIR"
     npm run build >/dev/null
@@ -42,7 +46,7 @@ clone_repo() {
 
   mkdir -p "$DEMO_ROOT"
   if [[ ! -d "$target_dir/.git" ]]; then
-    echo "Cloning $repo_slug into $target_dir"
+    log "Cloning $repo_slug into $target_dir"
     git clone --depth 1 --filter=blob:none "https://github.com/$repo_slug.git" "$target_dir" >/dev/null
   fi
 
