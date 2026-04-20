@@ -8,6 +8,7 @@ import type {
   InstructionFileKind,
   InstructionFileReport,
   InstructionFinding,
+  InstructionFindingEvidence,
   InstructionLintOptions,
   InstructionLintProfile,
   InstructionLintReport,
@@ -566,7 +567,8 @@ function createFinding(
   ruleId: string,
   message: string,
   line: number,
-  suggestion?: string
+  suggestion?: string,
+  evidence?: InstructionFindingEvidence
 ): InstructionFinding {
   return {
     file,
@@ -574,7 +576,8 @@ function createFinding(
     ruleId,
     message,
     line,
-    ...(suggestion ? { suggestion } : {})
+    ...(suggestion ? { suggestion } : {}),
+    ...(evidence ? { evidence } : {})
   };
 }
 
@@ -585,14 +588,15 @@ function addFinding(
   ruleId: string,
   message: string,
   line: number,
-  suggestion?: string
+  suggestion?: string,
+  evidence?: InstructionFindingEvidence
 ): void {
   const key = `${severity}|${ruleId}|${report.file}|${line}|${message}`;
   if (seen.has(key)) {
     return;
   }
   seen.add(key);
-  report.findings.push(createFinding(report.file, severity, ruleId, message, line, suggestion));
+  report.findings.push(createFinding(report.file, severity, ruleId, message, line, suggestion, evidence));
 }
 
 function parseApplyTo(value: string | undefined): string[] {
@@ -674,7 +678,12 @@ function lintLocalRules(
       "file-char-limit",
       `File is ${report.chars} characters long and exceeds GitHub Copilot code review's 4000-character limit.`,
       1,
-      "Split the file or reduce repeated wording so the first 4000 characters contain the full rule set."
+      "Split the file or reduce repeated wording so the first 4000 characters contain the full rule set.",
+      {
+        actual: report.chars,
+        expected: CODE_REVIEW_CHAR_LIMIT,
+        surface
+      }
     );
   }
 
@@ -686,7 +695,11 @@ function lintLocalRules(
       "repository-char-budget",
       `Repository-wide instructions use ${report.chars} characters and exceed the ${profile} profile budget of ${budgets.repositoryChars}.`,
       1,
-      "Keep always-on instructions short and move scoped guidance into path-specific files."
+      "Keep always-on instructions short and move scoped guidance into path-specific files.",
+      {
+        actual: report.chars,
+        expected: budgets.repositoryChars
+      }
     );
   }
 
@@ -698,7 +711,11 @@ function lintLocalRules(
       "repository-token-budget",
       `Repository-wide instructions use ${report.estimatedTokens} estimated tokens and exceed the ${profile} profile budget of ${budgets.repositoryTokens}.`,
       1,
-      "Keep global guidance dense and move path- or language-specific rules into narrower instruction files."
+      "Keep global guidance dense and move path- or language-specific rules into narrower instruction files.",
+      {
+        actual: report.estimatedTokens,
+        expected: budgets.repositoryTokens
+      }
     );
   }
 
@@ -710,7 +727,11 @@ function lintLocalRules(
       "path-specific-char-budget",
       `Path-specific instructions use ${report.chars} characters and exceed the ${profile} profile budget of ${budgets.pathSpecificChars}.`,
       1,
-      "Tighten the file to the rules that truly need to stay always-on for this scope."
+      "Tighten the file to the rules that truly need to stay always-on for this scope.",
+      {
+        actual: report.chars,
+        expected: budgets.pathSpecificChars
+      }
     );
   }
 
@@ -722,7 +743,11 @@ function lintLocalRules(
       "path-specific-token-budget",
       `Path-specific instructions use ${report.estimatedTokens} estimated tokens and exceed the ${profile} profile budget of ${budgets.pathSpecificTokens}.`,
       1,
-      "Trim this file to the rules that are unique to the matched paths."
+      "Trim this file to the rules that are unique to the matched paths.",
+      {
+        actual: report.estimatedTokens,
+        expected: budgets.pathSpecificTokens
+      }
     );
   }
 
@@ -734,7 +759,11 @@ function lintLocalRules(
       "statement-count-budget",
       `File contains ${report.statements.length} instruction statements and exceeds the ${profile} profile budget of ${budgets.statements}.`,
       1,
-      "Trim low-signal rules or split scoped topics into separate instruction files."
+      "Trim low-signal rules or split scoped topics into separate instruction files.",
+      {
+        actual: report.statements.length,
+        expected: budgets.statements
+      }
     );
   }
 
@@ -759,7 +788,11 @@ function lintLocalRules(
         "statement-too-long",
         `Instruction statement uses ${statement.wordCount} words and exceeds the ${profile} profile budget of ${budgets.wordsPerStatement}.`,
         statement.line,
-        "Rewrite as one short directive with only the necessary why."
+        "Rewrite as one short directive with only the necessary why.",
+        {
+          actual: statement.wordCount,
+          expected: budgets.wordsPerStatement
+        }
       );
     }
 
@@ -862,6 +895,37 @@ function overlapExists(left: InternalFileReport, right: InternalFileReport): boo
   return false;
 }
 
+function sampleItems(items: string[], limit = 3): string[] {
+  return items.slice(0, limit);
+}
+
+function overlapDetails(
+  left: InternalFileReport,
+  right: InternalFileReport,
+  limit = 3
+): { count: number; sample: string[] } {
+  if (left.matchedFileSet.size === 0 || right.matchedFileSet.size === 0) {
+    return { count: 0, sample: [] };
+  }
+
+  const smaller = left.matchedFileSet.size <= right.matchedFileSet.size ? left.matchedFileSet : right.matchedFileSet;
+  const larger = smaller === left.matchedFileSet ? right.matchedFileSet : left.matchedFileSet;
+  const sample: string[] = [];
+  let count = 0;
+
+  for (const filePath of smaller) {
+    if (!larger.has(filePath)) {
+      continue;
+    }
+    count += 1;
+    if (sample.length < limit) {
+      sample.push(filePath);
+    }
+  }
+
+  return { count, sample };
+}
+
 function addCrossFileFinding(
   reportsByPath: Map<string, InternalFileReport>,
   seen: Set<string>,
@@ -870,7 +934,8 @@ function addCrossFileFinding(
   ruleId: string,
   line: number,
   message: string,
-  suggestion?: string
+  suggestion?: string,
+  evidence?: InstructionFindingEvidence
 ): void {
   const report = reportsByPath.get(hostFile);
   if (!report) {
@@ -882,7 +947,7 @@ function addCrossFileFinding(
     return;
   }
   seen.add(key);
-  report.findings.push(createFinding(report.file, severity, ruleId, message, line, suggestion));
+  report.findings.push(createFinding(report.file, severity, ruleId, message, line, suggestion, evidence));
 }
 
 function lintCrossFileRules(reports: InternalFileReport[]): void {
@@ -915,6 +980,7 @@ function lintCrossFileRules(reports: InternalFileReport[]): void {
         if (!left || !right || !overlapExists(left, right)) {
           continue;
         }
+        const overlap = overlapDetails(left, right);
 
         for (const leftStatement of left.statements) {
           for (const rightStatement of right.statements) {
@@ -931,7 +997,16 @@ function lintCrossFileRules(reports: InternalFileReport[]): void {
                 "exact-duplicate-statement",
                 leftStatement.line,
                 `Instruction duplicates ${right.file}:${rightStatement.line} across overlapping scope.`,
-                "Keep the rule in one file or narrow applyTo so the same instruction is not sent twice."
+                "Keep the rule in one file or narrow applyTo so the same instruction is not sent twice.",
+                {
+                  relatedLocation: {
+                    file: right.file,
+                    line: rightStatement.line
+                  },
+                  overlapFileCount: overlap.count,
+                  ...(overlap.sample.length > 0 ? { overlapFilesSample: overlap.sample } : {}),
+                  similarityScore: 1
+                }
               );
               continue;
             }
@@ -954,7 +1029,16 @@ function lintCrossFileRules(reports: InternalFileReport[]): void {
                 "possible-conflict",
                 leftStatement.line,
                 `Instruction may conflict with ${right.file}:${rightStatement.line} because overlapping files express opposite polarity for the same subject.`,
-                "Consolidate the rule or make the scope separation explicit."
+                "Consolidate the rule or make the scope separation explicit.",
+                {
+                  relatedLocation: {
+                    file: right.file,
+                    line: rightStatement.line
+                  },
+                  overlapFileCount: overlap.count,
+                  ...(overlap.sample.length > 0 ? { overlapFilesSample: overlap.sample } : {}),
+                  similarityScore: conflictSimilarity
+                }
               );
               continue;
             }
@@ -973,7 +1057,16 @@ function lintCrossFileRules(reports: InternalFileReport[]): void {
                 "high-similarity-statement",
                 leftStatement.line,
                 `Instruction is highly similar to ${right.file}:${rightStatement.line} across overlapping scope.`,
-                "Merge the rules or remove the lower-signal variant."
+                "Merge the rules or remove the lower-signal variant.",
+                {
+                  relatedLocation: {
+                    file: right.file,
+                    line: rightStatement.line
+                  },
+                  overlapFileCount: overlap.count,
+                  ...(overlap.sample.length > 0 ? { overlapFilesSample: overlap.sample } : {}),
+                  similarityScore: similarity
+                }
               );
             }
           }
@@ -1067,7 +1160,18 @@ function addApplicableTokenBudgetFindings(
         "applicable-token-budget",
         `Instructions applicable to ${targetFile} total ${maxTokens} estimated tokens for ${surface} and exceed the ${profile} profile budget of ${budgets.maxApplicableTokens}.`,
         1,
-        "Reduce overlap, shorten always-on guidance, or narrow applyTo so no single target pulls in a large instruction bundle."
+        "Reduce overlap, shorten always-on guidance, or narrow applyTo so no single target pulls in a large instruction bundle.",
+        {
+          actual: maxTokens,
+          expected: budgets.maxApplicableTokens,
+          surface,
+          targetFile,
+          contributorFiles: sampleItems(
+            contributors
+              .map((report) => report.file)
+              .sort((left, right) => left.localeCompare(right))
+          )
+        }
       )
     );
   }
@@ -1295,7 +1399,18 @@ export function lintInstructions(
           "global-applyto-overlap",
           "Path-specific instruction file uses applyTo: \"**\" even though a repository-wide copilot-instructions.md file already exists.",
           report.applyToLine ?? 1,
-          "Keep repository-wide guidance in .github/copilot-instructions.md and narrow applyTo to a real subset."
+          "Keep repository-wide guidance in .github/copilot-instructions.md and narrow applyTo to a real subset.",
+          {
+            relatedLocation: {
+              file: ".github/copilot-instructions.md",
+              line: 1
+            },
+            patterns: report.applyTo,
+            matchedFileCount: report.matchedFiles.length,
+            ...(report.matchedFiles.length > 0
+              ? { matchedFilesSample: sampleItems(report.matchedFiles) }
+              : {})
+          }
         )
       );
     }
@@ -1311,7 +1426,11 @@ export function lintInstructions(
           "stale-applyto",
           "applyTo patterns do not match any repository files.",
           report.applyToLine ?? 1,
-          "Update the glob patterns or delete the file if the scope no longer exists."
+          "Update the glob patterns or delete the file if the scope no longer exists.",
+          {
+            patterns: report.applyTo,
+            matchedFileCount: 0
+          }
         )
       );
     }

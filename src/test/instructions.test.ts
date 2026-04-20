@@ -61,6 +61,16 @@ test("lintInstructions detects invalid names, malformed scope setup, duplicates,
   assert.ok(codes.has("weak-modal-phrasing"));
   assert.ok(codes.has("vague-instruction"));
   assert.ok(report.warnings.some((warning) => warning.includes("do not match any repository files")));
+
+  const duplicate = report.findings.find((finding) => finding.ruleId === "exact-duplicate-statement");
+  const staleApplyTo = report.findings.find((finding) => finding.ruleId === "stale-applyto");
+
+  assert.equal(duplicate?.evidence?.relatedLocation?.file, ".github/instructions/all.instructions.md");
+  assert.equal(duplicate?.evidence?.relatedLocation?.line, 6);
+  assert.ok((duplicate?.evidence?.overlapFileCount ?? 0) > 0);
+  assert.ok((duplicate?.evidence?.similarityScore ?? 0) >= 1);
+  assert.deepEqual(staleApplyTo?.evidence?.patterns, ["**/*.rs"]);
+  assert.equal(staleApplyTo?.evidence?.matchedFileCount, 0);
 });
 
 test("lintInstructions statement budget warnings vary by compactness profile", () => {
@@ -162,4 +172,9 @@ test("lintInstructions warns when a single target accumulates too many instructi
   assert.ok(report.stats.maxApplicableTokens > 0);
   assert.equal(report.contextWindow, 128000);
   assert.ok((report.maxApplicableContextPercent ?? 0) > 0);
+
+  const finding = report.findings.find((candidate) => candidate.ruleId === "applicable-token-budget");
+  assert.equal(finding?.evidence?.targetFile, "src/index.ts");
+  assert.ok((finding?.evidence?.actual as number) > (finding?.evidence?.expected as number));
+  assert.ok((finding?.evidence?.contributorFiles?.length ?? 0) > 0);
 });

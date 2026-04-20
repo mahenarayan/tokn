@@ -137,6 +137,26 @@ export interface InstructionLintOptions {
   model?: string;
 }
 
+export interface InstructionFindingLocation {
+  file: string;
+  line: number;
+}
+
+export interface InstructionFindingEvidence {
+  actual?: number | string;
+  expected?: number | string;
+  surface?: InstructionLintSurface;
+  relatedLocation?: InstructionFindingLocation;
+  overlapFileCount?: number;
+  overlapFilesSample?: string[];
+  matchedFileCount?: number;
+  matchedFilesSample?: string[];
+  similarityScore?: number;
+  patterns?: string[];
+  targetFile?: string;
+  contributorFiles?: string[];
+}
+
 export interface InstructionFinding {
   ruleId: string;
   severity: InstructionLintSeverity;
@@ -144,6 +164,7 @@ export interface InstructionFinding {
   file: string;
   line: number;
   suggestion?: string;
+  evidence?: InstructionFindingEvidence;
 }
 
 export interface InstructionFileReport {
