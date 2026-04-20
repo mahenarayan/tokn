@@ -1,20 +1,28 @@
 Status: fail
 Profile: standard
+Surface: code-review
+Model: unknown
+Context window: unknown
+Max applicable context share: n/a
 Fail on severity: error
 Files: 7
+Applicable files: 6
 Statements: 13
+Applicable statements: 12
 Chars: 1730
-Matched scope files: 27
+Estimated tokens: 441 total | 430 applicable
+Matched scope files: 20
+Max applicable tokens: 392 (app/view.tsx)
 Findings: 15 (4 errors, 11 warnings)
 
 Files:
-- .github/copilot-instructions.md: repository-wide | chars=1282 | statements=7 | matches=12 | findings=10
-- .github/instructions/all.instructions.md: path-specific | chars=83 | statements=1 | matches=12 | findings=1 | applyTo=**
-- .github/instructions/legacy.md: unsupported | chars=39 | statements=1 | findings=1
-- .github/instructions/no-frontmatter.instructions.md: path-specific | chars=74 | statements=1 | matches=0 | findings=1
-- .github/instructions/rust.instructions.md: path-specific | chars=74 | statements=1 | matches=0 | findings=1 | applyTo=**/*.rs
-- .github/instructions/semicolons.instructions.md: path-specific | chars=95 | statements=1 | matches=2 | findings=1 | applyTo=**/*.ts,**/*.tsx
-- .github/instructions/style.instructions.md: path-specific | chars=83 | statements=1 | matches=1 | findings=0 | applyTo=app/**/*.tsx
+- .github/copilot-instructions.md: repository-wide | active=yes | chars=1282 | tokens=323 | statements=7 | matches=12 | findings=10
+- .github/instructions/all.instructions.md: path-specific | active=yes | chars=83 | tokens=22 | statements=1 | matches=5 | findings=1 | applyTo=**
+- .github/instructions/legacy.md: unsupported | active=no | chars=39 | tokens=11 | statements=1 | findings=1
+- .github/instructions/no-frontmatter.instructions.md: path-specific | active=yes | chars=74 | tokens=19 | statements=1 | matches=0 | findings=1
+- .github/instructions/rust.instructions.md: path-specific | active=yes | chars=74 | tokens=19 | statements=1 | matches=0 | findings=1 | applyTo=**/*.rs
+- .github/instructions/semicolons.instructions.md: path-specific | active=yes | chars=95 | tokens=25 | statements=1 | matches=2 | findings=1 | applyTo=**/*.ts,**/*.tsx
+- .github/instructions/style.instructions.md: path-specific | active=yes | chars=83 | tokens=22 | statements=1 | matches=1 | findings=0 | applyTo=app/**/*.tsx
 
 Findings:
 - [error] .github/copilot-instructions.md:10 order-dependent-wording: Instruction relies on relative ordering, but Copilot does not guarantee instruction-file order across all surfaces.

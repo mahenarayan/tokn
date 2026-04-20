@@ -20,7 +20,7 @@ Orqis is in public alpha.
 - inspect agent snapshots and trace exports
 - surface deterministic suggestions for high-pressure context
 - fail CI-friendly threshold checks with `orqis check`
-- lint Copilot instructions for scope overlap, verbosity, and file-shape issues
+- lint Copilot instructions for scope overlap, verbosity, file-shape issues, and surface-specific context pressure
 - feed machine-readable output into CI or editor tooling with `--json`
 - generate shareable GitHub-friendly output with `--format markdown`
 
@@ -77,6 +77,7 @@ orqis agent-report ./fixtures/agent-snapshot-suggestions.json --format markdown
 orqis agent-report ./fixtures/langfuse-trace.json --format markdown
 orqis check ./fixtures/suggestions-high-pressure.json --max-total-tokens 100000 --max-usage-percent 80 --max-segment-tokens tool_schema=300 --fail-on-risk medium
 orqis instructions-lint ./fixtures/instructions/valid-repo
+orqis instructions-lint ./fixtures/instructions/valid-repo --surface coding-agent --model gpt-4o
 orqis instructions-lint ./fixtures/instructions/invalid-repo --format markdown
 ```
 
@@ -90,7 +91,7 @@ orqis instructions-lint ./fixtures/instructions/invalid-repo --format markdown
 - Supports threshold-based CI checks with deterministic exit codes
 - Supports `--format markdown` for shareable report output
 - Summarizes multi-agent context snapshots in read-only mode
-- Lints GitHub Copilot instruction files for compatibility, clarity, and cross-file scope overlap
+- Lints GitHub Copilot instruction files for compatibility, clarity, cross-file scope overlap, and surface-aware instruction token load
 
 ## SDK
 

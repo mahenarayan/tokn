@@ -53,8 +53,5 @@
   "devDependencies": {
     "@types/node": "^24.0.0",
     "typescript": "^5.8.0"
-  },
-  "dependencies": {
-    "minimatch": "9.0.5"
   }
 }

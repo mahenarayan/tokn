@@ -39,6 +39,8 @@ Teams need a deterministic way to catch:
 Supported flags in v1:
 
 - `--profile <lite|standard|strict>`
+- `--surface <code-review|chat|coding-agent>`
+- `--model <id>`
 - `--fail-on-severity <warning|error>`
 - `--format <text|json|markdown>`
 - `--json`
@@ -48,6 +50,10 @@ Supported flags in v1:
 Add an `InstructionLintReport` object with:
 
 - `profile`
+- `surface`
+- optional `model`
+- optional `contextWindow`
+- optional `maxApplicableContextPercent`
 - `passed`
 - `exitCode`
 - `failOnSeverity`
@@ -61,6 +67,8 @@ Each `InstructionFileReport` includes:
 - `file`
 - `kind`
 - optional `applyTo`
+- optional `excludeAgents`
+- `appliesToSurface`
 - `chars`
 - `words`
 - `estimatedTokens`
@@ -80,7 +88,8 @@ Each finding includes:
 Human-readable output should include:
 
 - pass/fail status
-- selected profile and fail threshold
+- selected profile, surface, and fail threshold
+- estimated token totals and max applicable token load
 - per-file summary
 - ordered findings
 - warnings
@@ -90,13 +99,16 @@ Human-readable output should include:
 - add a dedicated instruction-lint subsystem under `src/instructions/`
 - keep `ContextReport` unchanged and introduce a separate instruction-lint report family
 - parse path-specific frontmatter and require `applyTo`
+- honor `excludeAgent` for surface-specific evaluation
 - resolve `applyTo` against real repository files using glob matching
 - add deterministic rule packs for:
   - file-path validity
   - frontmatter and `applyTo`
-  - 4000-character hard cap
+  - code-review-only 4000-character cap
   - order-dependent wording
   - compactness budgets by profile
+  - estimated token budgets by file kind
+  - max applicable token load for a single target file
   - narrative and vague phrasing
   - oversized code examples
   - duplicate, similar, and conflicting cross-file statements
@@ -106,16 +118,25 @@ Profile budgets in v1:
 - `lite`
   - repo-wide chars: 2500
   - path-specific chars: 1500
+  - repo-wide estimated tokens: 600
+  - path-specific estimated tokens: 375
+  - max applicable tokens per target: 900
   - statements per file: 20
   - words per statement: 50
 - `standard`
   - repo-wide chars: 1500
   - path-specific chars: 900
+  - repo-wide estimated tokens: 375
+  - path-specific estimated tokens: 225
+  - max applicable tokens per target: 600
   - statements per file: 12
   - words per statement: 30
 - `strict`
   - repo-wide chars: 900
   - path-specific chars: 600
+  - repo-wide estimated tokens: 225
+  - path-specific estimated tokens: 150
+  - max applicable tokens per target: 350
   - statements per file: 8
   - words per statement: 20
 
@@ -124,6 +145,7 @@ Profile budgets in v1:
 - unsupported file paths should produce an error finding
 - `.instructions.md` files without valid frontmatter or `applyTo` should produce an error finding
 - `applyTo: "**"` should error when a repository-wide file exists
+- `excludeAgent` should suppress surface-specific findings when the file is inactive for the selected surface
 - no repository matches for `applyTo` should produce a warning, not a hard error
 - if no instruction files are found under a directory, return an empty passing report with a warning
 - `0` means no findings at or above the selected fail severity
@@ -138,6 +160,9 @@ Profile budgets in v1:
   - invalid filename
   - missing frontmatter
   - stale `applyTo`
+  - code-review-only 4000-character limit
+  - `excludeAgent` handling
+  - max applicable token load
   - duplicate and conflicting statements
   - profile-sensitive verbosity
 - CLI tests for:
@@ -145,6 +170,8 @@ Profile budgets in v1:
   - text/json/markdown output
   - directory discovery
   - single-file lint
+  - `--surface`
+  - `--model`
   - `--fail-on-severity`
 - golden files for passing and failing text and markdown output
 - run:
@@ -157,7 +184,8 @@ Profile budgets in v1:
 - `orqis instructions-lint` works on repo roots and individual files
 - output is deterministic across text, markdown, and JSON modes
 - cross-file overlap is based on actual repository file matches
-- profile budgets change warning behavior without changing the hard 4000-character cap
+- profile budgets apply to both chars and estimated tokens
+- the 4000-character cap is enforced only for `code-review`
 - SDK exports expose the new report family
 
 ## Related ADRs

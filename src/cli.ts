@@ -22,6 +22,7 @@ import type {
   ContextReport,
   InstructionLintProfile,
   InstructionLintSeverity,
+  InstructionLintSurface,
   SegmentType
 } from "./types.js";
 
@@ -40,11 +41,13 @@ const VALUE_FLAGS = new Set([
   "--baseline",
   "--format",
   "--profile",
-  "--fail-on-severity"
+  "--fail-on-severity",
+  "--surface"
 ]);
 const RISK_THRESHOLDS = new Set<CheckRiskThreshold>(["low", "medium", "high"]);
 const INSTRUCTION_PROFILES = new Set<InstructionLintProfile>(["lite", "standard", "strict"]);
 const INSTRUCTION_SEVERITIES = new Set<InstructionLintSeverity>(["warning", "error"]);
+const INSTRUCTION_SURFACES = new Set<InstructionLintSurface>(["code-review", "chat", "coding-agent"]);
 const SEGMENT_TYPES = new Set<SegmentType>(KNOWN_SEGMENT_TYPES);
 const OUTPUT_FORMATS = new Set(["text", "json", "markdown"]);
 type OutputMode = "text" | "json" | "markdown";
@@ -66,7 +69,7 @@ Usage:
   orqis agent-report <file> [--json]
   orqis agent-report <file> [--format <text|json|markdown>]
   orqis check <file> [--model <id>] [--max-usage-percent <n>] [--max-total-tokens <n>] [--max-segment-tokens <type=n>] [--fail-on-risk <low|medium|high>] [--baseline <file>] [--json]
-  orqis instructions-lint <path> [--profile <lite|standard|strict>] [--fail-on-severity <warning|error>] [--format <text|json|markdown>]`);
+  orqis instructions-lint <path> [--profile <lite|standard|strict>] [--surface <code-review|chat|coding-agent>] [--model <id>] [--fail-on-severity <warning|error>] [--format <text|json|markdown>]`);
 }
 
 function parseArgs(args: string[]): ParsedArgs {
@@ -259,6 +262,17 @@ function parseInstructionFailSeverity(parsed: ParsedArgs): InstructionLintSeveri
   return severity as InstructionLintSeverity;
 }
 
+function parseInstructionSurface(parsed: ParsedArgs): InstructionLintSurface | undefined {
+  const surface = getLastValue(parsed, "--surface");
+  if (surface === undefined) {
+    return undefined;
+  }
+  if (!INSTRUCTION_SURFACES.has(surface as InstructionLintSurface)) {
+    throw new Error("--surface must be one of: code-review, chat, coding-agent.");
+  }
+  return surface as InstructionLintSurface;
+}
+
 function printOutput(value: unknown, formatter: Record<Exclude<OutputMode, "json">, () => string>, outputMode: OutputMode): void {
   if (outputMode === "json") {
     console.log(JSON.stringify(value, null, 2));
@@ -378,9 +392,13 @@ async function main(): Promise<void> {
 
         const profile = parseInstructionProfile(parsed);
         const failOnSeverity = parseInstructionFailSeverity(parsed);
+        const surface = parseInstructionSurface(parsed);
+        const model = getLastValue(parsed, "--model");
         const report = lintInstructions(inputPath, {
           ...(profile ? { profile } : {}),
-          ...(failOnSeverity ? { failOnSeverity } : {})
+          ...(failOnSeverity ? { failOnSeverity } : {}),
+          ...(surface ? { surface } : {}),
+          ...(model ? { model } : {})
         });
         printOutput(
           report,

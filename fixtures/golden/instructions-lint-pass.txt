@@ -1,15 +1,23 @@
 Status: pass
 Profile: standard
+Surface: code-review
+Model: unknown
+Context window: unknown
+Max applicable context share: n/a
 Fail on severity: error
 Files: 2
+Applicable files: 2
 Statements: 5
+Applicable statements: 5
 Chars: 324
+Estimated tokens: 85 total | 85 applicable
 Matched scope files: 7
+Max applicable tokens: 85 (src/component.tsx)
 Findings: 0 (0 errors, 0 warnings)
 
 Files:
-- .github/copilot-instructions.md: repository-wide | chars=176 | statements=3 | matches=5 | findings=0
-- .github/instructions/typescript.instructions.md: path-specific | chars=148 | statements=2 | matches=2 | findings=0 | applyTo=**/*.ts,**/*.tsx
+- .github/copilot-instructions.md: repository-wide | active=yes | chars=176 | tokens=46 | statements=3 | matches=5 | findings=0
+- .github/instructions/typescript.instructions.md: path-specific | active=yes | chars=148 | tokens=39 | statements=2 | matches=2 | findings=0 | applyTo=**/*.ts,**/*.tsx
 
 Findings:
 - none

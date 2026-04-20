@@ -25,6 +25,19 @@ function readGolden(name: string): string {
   return fs.readFileSync(path.join(rootDir, "fixtures", "golden", name), "utf8").trim();
 }
 
+function createInstructionRepo(
+  files: Record<string, string>,
+  prefix: string
+): string {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+  for (const [relativePath, content] of Object.entries(files)) {
+    const absolutePath = path.join(repoRoot, relativePath);
+    fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
+    fs.writeFileSync(absolutePath, content);
+  }
+  return repoRoot;
+}
+
 function runCliJson(args: string[]): unknown {
   return JSON.parse(runCli(args));
 }
@@ -494,6 +507,41 @@ test("cli instructions-lint supports single-file lint", () => {
 
   assert.match(output, /typescript.instructions.md/);
   assert.match(output, /matches=2/);
+});
+
+test("cli instructions-lint supports --surface and only applies the 4000-char rule to code-review", () => {
+  const repoRoot = createInstructionRepo(
+    {
+      ".github/copilot-instructions.md": `# Repository Instructions\n\n- ${"use precise domain language ".repeat(220)}`,
+      "src/index.ts": "export const value = 1;\n"
+    },
+    "orqis-cli-instructions-surface-"
+  );
+
+  const codeReview = runCliProcess(["instructions-lint", repoRoot]);
+  const chat = runCliProcess(["instructions-lint", repoRoot, "--surface", "chat"]);
+
+  assert.equal(codeReview.status, 2, codeReview.stderr);
+  assert.equal(chat.status, 0, chat.stderr);
+  assert.match(codeReview.stdout, /Surface: code-review/);
+  assert.match(chat.stdout, /Surface: chat/);
+  assert.match(codeReview.stdout, /file-char-limit/);
+  assert.doesNotMatch(chat.stdout, /file-char-limit/);
+});
+
+test("cli instructions-lint supports --model for context share reporting", () => {
+  const output = runCliJson([
+    "instructions-lint",
+    "fixtures/instructions/valid-repo",
+    "--model",
+    "gpt-4o",
+    "--format",
+    "json"
+  ]) as Record<string, unknown>;
+
+  assert.equal(output.model, "gpt-4o");
+  assert.equal(output.contextWindow, 128000);
+  assert.equal(output.surface, "code-review");
 });
 
 test("cli instructions-lint respects --fail-on-severity", () => {
