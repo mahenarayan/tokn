@@ -1,9 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
-import { minimatch } from "minimatch";
 
+import { getModelLimit } from "../models.js";
 import { estimateTextTokens } from "../tokenizer.js";
 import type {
+  InstructionExcludeAgent,
   InstructionFileKind,
   InstructionFileReport,
   InstructionFinding,
@@ -11,6 +12,7 @@ import type {
   InstructionLintProfile,
   InstructionLintReport,
   InstructionLintSeverity,
+  InstructionLintSurface,
   InstructionLintStats
 } from "../types.js";
 
@@ -32,6 +34,7 @@ interface MarkdownBlock {
 
 interface ParsedFrontmatter {
   data: Record<string, string>;
+  lines: Record<string, number>;
   body: string;
   endLine: number;
   hasFrontmatter: boolean;
@@ -56,6 +59,9 @@ interface InternalFileReport {
   file: string;
   kind: InstructionFileKind;
   repoRoot?: string;
+  excludeAgents: InstructionExcludeAgent[];
+  excludeAgentsLine?: number;
+  appliesToSurface: boolean;
   chars: number;
   words: number;
   estimatedTokens: number;
@@ -71,35 +77,48 @@ interface InternalFileReport {
 interface InstructionBudgets {
   repositoryChars: number;
   pathSpecificChars: number;
+  repositoryTokens: number;
+  pathSpecificTokens: number;
+  maxApplicableTokens: number;
   statements: number;
   wordsPerStatement: number;
 }
 
 const DEFAULT_PROFILE: InstructionLintProfile = "standard";
 const DEFAULT_FAIL_ON_SEVERITY: InstructionLintSeverity = "error";
+const DEFAULT_SURFACE: InstructionLintSurface = "code-review";
 
 const PROFILE_BUDGETS: Record<InstructionLintProfile, InstructionBudgets> = {
   lite: {
     repositoryChars: 2500,
     pathSpecificChars: 1500,
+    repositoryTokens: 600,
+    pathSpecificTokens: 375,
+    maxApplicableTokens: 900,
     statements: 20,
     wordsPerStatement: 50
   },
   standard: {
     repositoryChars: 1500,
     pathSpecificChars: 900,
+    repositoryTokens: 375,
+    pathSpecificTokens: 225,
+    maxApplicableTokens: 600,
     statements: 12,
     wordsPerStatement: 30
   },
   strict: {
     repositoryChars: 900,
     pathSpecificChars: 600,
+    repositoryTokens: 225,
+    pathSpecificTokens: 150,
+    maxApplicableTokens: 350,
     statements: 8,
     wordsPerStatement: 20
   }
 };
 
-const HARD_CHAR_LIMIT = 4000;
+const CODE_REVIEW_CHAR_LIMIT = 4000;
 const IGNORED_DIRECTORIES = new Set([".git", "node_modules", "dist", ".npm-cache"]);
 const FRONTMATTER_DELIMITER = "---";
 const NEGATION_WORDS = new Set(["do", "no", "not", "never", "avoid", "dont", "don't", "without"]);
@@ -328,6 +347,7 @@ function parseFrontmatter(rawText: string): ParsedFrontmatter {
   if (lines[0]?.trim() !== FRONTMATTER_DELIMITER) {
     return {
       data: {},
+      lines: {},
       body: rawText,
       endLine: 0,
       hasFrontmatter: false
@@ -345,6 +365,7 @@ function parseFrontmatter(rawText: string): ParsedFrontmatter {
   if (closingIndex === -1) {
     return {
       data: {},
+      lines: {},
       body: rawText,
       endLine: 0,
       hasFrontmatter: true,
@@ -354,6 +375,7 @@ function parseFrontmatter(rawText: string): ParsedFrontmatter {
   }
 
   const data: Record<string, string> = {};
+  const lineNumbers: Record<string, number> = {};
   for (let index = 1; index < closingIndex; index += 1) {
     const line = lines[index]?.trim() ?? "";
     if (!line) {
@@ -363,6 +385,7 @@ function parseFrontmatter(rawText: string): ParsedFrontmatter {
     if (!match) {
       return {
         data: {},
+        lines: {},
         body: rawText,
         endLine: closingIndex + 1,
         hasFrontmatter: true,
@@ -376,6 +399,7 @@ function parseFrontmatter(rawText: string): ParsedFrontmatter {
     if (!key || rawValue === undefined) {
       return {
         data: {},
+        lines: {},
         body: rawText,
         endLine: closingIndex + 1,
         hasFrontmatter: true,
@@ -386,10 +410,12 @@ function parseFrontmatter(rawText: string): ParsedFrontmatter {
 
     const value = rawValue.trim().replace(/^["']|["']$/g, "");
     data[key] = value;
+    lineNumbers[key] = index + 1;
   }
 
   return {
     data,
+    lines: lineNumbers,
     body: lines.slice(closingIndex + 1).join("\n"),
     endLine: closingIndex + 1,
     hasFrontmatter: true
@@ -579,7 +605,48 @@ function parseApplyTo(value: string | undefined): string[] {
     .filter(Boolean);
 }
 
-function lintLocalRules(report: InternalFileReport, profile: InstructionLintProfile): void {
+function parseExcludeAgents(value: string | undefined): {
+  excludeAgents: InstructionExcludeAgent[];
+  invalidEntries: string[];
+} {
+  if (!value) {
+    return { excludeAgents: [], invalidEntries: [] };
+  }
+
+  const excludeAgents: InstructionExcludeAgent[] = [];
+  const invalidEntries: string[] = [];
+  for (const entry of value.split(",").map((item) => item.trim()).filter(Boolean)) {
+    if (entry === "code-review" || entry === "coding-agent") {
+      excludeAgents.push(entry);
+      continue;
+    }
+    invalidEntries.push(entry);
+  }
+
+  return {
+    excludeAgents: [...new Set(excludeAgents)],
+    invalidEntries
+  };
+}
+
+function appliesToSurface(
+  report: Pick<InternalFileReport, "kind" | "excludeAgents">,
+  surface: InstructionLintSurface
+): boolean {
+  if (report.kind === "unsupported") {
+    return false;
+  }
+  if (surface === "chat") {
+    return true;
+  }
+  return !report.excludeAgents.includes(surface);
+}
+
+function lintLocalRules(
+  report: InternalFileReport,
+  profile: InstructionLintProfile,
+  surface: InstructionLintSurface
+): void {
   const budgets = PROFILE_BUDGETS[profile];
   const seen = new Set<string>();
 
@@ -595,7 +662,11 @@ function lintLocalRules(report: InternalFileReport, profile: InstructionLintProf
     );
   }
 
-  if (report.chars > HARD_CHAR_LIMIT) {
+  if (!report.appliesToSurface) {
+    return;
+  }
+
+  if (surface === "code-review" && report.chars > CODE_REVIEW_CHAR_LIMIT) {
     addFinding(
       report,
       seen,
@@ -619,6 +690,18 @@ function lintLocalRules(report: InternalFileReport, profile: InstructionLintProf
     );
   }
 
+  if (report.kind === "copilot-repository" && report.estimatedTokens > budgets.repositoryTokens) {
+    addFinding(
+      report,
+      seen,
+      "warning",
+      "repository-token-budget",
+      `Repository-wide instructions use ${report.estimatedTokens} estimated tokens and exceed the ${profile} profile budget of ${budgets.repositoryTokens}.`,
+      1,
+      "Keep global guidance dense and move path- or language-specific rules into narrower instruction files."
+    );
+  }
+
   if (report.kind === "copilot-path-specific" && report.chars > budgets.pathSpecificChars) {
     addFinding(
       report,
@@ -628,6 +711,18 @@ function lintLocalRules(report: InternalFileReport, profile: InstructionLintProf
       `Path-specific instructions use ${report.chars} characters and exceed the ${profile} profile budget of ${budgets.pathSpecificChars}.`,
       1,
       "Tighten the file to the rules that truly need to stay always-on for this scope."
+    );
+  }
+
+  if (report.kind === "copilot-path-specific" && report.estimatedTokens > budgets.pathSpecificTokens) {
+    addFinding(
+      report,
+      seen,
+      "warning",
+      "path-specific-token-budget",
+      `Path-specific instructions use ${report.estimatedTokens} estimated tokens and exceed the ${profile} profile budget of ${budgets.pathSpecificTokens}.`,
+      1,
+      "Trim this file to the rules that are unique to the matched paths."
     );
   }
 
@@ -746,7 +841,7 @@ function resolveMatchedFiles(report: InternalFileReport, repoFiles: string[]): s
   }
 
   return repoFiles.filter((filePath) =>
-    report.applyTo.some((pattern) => minimatch(filePath, pattern, { dot: true }))
+    report.applyTo.some((pattern) => path.matchesGlob(filePath, pattern))
   );
 }
 
@@ -803,7 +898,12 @@ function lintCrossFileRules(reports: InternalFileReport[]): void {
 
   for (const group of grouped.values()) {
     const eligible = group
-      .filter((report) => report.kind !== "unsupported" && report.statements.length > 0)
+      .filter(
+        (report) =>
+          report.kind !== "unsupported" &&
+          report.appliesToSurface &&
+          report.statements.length > 0
+      )
       .sort((left, right) => left.file.localeCompare(right.file));
     const reportsByPath = new Map(eligible.map((report) => [report.absolutePath, report]));
     const seen = new Set<string>();
@@ -883,9 +983,105 @@ function lintCrossFileRules(reports: InternalFileReport[]): void {
   }
 }
 
+function addApplicableTokenBudgetFindings(
+  reports: InternalFileReport[],
+  repoFilesByRoot: Map<string, string[]>,
+  profile: InstructionLintProfile,
+  surface: InstructionLintSurface
+): { maxApplicableTokens: number; maxApplicableTargetFile?: string } {
+  const budgets = PROFILE_BUDGETS[profile];
+  const grouped = new Map<string, InternalFileReport[]>();
+
+  for (const report of reports) {
+    if (!report.repoRoot) {
+      continue;
+    }
+    const existing = grouped.get(report.repoRoot) ?? [];
+    existing.push(report);
+    grouped.set(report.repoRoot, existing);
+  }
+
+  let overallMaxTokens = 0;
+  let overallTargetFile: string | undefined;
+
+  for (const [repoRoot, group] of grouped.entries()) {
+    const repoFiles = repoFilesByRoot.get(repoRoot) ?? [];
+    if (repoFiles.length === 0) {
+      continue;
+    }
+
+    const eligible = group.filter(
+      (report) => report.kind !== "unsupported" && report.appliesToSurface
+    );
+    if (eligible.length === 0) {
+      continue;
+    }
+
+    let maxTokens = 0;
+    let targetFile: string | undefined;
+    let contributors: InternalFileReport[] = [];
+
+    for (const repoFile of repoFiles) {
+      const matched = eligible.filter((report) => report.matchedFileSet.has(repoFile));
+      if (matched.length === 0) {
+        continue;
+      }
+
+      const totalTokens = matched.reduce((sum, report) => sum + report.estimatedTokens, 0);
+      if (totalTokens > maxTokens) {
+        maxTokens = totalTokens;
+        targetFile = repoFile;
+        contributors = matched;
+      }
+    }
+
+    if (maxTokens > overallMaxTokens) {
+      overallMaxTokens = maxTokens;
+      overallTargetFile = targetFile;
+    }
+
+    if (maxTokens <= budgets.maxApplicableTokens || !targetFile || contributors.length === 0) {
+      continue;
+    }
+
+    const hostReport = contributors
+      .slice()
+      .sort((left, right) => {
+        if (left.kind !== right.kind) {
+          return left.kind === "copilot-repository" ? -1 : 1;
+        }
+        if (left.estimatedTokens !== right.estimatedTokens) {
+          return right.estimatedTokens - left.estimatedTokens;
+        }
+        return left.file.localeCompare(right.file);
+      })[0];
+
+    if (!hostReport) {
+      continue;
+    }
+
+    hostReport.findings.push(
+      createFinding(
+        hostReport.file,
+        "warning",
+        "applicable-token-budget",
+        `Instructions applicable to ${targetFile} total ${maxTokens} estimated tokens for ${surface} and exceed the ${profile} profile budget of ${budgets.maxApplicableTokens}.`,
+        1,
+        "Reduce overlap, shorten always-on guidance, or narrow applyTo so no single target pulls in a large instruction bundle."
+      )
+    );
+  }
+
+  return {
+    maxApplicableTokens: overallMaxTokens,
+    ...(overallTargetFile ? { maxApplicableTargetFile: overallTargetFile } : {})
+  };
+}
+
 function buildStats(
   files: InstructionFileReport[],
-  findings: InstructionFinding[]
+  findings: InstructionFinding[],
+  summary: { maxApplicableTokens: number; maxApplicableTargetFile?: string }
 ): InstructionLintStats {
   return {
     totalFiles: files.length,
@@ -893,8 +1089,20 @@ function buildStats(
     pathSpecificFiles: files.filter((file) => file.kind === "copilot-path-specific").length,
     unsupportedFiles: files.filter((file) => file.kind === "unsupported").length,
     totalStatements: files.reduce((sum, file) => sum + file.statementCount, 0),
+    applicableStatements: files
+      .filter((file) => file.appliesToSurface)
+      .reduce((sum, file) => sum + file.statementCount, 0),
     totalChars: files.reduce((sum, file) => sum + file.chars, 0),
+    totalEstimatedTokens: files.reduce((sum, file) => sum + file.estimatedTokens, 0),
+    applicableFiles: files.filter((file) => file.appliesToSurface).length,
+    applicableEstimatedTokens: files
+      .filter((file) => file.appliesToSurface)
+      .reduce((sum, file) => sum + file.estimatedTokens, 0),
     totalMatchedFiles: files.reduce((sum, file) => sum + (file.matchedFileCount ?? 0), 0),
+    maxApplicableTokens: summary.maxApplicableTokens,
+    ...(summary.maxApplicableTargetFile
+      ? { maxApplicableTargetFile: summary.maxApplicableTargetFile }
+      : {}),
     warningCount: findings.filter((finding) => finding.severity === "warning").length,
     errorCount: findings.filter((finding) => finding.severity === "error").length
   };
@@ -913,10 +1121,17 @@ export function lintInstructions(
 ): InstructionLintReport {
   const profile = options.profile ?? DEFAULT_PROFILE;
   const failOnSeverity = options.failOnSeverity ?? DEFAULT_FAIL_ON_SEVERITY;
+  const surface = options.surface ?? DEFAULT_SURFACE;
+  const model = options.model;
+  const modelLimit = getModelLimit(model);
   const inputs = Array.isArray(pathOrFiles) ? pathOrFiles : [pathOrFiles];
   const candidates: CandidateFile[] = [];
   const warnings = new Set<string>();
   const repoFilesByRoot = new Map<string, string[]>();
+
+  if (model && !modelLimit) {
+    warnings.add(`Model limits are unknown for ${model}; context-window share metrics are unavailable.`);
+  }
 
   for (const input of inputs) {
     const absoluteInput = path.resolve(input);
@@ -960,13 +1175,14 @@ export function lintInstructions(
     const rawText = fs.readFileSync(candidate.absolutePath, "utf8");
     const frontmatter =
       candidate.kind === "copilot-path-specific"
-        ? parseFrontmatter(rawText)
-        : {
-            data: {},
-            body: rawText,
-            endLine: 0,
-            hasFrontmatter: false
-          };
+      ? parseFrontmatter(rawText)
+      : {
+          data: {},
+          lines: {},
+          body: rawText,
+          endLine: 0,
+          hasFrontmatter: false
+        };
 
     const blocks = parseMarkdownBlocks(frontmatter.body, frontmatter.endLine);
     const statements = blocks
@@ -978,6 +1194,8 @@ export function lintInstructions(
       file: candidate.file,
       kind: candidate.kind,
       ...(candidate.repoRoot ? { repoRoot: candidate.repoRoot } : {}),
+      excludeAgents: [],
+      appliesToSurface: candidate.kind !== "unsupported",
       chars: rawText.length,
       words: countWords(rawText),
       estimatedTokens: estimateTextTokens(rawText),
@@ -1014,7 +1232,7 @@ export function lintInstructions(
         );
       } else {
         report.applyTo = parseApplyTo(frontmatter.data.applyTo);
-        report.applyToLine = 2;
+        report.applyToLine = frontmatter.lines.applyTo ?? 2;
         if (report.applyTo.length === 0) {
           report.findings.push(
             createFinding(
@@ -1022,15 +1240,34 @@ export function lintInstructions(
               "error",
               "missing-applyto",
               "Path-specific instruction file is missing a valid applyTo value.",
-              2,
+              report.applyToLine,
               "Set applyTo to one or more comma-separated glob patterns."
+            )
+          );
+        }
+
+        const excludeAgent = parseExcludeAgents(frontmatter.data.excludeAgent);
+        report.excludeAgents = excludeAgent.excludeAgents;
+        if (frontmatter.lines.excludeAgent !== undefined) {
+          report.excludeAgentsLine = frontmatter.lines.excludeAgent;
+        }
+        if (excludeAgent.invalidEntries.length > 0) {
+          report.findings.push(
+            createFinding(
+              report.file,
+              "error",
+              "invalid-exclude-agent",
+              `excludeAgent contains unsupported value(s): ${excludeAgent.invalidEntries.join(", ")}.`,
+              report.excludeAgentsLine ?? 1,
+              'Use "code-review" or "coding-agent".'
             )
           );
         }
       }
     }
 
-    lintLocalRules(report, profile);
+    report.appliesToSurface = appliesToSurface(report, surface);
+    lintLocalRules(report, profile, surface);
     internalReports.push(report);
   }
 
@@ -1081,6 +1318,12 @@ export function lintInstructions(
   }
 
   lintCrossFileRules(internalReports);
+  const applicableTokenSummary = addApplicableTokenBudgetFindings(
+    internalReports,
+    repoFilesByRoot,
+    profile,
+    surface
+  );
 
   const files: InstructionFileReport[] = internalReports
     .sort((left, right) => left.file.localeCompare(right.file))
@@ -1088,6 +1331,8 @@ export function lintInstructions(
       file: report.file,
       kind: report.kind,
       ...(report.applyTo.length > 0 ? { applyTo: report.applyTo } : {}),
+      ...(report.excludeAgents.length > 0 ? { excludeAgents: report.excludeAgents } : {}),
+      appliesToSurface: report.appliesToSurface,
       chars: report.chars,
       words: report.words,
       estimatedTokens: report.estimatedTokens,
@@ -1099,11 +1344,20 @@ export function lintInstructions(
   const findings = files
     .flatMap((file) => file.findings)
     .sort(findingSort);
-  const stats = buildStats(files, findings);
+  const stats = buildStats(files, findings, applicableTokenSummary);
   const passed = findings.every((finding) => !isSeverityFailing(finding, failOnSeverity));
 
   return {
     profile,
+    surface,
+    ...(model ? { model } : {}),
+    ...(modelLimit ? { contextWindow: modelLimit.contextWindow } : {}),
+    ...(modelLimit && stats.maxApplicableTokens > 0
+      ? {
+          maxApplicableContextPercent:
+            (stats.maxApplicableTokens / modelLimit.contextWindow) * 100
+        }
+      : {}),
     passed,
     exitCode: passed ? 0 : 2,
     failOnSeverity,

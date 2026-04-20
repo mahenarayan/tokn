@@ -14,6 +14,12 @@ Optional markdown output:
 node dist/cli.js instructions-lint fixtures/instructions/invalid-repo --format markdown
 ```
 
+Surface-aware and model-aware output:
+
+```bash
+node dist/cli.js instructions-lint fixtures/instructions/valid-repo --surface coding-agent --model gpt-4o
+```
+
 ## What This Answers
 
 - which instruction files are in scope
@@ -21,6 +27,7 @@ node dist/cli.js instructions-lint fixtures/instructions/invalid-repo --format m
 - whether `applyTo` patterns are stale or too broad
 - whether overlapping files duplicate or conflict with each other
 - whether instruction wording is wasting always-on context
+- how much estimated instruction context a single target file can accumulate
 
 ## Why This Matters
 

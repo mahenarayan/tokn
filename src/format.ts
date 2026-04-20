@@ -261,11 +261,19 @@ export function formatInstructionLintReport(report: InstructionLintReport): stri
   const lines = [
     `Status: ${report.passed ? "pass" : "fail"}`,
     `Profile: ${report.profile}`,
+    `Surface: ${report.surface}`,
+    `Model: ${report.model ?? "unknown"}`,
+    `Context window: ${report.contextWindow ?? "unknown"}`,
+    `Max applicable context share: ${formatPercent(report.maxApplicableContextPercent)}`,
     `Fail on severity: ${report.failOnSeverity}`,
     `Files: ${report.stats.totalFiles}`,
+    `Applicable files: ${report.stats.applicableFiles}`,
     `Statements: ${report.stats.totalStatements}`,
+    `Applicable statements: ${report.stats.applicableStatements}`,
     `Chars: ${report.stats.totalChars}`,
+    `Estimated tokens: ${report.stats.totalEstimatedTokens} total | ${report.stats.applicableEstimatedTokens} applicable`,
     `Matched scope files: ${report.stats.totalMatchedFiles}`,
+    `Max applicable tokens: ${report.stats.maxApplicableTokens}${report.stats.maxApplicableTargetFile ? ` (${report.stats.maxApplicableTargetFile})` : ""}`,
     `Findings: ${report.findings.length} (${report.stats.errorCount} errors, ${report.stats.warningCount} warnings)`,
     "",
     "Files:"
@@ -276,9 +284,13 @@ export function formatInstructionLintReport(report: InstructionLintReport): stri
   } else {
     for (const file of report.files) {
       const applyTo = file.applyTo && file.applyTo.length > 0 ? ` | applyTo=${file.applyTo.join(",")}` : "";
+      const excludeAgents =
+        file.excludeAgents && file.excludeAgents.length > 0
+          ? ` | excludeAgent=${file.excludeAgents.join(",")}`
+          : "";
       const matched = file.matchedFileCount !== undefined ? ` | matches=${file.matchedFileCount}` : "";
       lines.push(
-        `- ${file.file}: ${formatInstructionFileKind(file.kind)} | chars=${file.chars} | statements=${file.statementCount}${matched} | findings=${file.findings.length}${applyTo}`
+        `- ${file.file}: ${formatInstructionFileKind(file.kind)} | active=${file.appliesToSurface ? "yes" : "no"} | chars=${file.chars} | tokens=${file.estimatedTokens} | statements=${file.statementCount}${matched} | findings=${file.findings.length}${applyTo}${excludeAgents}`
       );
     }
   }
@@ -375,11 +387,19 @@ export function formatInstructionLintReportMarkdown(report: InstructionLintRepor
     "## Summary",
     `- Status: ${report.passed ? "pass" : "fail"}`,
     `- Profile: ${report.profile}`,
+    `- Surface: ${report.surface}`,
+    `- Model: ${report.model ?? "unknown"}`,
+    `- Context window: ${report.contextWindow ?? "unknown"}`,
+    `- Max applicable context share: ${formatPercent(report.maxApplicableContextPercent)}`,
     `- Fail on severity: ${report.failOnSeverity}`,
     `- Files: ${report.stats.totalFiles}`,
+    `- Applicable files: ${report.stats.applicableFiles}`,
     `- Statements: ${report.stats.totalStatements}`,
+    `- Applicable statements: ${report.stats.applicableStatements}`,
     `- Chars: ${report.stats.totalChars}`,
+    `- Estimated tokens: ${report.stats.totalEstimatedTokens} total / ${report.stats.applicableEstimatedTokens} applicable`,
     `- Matched scope files: ${report.stats.totalMatchedFiles}`,
+    `- Max applicable tokens: ${report.stats.maxApplicableTokens}${report.stats.maxApplicableTargetFile ? ` (${report.stats.maxApplicableTargetFile})` : ""}`,
     `- Findings: ${report.findings.length} (${report.stats.errorCount} errors, ${report.stats.warningCount} warnings)`,
     "",
     "## Files"
@@ -390,12 +410,15 @@ export function formatInstructionLintReportMarkdown(report: InstructionLintRepor
   } else {
     lines.push(
       ...markdownTable(
-        ["File", "Kind", "Apply To", "Chars", "Statements", "Matched", "Findings"],
+        ["File", "Kind", "Active", "Apply To", "Exclude Agent", "Chars", "Tokens", "Statements", "Matched", "Findings"],
         report.files.map((file) => [
           file.file,
           formatInstructionFileKind(file.kind),
+          file.appliesToSurface ? "yes" : "no",
           file.applyTo?.join(", ") ?? "-",
+          file.excludeAgents?.join(", ") ?? "-",
           String(file.chars),
+          String(file.estimatedTokens),
           String(file.statementCount),
           String(file.matchedFileCount ?? 0),
           String(file.findings.length)

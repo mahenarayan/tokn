@@ -13,6 +13,8 @@ export type SegmentType =
 export type CheckRiskThreshold = "low" | "medium" | "high";
 export type InstructionLintProfile = "lite" | "standard" | "strict";
 export type InstructionLintSeverity = "warning" | "error";
+export type InstructionLintSurface = "code-review" | "chat" | "coding-agent";
+export type InstructionExcludeAgent = "code-review" | "coding-agent";
 export type InstructionFileKind =
   | "copilot-repository"
   | "copilot-path-specific"
@@ -131,6 +133,8 @@ export interface CheckResult {
 export interface InstructionLintOptions {
   profile?: InstructionLintProfile;
   failOnSeverity?: InstructionLintSeverity;
+  surface?: InstructionLintSurface;
+  model?: string;
 }
 
 export interface InstructionFinding {
@@ -146,6 +150,8 @@ export interface InstructionFileReport {
   file: string;
   kind: InstructionFileKind;
   applyTo?: string[];
+  excludeAgents?: InstructionExcludeAgent[];
+  appliesToSurface: boolean;
   chars: number;
   words: number;
   estimatedTokens: number;
@@ -160,14 +166,24 @@ export interface InstructionLintStats {
   pathSpecificFiles: number;
   unsupportedFiles: number;
   totalStatements: number;
+  applicableStatements: number;
   totalChars: number;
+  totalEstimatedTokens: number;
+  applicableFiles: number;
+  applicableEstimatedTokens: number;
   totalMatchedFiles: number;
+  maxApplicableTokens: number;
+  maxApplicableTargetFile?: string;
   warningCount: number;
   errorCount: number;
 }
 
 export interface InstructionLintReport {
   profile: InstructionLintProfile;
+  surface: InstructionLintSurface;
+  model?: string;
+  contextWindow?: number;
+  maxApplicableContextPercent?: number;
   passed: boolean;
   exitCode: 0 | 2;
   failOnSeverity: InstructionLintSeverity;
