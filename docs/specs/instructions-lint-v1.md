@@ -84,6 +84,7 @@ Each finding includes:
 - `file`
 - `line`
 - optional `suggestion`
+- optional `evidence`
 
 Human-readable output should include:
 
@@ -92,6 +93,7 @@ Human-readable output should include:
 - estimated token totals and max applicable token load
 - per-file summary
 - ordered findings
+- structured evidence for overlap, scope, and budget findings
 - warnings
 
 ## Internal Changes

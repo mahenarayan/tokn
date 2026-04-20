@@ -5,6 +5,8 @@ import type {
   ContextReport,
   DiffReport,
   InstructionFileKind,
+  InstructionFinding,
+  InstructionFindingEvidence,
   InstructionLintReport
 } from "./types.js";
 
@@ -24,6 +26,80 @@ function formatInstructionFileKind(kind: InstructionFileKind): string {
       return "path-specific";
     case "unsupported":
       return "unsupported";
+  }
+}
+
+function formatInstructionFindingEvidenceParts(evidence: InstructionFindingEvidence): string[] {
+  const parts: string[] = [];
+
+  if (evidence.actual !== undefined && evidence.expected !== undefined) {
+    parts.push(`actual=${evidence.actual}`);
+    parts.push(`expected=${evidence.expected}`);
+  } else if (evidence.actual !== undefined) {
+    parts.push(`actual=${evidence.actual}`);
+  } else if (evidence.expected !== undefined) {
+    parts.push(`expected=${evidence.expected}`);
+  }
+
+  if (evidence.surface) {
+    parts.push(`surface=${evidence.surface}`);
+  }
+  if (evidence.targetFile) {
+    parts.push(`target=${evidence.targetFile}`);
+  }
+  if (evidence.relatedLocation) {
+    parts.push(`related=${evidence.relatedLocation.file}:${evidence.relatedLocation.line}`);
+  }
+  if (evidence.patterns && evidence.patterns.length > 0) {
+    parts.push(`patterns=${evidence.patterns.join(",")}`);
+  }
+  if (evidence.overlapFileCount !== undefined) {
+    parts.push(`overlap=${evidence.overlapFileCount}`);
+  }
+  if (evidence.overlapFilesSample && evidence.overlapFilesSample.length > 0) {
+    parts.push(`overlap_sample=${evidence.overlapFilesSample.join(",")}`);
+  }
+  if (evidence.matchedFileCount !== undefined) {
+    parts.push(`matched=${evidence.matchedFileCount}`);
+  }
+  if (evidence.matchedFilesSample && evidence.matchedFilesSample.length > 0) {
+    parts.push(`matched_sample=${evidence.matchedFilesSample.join(",")}`);
+  }
+  if (evidence.contributorFiles && evidence.contributorFiles.length > 0) {
+    parts.push(`contributors=${evidence.contributorFiles.join(",")}`);
+  }
+  if (evidence.similarityScore !== undefined) {
+    parts.push(`similarity=${(evidence.similarityScore * 100).toFixed(1)}%`);
+  }
+
+  return parts;
+}
+
+function appendInstructionFindingText(lines: string[], finding: InstructionFinding): void {
+  lines.push(
+    `- [${finding.severity}] ${finding.file}:${finding.line} ${finding.ruleId}: ${finding.message}`
+  );
+  if (!finding.evidence) {
+    return;
+  }
+
+  const evidenceParts = formatInstructionFindingEvidenceParts(finding.evidence);
+  if (evidenceParts.length > 0) {
+    lines.push(`  evidence: ${evidenceParts.join(" | ")}`);
+  }
+}
+
+function appendInstructionFindingMarkdown(lines: string[], finding: InstructionFinding): void {
+  lines.push(
+    `- **${finding.severity}** \`${finding.file}:${finding.line}\` \`${finding.ruleId}\`: ${finding.message}`
+  );
+  if (!finding.evidence) {
+    return;
+  }
+
+  const evidenceParts = formatInstructionFindingEvidenceParts(finding.evidence);
+  if (evidenceParts.length > 0) {
+    lines.push(`  Evidence: ${evidenceParts.map((part) => `\`${part}\``).join(" ")}`);
   }
 }
 
@@ -300,9 +376,7 @@ export function formatInstructionLintReport(report: InstructionLintReport): stri
     lines.push("- none");
   } else {
     for (const finding of report.findings) {
-      lines.push(
-        `- [${finding.severity}] ${finding.file}:${finding.line} ${finding.ruleId}: ${finding.message}`
-      );
+      appendInstructionFindingText(lines, finding);
     }
   }
 
@@ -432,9 +506,7 @@ export function formatInstructionLintReportMarkdown(report: InstructionLintRepor
     lines.push("- none");
   } else {
     for (const finding of report.findings) {
-      lines.push(
-        `- **${finding.severity}** \`${finding.file}:${finding.line}\` \`${finding.ruleId}\`: ${finding.message}`
-      );
+      appendInstructionFindingMarkdown(lines, finding);
     }
   }
 

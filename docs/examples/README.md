@@ -20,6 +20,7 @@ The examples use `node dist/cli.js` so they work without `npm link` or npm publi
 - [Multi-Agent Trace Inspection](/Users/raksha/Documents/Projects/probe/docs/examples/multi-agent-trace.md)
 - [CI Gate Usage](/Users/raksha/Documents/Projects/probe/docs/examples/ci-gate.md)
 - [Copilot Instructions Lint](/Users/raksha/Documents/Projects/probe/docs/examples/copilot-instructions-lint.md)
+- [Instructions Lint Demo Commands](/Users/raksha/Documents/Projects/probe/docs/examples/instructions-lint-demo-commands.md)
 
 ## How To Use The Gallery
 

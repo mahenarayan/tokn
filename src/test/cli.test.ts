@@ -474,6 +474,13 @@ test("cli instructions-lint supports --json", () => {
   assert.equal(output.exitCode, 2);
   assert.ok(Array.isArray(output.files));
   assert.ok(Array.isArray(output.findings));
+
+  const findings = output.findings as Array<Record<string, unknown>>;
+  const duplicate = findings.find((finding) => finding.ruleId === "exact-duplicate-statement");
+  const evidence = duplicate?.evidence as Record<string, unknown> | undefined;
+  const relatedLocation = evidence?.relatedLocation as Record<string, unknown> | undefined;
+  assert.equal(relatedLocation?.file, ".github/instructions/all.instructions.md");
+  assert.equal(relatedLocation?.line, 6);
 });
 
 test("cli instructions-lint supports --format markdown", () => {
@@ -497,6 +504,16 @@ test("cli instructions-lint supports markdown for failure output", () => {
 
   assert.equal(result.status, 2, result.stderr);
   assert.equal(result.stdout.trim(), readGolden("instructions-lint-fail.md"));
+});
+
+test("cli instructions-lint renders structured evidence in text output", () => {
+  const result = runCliProcess(["instructions-lint", "fixtures/instructions/invalid-repo"]);
+  assert.equal(result.status, 2, result.stderr);
+  const output = result.stdout.trim();
+
+  assert.match(output, /evidence: related=\.github\/instructions\/all\.instructions\.md:6/);
+  assert.match(output, /patterns=\*\*\/\*\.rs/);
+  assert.match(output, /matched=0/);
 });
 
 test("cli instructions-lint supports single-file lint", () => {

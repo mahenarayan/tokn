@@ -22,6 +22,8 @@ export type {
   DiffReport,
   InstructionExcludeAgent,
   InstructionFileKind,
+  InstructionFindingEvidence,
+  InstructionFindingLocation,
   InstructionFileReport,
   InstructionFinding,
   InstructionLintOptions,
