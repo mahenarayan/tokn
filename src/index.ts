@@ -27,6 +27,8 @@ export type {
   InstructionFileReport,
   InstructionFinding,
   InstructionLintOptions,
+  InstructionLintPreset,
+  InstructionLintPresetSelector,
   InstructionLintProfile,
   InstructionLintReport,
   InstructionLintSeverity,

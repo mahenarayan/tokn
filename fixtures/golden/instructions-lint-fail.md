@@ -2,6 +2,8 @@
 
 ## Summary
 - Status: fail
+- Preset: auto
+- Detected presets: copilot
 - Profile: standard
 - Surface: code-review
 - Model: unknown
@@ -19,21 +21,21 @@
 - Findings: 15 (4 errors, 11 warnings)
 
 ## Files
-| File | Kind | Active | Apply To | Exclude Agent | Chars | Tokens | Statements | Matched | Findings |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| .github/copilot-instructions.md | repository-wide | yes | - | - | 1282 | 323 | 7 | 12 | 10 |
-| .github/instructions/all.instructions.md | path-specific | yes | ** | - | 83 | 22 | 1 | 5 | 1 |
-| .github/instructions/legacy.md | unsupported | no | - | - | 39 | 11 | 1 | 0 | 1 |
-| .github/instructions/no-frontmatter.instructions.md | path-specific | yes | - | - | 74 | 19 | 1 | 0 | 1 |
-| .github/instructions/rust.instructions.md | path-specific | yes | **/*.rs | - | 74 | 19 | 1 | 0 | 1 |
-| .github/instructions/semicolons.instructions.md | path-specific | yes | **/*.ts, **/*.tsx | - | 95 | 25 | 1 | 2 | 1 |
-| .github/instructions/style.instructions.md | path-specific | yes | app/**/*.tsx | - | 83 | 22 | 1 | 1 | 0 |
+| File | Kind | Preset | Active | Apply To | Scope | Exclude Agent | Chars | Tokens | Statements | Matched | Findings |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| .github/copilot-instructions.md | repository-wide | copilot | yes | - | - | - | 1282 | 323 | 7 | 12 | 10 |
+| .github/instructions/all.instructions.md | path-specific | copilot | yes | ** | - | - | 83 | 22 | 1 | 5 | 1 |
+| .github/instructions/legacy.md | unsupported | unknown | no | - | - | - | 39 | 11 | 1 | 0 | 1 |
+| .github/instructions/no-frontmatter.instructions.md | path-specific | copilot | yes | - | - | - | 74 | 19 | 1 | 0 | 1 |
+| .github/instructions/rust.instructions.md | path-specific | copilot | yes | **/*.rs | - | - | 74 | 19 | 1 | 0 | 1 |
+| .github/instructions/semicolons.instructions.md | path-specific | copilot | yes | **/*.ts, **/*.tsx | - | - | 95 | 25 | 1 | 2 | 1 |
+| .github/instructions/style.instructions.md | path-specific | copilot | yes | app/**/*.tsx | - | - | 83 | 22 | 1 | 1 | 0 |
 
 ## Findings
-- **error** `.github/copilot-instructions.md:10` `order-dependent-wording`: Instruction relies on relative ordering, but Copilot does not guarantee instruction-file order across all surfaces.
+- **error** `.github/copilot-instructions.md:10` `order-dependent-wording`: Instruction relies on relative ordering, but instruction runtimes do not guarantee file order across surfaces and presets.
 - **error** `.github/instructions/all.instructions.md:2` `global-applyto-overlap`: Path-specific instruction file uses applyTo: "**" even though a repository-wide copilot-instructions.md file already exists.
   Evidence: `related=.github/copilot-instructions.md:1` `patterns=**` `matched=5` `matched_sample=app/view.tsx,db/query.sql,docs/readme.md`
-- **error** `.github/instructions/legacy.md:1` `invalid-file-path`: Instruction file path is not a supported GitHub Copilot instructions location.
+- **error** `.github/instructions/legacy.md:1` `invalid-file-path`: Instruction file path does not match a supported instruction preset location.
 - **error** `.github/instructions/no-frontmatter.instructions.md:1` `missing-frontmatter`: Path-specific instruction files must start with YAML frontmatter containing applyTo.
 - **warning** `.github/copilot-instructions.md:3` `exact-duplicate-statement`: Instruction duplicates .github/instructions/all.instructions.md:6 across overlapping scope.
   Evidence: `related=.github/instructions/all.instructions.md:6` `overlap=5` `overlap_sample=app/view.tsx,db/query.sql,docs/readme.md` `similarity=100.0%`
@@ -41,12 +43,12 @@
   Evidence: `related=.github/instructions/style.instructions.md:6` `overlap=1` `overlap_sample=app/view.tsx` `similarity=100.0%`
 - **warning** `.github/copilot-instructions.md:4` `possible-conflict`: Instruction may conflict with .github/instructions/semicolons.instructions.md:6 because overlapping files express opposite polarity for the same subject.
   Evidence: `related=.github/instructions/semicolons.instructions.md:6` `overlap=2` `overlap_sample=app/view.tsx,src/index.ts` `similarity=100.0%`
-- **warning** `.github/copilot-instructions.md:4` `repo-wide-scoped-topics`: Repository-wide instructions mix in multiple scoped topics that likely belong in path-specific instruction files.
-- **warning** `.github/copilot-instructions.md:10` `paragraph-narrative`: Paragraph-style narrative is harder for Copilot to scan than short atomic directives.
+- **warning** `.github/copilot-instructions.md:4` `repo-wide-scoped-topics`: Repository-scoped instructions mix in multiple scoped topics that likely belong in narrower instruction files.
+- **warning** `.github/copilot-instructions.md:10` `paragraph-narrative`: Paragraph-style narrative is harder for instruction runtimes to scan than short atomic directives.
 - **warning** `.github/copilot-instructions.md:10` `statement-too-long`: Instruction statement uses 36 words and exceeds the standard profile budget of 30.
   Evidence: `actual=36` `expected=30`
 - **warning** `.github/copilot-instructions.md:10` `vague-instruction`: Instruction is too generic to add repository-specific value.
-- **warning** `.github/copilot-instructions.md:10` `weak-modal-phrasing`: Instruction uses weak modal phrasing that is easy for Copilot to ignore or interpret loosely.
+- **warning** `.github/copilot-instructions.md:10` `weak-modal-phrasing`: Instruction uses weak modal phrasing that is easy for assistants to ignore or interpret loosely.
 - **warning** `.github/copilot-instructions.md:12` `oversized-code-example`: Code example is large enough to crowd out higher-signal instruction text.
 - **warning** `.github/instructions/rust.instructions.md:2` `stale-applyto`: applyTo patterns do not match any repository files.
   Evidence: `patterns=**/*.rs` `matched=0`

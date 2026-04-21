@@ -2,6 +2,8 @@
 
 ## Summary
 - Status: pass
+- Preset: auto
+- Detected presets: copilot
 - Profile: standard
 - Surface: code-review
 - Model: unknown
@@ -19,10 +21,10 @@
 - Findings: 0 (0 errors, 0 warnings)
 
 ## Files
-| File | Kind | Active | Apply To | Exclude Agent | Chars | Tokens | Statements | Matched | Findings |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| .github/copilot-instructions.md | repository-wide | yes | - | - | 176 | 46 | 3 | 5 | 0 |
-| .github/instructions/typescript.instructions.md | path-specific | yes | **/*.ts, **/*.tsx | - | 148 | 39 | 2 | 2 | 0 |
+| File | Kind | Preset | Active | Apply To | Scope | Exclude Agent | Chars | Tokens | Statements | Matched | Findings |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| .github/copilot-instructions.md | repository-wide | copilot | yes | - | - | - | 176 | 46 | 3 | 5 | 0 |
+| .github/instructions/typescript.instructions.md | path-specific | copilot | yes | **/*.ts, **/*.tsx | - | - | 148 | 39 | 2 | 2 | 0 |
 
 ## Findings
 - none

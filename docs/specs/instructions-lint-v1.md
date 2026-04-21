@@ -4,7 +4,7 @@ Instructions Lint V1
 
 ## Problem
 
-Orqis can inspect prompt occupancy and CI-check token budgets, but it cannot yet lint GitHub Copilot instruction files themselves.
+Orqis can inspect prompt occupancy and CI-check token budgets, but it cannot yet lint repository instruction files themselves.
 Teams need a deterministic way to catch:
 
 - invalid instruction file layout
@@ -15,7 +15,9 @@ Teams need a deterministic way to catch:
 ## Goals
 
 - add `orqis instructions-lint <path>`
-- support repository-wide and path-specific GitHub Copilot instruction files
+- support repository instruction presets through one deterministic lint engine
+- ship GitHub Copilot as the stable preset
+- support `AGENTS.md` as a second preset without forking the core engine
 - keep the product read-only and deterministic
 - support text, JSON, and markdown output
 - expose a stable SDK report shape for editor or CI tooling
@@ -23,8 +25,7 @@ Teams need a deterministic way to catch:
 ## Non-Goals
 
 - rewriting or autofixing instruction files
-- composing instruction files across vendors
-- supporting `AGENTS.md` as a CLI input in v1
+- composing instruction files across vendors beyond the supported presets
 - embedding a generic prose linter as the primary engine
 
 ## Inputs
@@ -32,12 +33,17 @@ Teams need a deterministic way to catch:
 `instructions-lint` accepts either:
 
 - a repository root or directory, which triggers discovery of:
-  - `.github/copilot-instructions.md`
-  - `.github/instructions/**/*.instructions.md`
+  - `copilot` preset files:
+    - `.github/copilot-instructions.md`
+    - `.github/instructions/**/*.instructions.md`
+  - `agents-md` preset files:
+    - `AGENTS.md`
+    - nested `**/AGENTS.md`
 - a single file path, which is linted directly
 
 Supported flags in v1:
 
+- `--preset <auto|copilot|agents-md>`
 - `--profile <lite|standard|strict>`
 - `--surface <code-review|chat|coding-agent>`
 - `--model <id>`
@@ -49,6 +55,8 @@ Supported flags in v1:
 
 Add an `InstructionLintReport` object with:
 
+- `preset`
+- `detectedPresets`
 - `profile`
 - `surface`
 - optional `model`
@@ -66,7 +74,9 @@ Each `InstructionFileReport` includes:
 
 - `file`
 - `kind`
+- optional `preset`
 - optional `applyTo`
+- optional `scopePath`
 - optional `excludeAgents`
 - `appliesToSurface`
 - `chars`
@@ -100,9 +110,11 @@ Human-readable output should include:
 
 - add a dedicated instruction-lint subsystem under `src/instructions/`
 - keep `ContextReport` unchanged and introduce a separate instruction-lint report family
-- parse path-specific frontmatter and require `applyTo`
+- add preset-aware discovery and file classification
+- parse Copilot path-specific frontmatter and require `applyTo`
+- treat nested `AGENTS.md` files as directory-scoped instruction files
 - honor `excludeAgent` for surface-specific evaluation
-- resolve `applyTo` against real repository files using glob matching
+- resolve scoped matches against real repository files using preset-specific matching
 - add deterministic rule packs for:
   - file-path validity
   - frontmatter and `applyTo`
@@ -148,6 +160,7 @@ Profile budgets in v1:
 - `.instructions.md` files without valid frontmatter or `applyTo` should produce an error finding
 - `applyTo: "**"` should error when a repository-wide file exists
 - `excludeAgent` should suppress surface-specific findings when the file is inactive for the selected surface
+- nested `AGENTS.md` files should be treated as directory-scoped, not unsupported
 - no repository matches for `applyTo` should produce a warning, not a hard error
 - if no instruction files are found under a directory, return an empty passing report with a warning
 - `0` means no findings at or above the selected fail severity
@@ -184,6 +197,7 @@ Profile budgets in v1:
 ## Acceptance Criteria
 
 - `orqis instructions-lint` works on repo roots and individual files
+- `orqis instructions-lint` can lint both `copilot` and `agents-md` presets through one core engine
 - output is deterministic across text, markdown, and JSON modes
 - cross-file overlap is based on actual repository file matches
 - profile budgets apply to both chars and estimated tokens

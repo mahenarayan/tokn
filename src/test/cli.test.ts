@@ -436,6 +436,8 @@ test("cli instructions-lint passes on a valid repository fixture", () => {
 
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /Status: pass/);
+  assert.match(result.stdout, /Preset: auto/);
+  assert.match(result.stdout, /Detected presets: copilot/);
   assert.match(result.stdout, /Files: 2/);
   assert.match(result.stdout, /Findings:\n- none/);
 });
@@ -472,6 +474,7 @@ test("cli instructions-lint supports --json", () => {
   const output = JSON.parse(result.stdout) as Record<string, unknown>;
   assert.equal(output.passed, false);
   assert.equal(output.exitCode, 2);
+  assert.equal(output.preset, "auto");
   assert.ok(Array.isArray(output.files));
   assert.ok(Array.isArray(output.findings));
 
@@ -524,6 +527,19 @@ test("cli instructions-lint supports single-file lint", () => {
 
   assert.match(output, /typescript.instructions.md/);
   assert.match(output, /matches=2/);
+});
+
+test("cli instructions-lint supports preset-aware AGENTS.md linting", () => {
+  const output = runCli([
+    "instructions-lint",
+    "fixtures/instructions/agents-repo",
+    "--preset",
+    "agents-md"
+  ]);
+
+  assert.match(output, /Detected presets: agents-md/);
+  assert.match(output, /frontend\/AGENTS\.md/);
+  assert.match(output, /scope=frontend/);
 });
 
 test("cli instructions-lint supports --surface and only applies the 4000-char rule to code-review", () => {

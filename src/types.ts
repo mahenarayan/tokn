@@ -14,10 +14,12 @@ export type CheckRiskThreshold = "low" | "medium" | "high";
 export type InstructionLintProfile = "lite" | "standard" | "strict";
 export type InstructionLintSeverity = "warning" | "error";
 export type InstructionLintSurface = "code-review" | "chat" | "coding-agent";
+export type InstructionLintPreset = "copilot" | "agents-md";
+export type InstructionLintPresetSelector = "auto" | InstructionLintPreset;
 export type InstructionExcludeAgent = "code-review" | "coding-agent";
 export type InstructionFileKind =
-  | "copilot-repository"
-  | "copilot-path-specific"
+  | "repository"
+  | "path-specific"
   | "unsupported";
 
 export type CountConfidence =
@@ -135,6 +137,7 @@ export interface InstructionLintOptions {
   failOnSeverity?: InstructionLintSeverity;
   surface?: InstructionLintSurface;
   model?: string;
+  preset?: InstructionLintPresetSelector;
 }
 
 export interface InstructionFindingLocation {
@@ -170,7 +173,9 @@ export interface InstructionFinding {
 export interface InstructionFileReport {
   file: string;
   kind: InstructionFileKind;
+  preset?: InstructionLintPreset;
   applyTo?: string[];
+  scopePath?: string;
   excludeAgents?: InstructionExcludeAgent[];
   appliesToSurface: boolean;
   chars: number;
@@ -200,6 +205,8 @@ export interface InstructionLintStats {
 }
 
 export interface InstructionLintReport {
+  preset: InstructionLintPresetSelector;
+  detectedPresets: InstructionLintPreset[];
   profile: InstructionLintProfile;
   surface: InstructionLintSurface;
   model?: string;

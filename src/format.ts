@@ -7,6 +7,7 @@ import type {
   InstructionFileKind,
   InstructionFinding,
   InstructionFindingEvidence,
+  InstructionLintPreset,
   InstructionLintReport
 } from "./types.js";
 
@@ -20,12 +21,23 @@ function markdownTable(headers: string[], rows: string[][]): string[] {
 
 function formatInstructionFileKind(kind: InstructionFileKind): string {
   switch (kind) {
-    case "copilot-repository":
+    case "repository":
       return "repository-wide";
-    case "copilot-path-specific":
+    case "path-specific":
       return "path-specific";
     case "unsupported":
       return "unsupported";
+  }
+}
+
+function formatInstructionPreset(preset?: InstructionLintPreset): string {
+  switch (preset) {
+    case "copilot":
+      return "copilot";
+    case "agents-md":
+      return "agents-md";
+    default:
+      return "unknown";
   }
 }
 
@@ -336,6 +348,8 @@ export function formatCheckReport(result: CheckResult): string {
 export function formatInstructionLintReport(report: InstructionLintReport): string {
   const lines = [
     `Status: ${report.passed ? "pass" : "fail"}`,
+    `Preset: ${report.preset}`,
+    `Detected presets: ${report.detectedPresets.length > 0 ? report.detectedPresets.join(", ") : "none"}`,
     `Profile: ${report.profile}`,
     `Surface: ${report.surface}`,
     `Model: ${report.model ?? "unknown"}`,
@@ -359,14 +373,16 @@ export function formatInstructionLintReport(report: InstructionLintReport): stri
     lines.push("- none");
   } else {
     for (const file of report.files) {
+      const preset = ` | preset=${formatInstructionPreset(file.preset)}`;
       const applyTo = file.applyTo && file.applyTo.length > 0 ? ` | applyTo=${file.applyTo.join(",")}` : "";
+      const scope = file.scopePath ? ` | scope=${file.scopePath}` : "";
       const excludeAgents =
         file.excludeAgents && file.excludeAgents.length > 0
           ? ` | excludeAgent=${file.excludeAgents.join(",")}`
           : "";
       const matched = file.matchedFileCount !== undefined ? ` | matches=${file.matchedFileCount}` : "";
       lines.push(
-        `- ${file.file}: ${formatInstructionFileKind(file.kind)} | active=${file.appliesToSurface ? "yes" : "no"} | chars=${file.chars} | tokens=${file.estimatedTokens} | statements=${file.statementCount}${matched} | findings=${file.findings.length}${applyTo}${excludeAgents}`
+        `- ${file.file}: ${formatInstructionFileKind(file.kind)}${preset} | active=${file.appliesToSurface ? "yes" : "no"} | chars=${file.chars} | tokens=${file.estimatedTokens} | statements=${file.statementCount}${matched} | findings=${file.findings.length}${applyTo}${scope}${excludeAgents}`
       );
     }
   }
@@ -460,6 +476,8 @@ export function formatInstructionLintReportMarkdown(report: InstructionLintRepor
     "",
     "## Summary",
     `- Status: ${report.passed ? "pass" : "fail"}`,
+    `- Preset: ${report.preset}`,
+    `- Detected presets: ${report.detectedPresets.length > 0 ? report.detectedPresets.join(", ") : "none"}`,
     `- Profile: ${report.profile}`,
     `- Surface: ${report.surface}`,
     `- Model: ${report.model ?? "unknown"}`,
@@ -484,12 +502,14 @@ export function formatInstructionLintReportMarkdown(report: InstructionLintRepor
   } else {
     lines.push(
       ...markdownTable(
-        ["File", "Kind", "Active", "Apply To", "Exclude Agent", "Chars", "Tokens", "Statements", "Matched", "Findings"],
+        ["File", "Kind", "Preset", "Active", "Apply To", "Scope", "Exclude Agent", "Chars", "Tokens", "Statements", "Matched", "Findings"],
         report.files.map((file) => [
           file.file,
           formatInstructionFileKind(file.kind),
+          formatInstructionPreset(file.preset),
           file.appliesToSurface ? "yes" : "no",
           file.applyTo?.join(", ") ?? "-",
+          file.scopePath ?? "-",
           file.excludeAgents?.join(", ") ?? "-",
           String(file.chars),
           String(file.estimatedTokens),

@@ -1,7 +1,7 @@
 {
   "name": "orqis",
   "version": "0.1.0",
-  "description": "CLI + SDK for context visibility in LLM prompts and agents",
+  "description": "CLI + SDK for linting repository instruction files and governing instruction context",
   "type": "module",
   "bin": {
     "orqis": "./dist/cli.js"
@@ -25,21 +25,13 @@
     "build": "npm run clean && tsc -p tsconfig.json",
     "clean": "rm -rf dist",
     "check": "npm run build && npm test",
-    "dev": "npm run build && node dist/cli.js inspect fixtures/openai-request.json",
+    "dev": "npm run build && node dist/cli.js instructions-lint fixtures/instructions/valid-repo",
     "pack:check": "npm pack --dry-run --cache .npm-cache",
     "smoke": "npm run build && node dist/cli.js inspect fixtures/openai-request.json && node dist/cli.js diff fixtures/turn-1.json fixtures/turn-2.json && node dist/cli.js budget fixtures/anthropic-request.json --model claude-3-5-sonnet-latest && node dist/cli.js agent-report fixtures/agent-snapshot.json && node dist/cli.js check fixtures/anthropic-request.json --model claude-3-5-sonnet-latest --max-total-tokens 100 --max-usage-percent 1 --fail-on-risk high && node dist/cli.js instructions-lint fixtures/instructions/valid-repo",
     "pretest": "npm run build",
     "test": "node --test dist/test/**/*.test.js",
     "start": "node dist/cli.js"
   },
-  "keywords": [
-    "llm",
-    "agents",
-    "prompt",
-    "tokens",
-    "cli",
-    "observability"
-  ],
   "author": "Mahesh Narayan <maheshn1@icloud.com>",
   "license": "MIT",
   "repository": {
@@ -50,8 +42,26 @@
     "url": "https://github.com/mahenarayan/orqis/issues"
   },
   "homepage": "https://github.com/mahenarayan/orqis#readme",
+  "packageManager": "npm@11.6.2",
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "devDependencies": {
     "@types/node": "^24.0.0",
     "typescript": "^5.8.0"
-  }
+  },
+  "keywords": [
+    "copilot",
+    "instructions",
+    "lint",
+    "governance",
+    "policy",
+    "ci",
+    "llm",
+    "agents"
+  ]
 }

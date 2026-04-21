@@ -26,9 +26,21 @@ Best effort process:
 
 ## Scope
 
-This project is a read-only CLI + SDK for local/offline analysis.
+This project is a read-only CLI + SDK for local/offline analysis and instruction governance.
 The main realistic security concerns are:
 
 - malicious or malformed input files
 - unsafe parsing assumptions
 - supply-chain risk in packaging and dependencies
+
+## Release Integrity
+
+The public release path is designed to minimize long-lived credential risk and make published artifacts easier to verify:
+
+- npm publishing is intended to use GitHub Actions trusted publishing with provenance
+- GitHub Actions are pinned to full commit SHAs
+- CI and security workflows use least-privilege permissions
+- pull requests run dependency review before merge
+- public code scanning and scorecard checks are part of the repository baseline
+
+If you find a weakness in the release or packaging chain, report it through the private process above.

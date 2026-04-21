@@ -28,21 +28,46 @@ function createInstructionRepo(
 test("lintInstructions discovers repository-wide and path-specific files from a repo root", () => {
   const report = lintInstructions(instructionFixture("valid-repo"));
 
+  assert.equal(report.preset, "auto");
+  assert.deepEqual(report.detectedPresets, ["copilot"]);
   assert.equal(report.surface, "code-review");
   assert.equal(report.files.length, 2);
   assert.equal(report.findings.length, 0);
   assert.deepEqual(report.warnings, []);
   assert.equal(report.stats.applicableFiles, 2);
 
-  const repoWide = report.files.find((file) => file.kind === "copilot-repository");
-  const pathSpecific = report.files.find((file) => file.kind === "copilot-path-specific");
+  const repoWide = report.files.find((file) => file.kind === "repository");
+  const pathSpecific = report.files.find((file) => file.kind === "path-specific");
 
   assert.ok(repoWide);
   assert.ok(pathSpecific);
+  assert.equal(repoWide?.preset, "copilot");
+  assert.equal(pathSpecific?.preset, "copilot");
   assert.equal(repoWide?.appliesToSurface, true);
   assert.equal(pathSpecific?.appliesToSurface, true);
   assert.equal(pathSpecific?.matchedFileCount, 2);
   assert.deepEqual(pathSpecific?.applyTo, ["**/*.ts", "**/*.tsx"]);
+});
+
+test("lintInstructions discovers AGENTS.md files through the agents-md preset", () => {
+  const report = lintInstructions(instructionFixture("agents-repo"), {
+    preset: "agents-md"
+  });
+
+  assert.equal(report.preset, "agents-md");
+  assert.deepEqual(report.detectedPresets, ["agents-md"]);
+  assert.equal(report.findings.length, 0);
+  assert.equal(report.files.length, 2);
+
+  const repoWide = report.files.find((file) => file.file === "AGENTS.md");
+  const scoped = report.files.find((file) => file.file === "frontend/AGENTS.md");
+
+  assert.equal(repoWide?.kind, "repository");
+  assert.equal(repoWide?.preset, "agents-md");
+  assert.equal(scoped?.kind, "path-specific");
+  assert.equal(scoped?.preset, "agents-md");
+  assert.equal(scoped?.scopePath, "frontend");
+  assert.ok((scoped?.matchedFileCount ?? 0) >= 2);
 });
 
 test("lintInstructions detects invalid names, malformed scope setup, duplicates, and conflicts", () => {
@@ -100,9 +125,32 @@ test("lintInstructions accepts a single file path and still resolves applyTo ove
   );
 
   assert.equal(report.files.length, 1);
-  assert.equal(report.files[0]?.kind, "copilot-path-specific");
+  assert.equal(report.files[0]?.kind, "path-specific");
+  assert.equal(report.files[0]?.preset, "copilot");
   assert.equal(report.files[0]?.matchedFileCount, 2);
   assert.equal(report.files[0]?.findings.length, 0);
+});
+
+test("lintInstructions preset filtering keeps the engine generic without mixing presets implicitly", () => {
+  const repoRoot = createInstructionRepo(
+    {
+      ".github/copilot-instructions.md": "# Repo\n\n- Use concise Copilot rules.\n",
+      "AGENTS.md": "# Agents\n\n- Keep tasks bounded.\n",
+      "src/index.ts": "export const value = 1;\n"
+    },
+    "orqis-instructions-preset-"
+  );
+
+  const auto = lintInstructions(repoRoot);
+  const copilot = lintInstructions(repoRoot, { preset: "copilot" });
+  const agents = lintInstructions(repoRoot, { preset: "agents-md" });
+
+  assert.deepEqual(auto.detectedPresets, ["agents-md", "copilot"]);
+  assert.equal(auto.files.length, 2);
+  assert.equal(copilot.files.length, 1);
+  assert.equal(copilot.files[0]?.preset, "copilot");
+  assert.equal(agents.files.length, 1);
+  assert.equal(agents.files[0]?.preset, "agents-md");
 });
 
 test("lintInstructions only applies the 4000 character cap on code-review", () => {

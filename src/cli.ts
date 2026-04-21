@@ -20,6 +20,7 @@ import type {
   CheckRiskThreshold,
   CheckThresholds,
   ContextReport,
+  InstructionLintPresetSelector,
   InstructionLintProfile,
   InstructionLintSeverity,
   InstructionLintSurface,
@@ -42,12 +43,14 @@ const VALUE_FLAGS = new Set([
   "--format",
   "--profile",
   "--fail-on-severity",
-  "--surface"
+  "--surface",
+  "--preset"
 ]);
 const RISK_THRESHOLDS = new Set<CheckRiskThreshold>(["low", "medium", "high"]);
 const INSTRUCTION_PROFILES = new Set<InstructionLintProfile>(["lite", "standard", "strict"]);
 const INSTRUCTION_SEVERITIES = new Set<InstructionLintSeverity>(["warning", "error"]);
 const INSTRUCTION_SURFACES = new Set<InstructionLintSurface>(["code-review", "chat", "coding-agent"]);
+const INSTRUCTION_PRESETS = new Set<InstructionLintPresetSelector>(["auto", "copilot", "agents-md"]);
 const SEGMENT_TYPES = new Set<SegmentType>(KNOWN_SEGMENT_TYPES);
 const OUTPUT_FORMATS = new Set(["text", "json", "markdown"]);
 type OutputMode = "text" | "json" | "markdown";
@@ -60,16 +63,24 @@ function printUsage(): void {
   console.log(`Orqis
 
 Usage:
-  orqis inspect <file> [--json]
-  orqis inspect <file> [--format <text|json|markdown>]
-  orqis diff <before> <after> [--json]
-  orqis diff <before> <after> [--format <text|json|markdown>]
-  orqis budget <file> [--model <id>] [--json]
-  orqis budget <file> [--model <id>] [--format <text|json|markdown>]
-  orqis agent-report <file> [--json]
-  orqis agent-report <file> [--format <text|json|markdown>]
-  orqis check <file> [--model <id>] [--max-usage-percent <n>] [--max-total-tokens <n>] [--max-segment-tokens <type=n>] [--fail-on-risk <low|medium|high>] [--baseline <file>] [--json]
-  orqis instructions-lint <path> [--profile <lite|standard|strict>] [--surface <code-review|chat|coding-agent>] [--model <id>] [--fail-on-severity <warning|error>] [--format <text|json|markdown>]`);
+  Stable public command:
+    orqis instructions-lint <path> [--preset <auto|copilot|agents-md>] [--profile <lite|standard|strict>] [--surface <code-review|chat|coding-agent>] [--model <id>] [--fail-on-severity <warning|error>] [--format <text|json|markdown>]
+
+  Experimental diagnostics:
+    orqis inspect <file> [--json]
+    orqis inspect <file> [--format <text|json|markdown>]
+    orqis diff <before> <after> [--json]
+    orqis diff <before> <after> [--format <text|json|markdown>]
+    orqis budget <file> [--model <id>] [--json]
+    orqis budget <file> [--model <id>] [--format <text|json|markdown>]
+    orqis agent-report <file> [--json]
+    orqis agent-report <file> [--format <text|json|markdown>]
+    orqis check <file> [--model <id>] [--max-usage-percent <n>] [--max-total-tokens <n>] [--max-segment-tokens <type=n>] [--fail-on-risk <low|medium|high>] [--baseline <file>] [--json]
+    orqis check <file> [--model <id>] [--max-usage-percent <n>] [--max-total-tokens <n>] [--max-segment-tokens <type=n>] [--fail-on-risk <low|medium|high>] [--baseline <file>] [--format <text|json|markdown>]
+
+Notes:
+  instructions-lint is the primary supported enterprise surface in public alpha.
+  inspect, diff, budget, agent-report, and check remain available as experimental diagnostics.`);
 }
 
 function parseArgs(args: string[]): ParsedArgs {
@@ -273,6 +284,17 @@ function parseInstructionSurface(parsed: ParsedArgs): InstructionLintSurface | u
   return surface as InstructionLintSurface;
 }
 
+function parseInstructionPreset(parsed: ParsedArgs): InstructionLintPresetSelector | undefined {
+  const preset = getLastValue(parsed, "--preset");
+  if (preset === undefined) {
+    return undefined;
+  }
+  if (!INSTRUCTION_PRESETS.has(preset as InstructionLintPresetSelector)) {
+    throw new Error("--preset must be one of: auto, copilot, agents-md.");
+  }
+  return preset as InstructionLintPresetSelector;
+}
+
 function printOutput(value: unknown, formatter: Record<Exclude<OutputMode, "json">, () => string>, outputMode: OutputMode): void {
   if (outputMode === "json") {
     console.log(JSON.stringify(value, null, 2));
@@ -393,8 +415,10 @@ async function main(): Promise<void> {
         const profile = parseInstructionProfile(parsed);
         const failOnSeverity = parseInstructionFailSeverity(parsed);
         const surface = parseInstructionSurface(parsed);
+        const preset = parseInstructionPreset(parsed);
         const model = getLastValue(parsed, "--model");
         const report = lintInstructions(inputPath, {
+          ...(preset ? { preset } : {}),
           ...(profile ? { profile } : {}),
           ...(failOnSeverity ? { failOnSeverity } : {}),
           ...(surface ? { surface } : {}),

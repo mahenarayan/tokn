@@ -1,46 +1,79 @@
 # Orqis
 
-Context visibility for LLMs and agents.
+Instruction linting and governance for repository instruction files.
 
-Orqis is a TypeScript CLI + SDK for inspecting what occupies an LLM prompt window and for linting GitHub Copilot instruction files. It normalizes OpenAI-style payloads, OpenAI-compatible request logs, Anthropic messages, OpenAI Responses-style payloads, generic transcripts, agent snapshots, OpenInference-style traces, and Langfuse full trace payloads into a single context report so engineers can reason about token pressure, prompt composition, and remaining headroom. It also lint-checks `.github/copilot-instructions.md` and `.github/instructions/*.instructions.md` files for overlap, ambiguity, and context-economy issues.
+Orqis is a TypeScript CLI + SDK centered on `instructions-lint`: a read-only, preset-based linter for repository instruction files. Today it supports GitHub Copilot instruction files and `AGENTS.md`, and it helps teams catch overlap, ambiguity, stale scope patterns, surface-specific limits, and instruction-context waste before those files spread across repositories and CI.
+
+The repository also still contains older prompt and trace diagnostics (`inspect`, `diff`, `budget`, `agent-report`, `check`). Those commands remain available, but they are currently an experimental diagnostics surface rather than the primary enterprise contract.
 
 ## Status
 
 Orqis is in public alpha.
 
-- read-only analysis only
-- exact when providers report usage, conservative when they do not
-- intended for engineering diagnostics, not runtime enforcement
+- stable public surface: `instructions-lint`, instruction lint report types, and deterministic text/json/markdown lint output
+- stable preset: `copilot`
+- supported preset: `agents-md`
+- experimental diagnostics surface: `inspect`, `diff`, `budget`, `agent-report`, and `check`
+- read-only only
+- intended for repository governance and engineering diagnostics, not runtime enforcement
 
 ## Why Use Orqis
 
-- explain what is actually consuming context
-- separate visible prompt text from tool, retrieval, attachment, and overhead segments
-- compare turns to see why a conversation grew
-- inspect agent snapshots and trace exports
-- surface deterministic suggestions for high-pressure context
-- fail CI-friendly threshold checks with `orqis check`
-- lint Copilot instructions for scope overlap, verbosity, file-shape issues, and surface-specific context pressure
-- feed machine-readable output into CI or editor tooling with `--json`
-- generate shareable GitHub-friendly output with `--format markdown`
+- lint repository instruction files for scope overlap, verbosity, file-shape issues, stale scope patterns, and surface-specific context pressure
+- keep instruction guidance compact enough for long-lived enterprise usage instead of letting repository guidance sprawl silently
+- generate deterministic text, JSON, and Markdown output for CI, PR comments, editor tooling, and demos
+- show structured evidence for duplicates, conflicts, overlap, and budget failures instead of only prose warnings
+- keep the package small and read-only while public support boundaries stay explicit
 
-## Supported Inputs
+## Stable Surface
 
-- OpenAI-style chat payloads
-- OpenAI-compatible request logs
-- OpenAI Responses-style payloads
-- Anthropic structured message payloads
-- offline transcripts
-- handcrafted agent snapshots
-- OTLP/OpenInference-shaped trace exports
-- Langfuse full trace payloads from `GET /api/public/traces/{traceId}`
-- GitHub Copilot instruction repositories or single instruction files via `instructions-lint`
+Primary command:
+
+```bash
+orqis instructions-lint ./fixtures/instructions/valid-repo
+```
+
+Common variants:
+
+```bash
+orqis instructions-lint ./fixtures/instructions/valid-repo --surface coding-agent --model gpt-4o
+orqis instructions-lint ./fixtures/instructions/agents-repo --preset agents-md
+orqis instructions-lint ./fixtures/instructions/invalid-repo --format markdown
+orqis instructions-lint ./fixtures/instructions/invalid-repo --format json
+```
+
+Stable inputs:
+
+- GitHub Copilot instruction repositories and files
+- root or nested `AGENTS.md` files
+- repository roots containing a mix of supported instruction presets
+
+Stable SDK entry points:
+
+```ts
+import { formatInstructionLintReport, lintInstructions } from "orqis";
+
+const report = lintInstructions("./fixtures/instructions/valid-repo");
+console.log(formatInstructionLintReport(report));
+```
+
+## Experimental Diagnostics
+
+These commands remain useful, but they are not the primary enterprise promise for the public alpha:
+
+- `inspect`
+- `diff`
+- `budget`
+- `agent-report`
+- `check`
+
+They normalize OpenAI-style payloads, OpenAI-compatible request logs, OpenAI Responses-style payloads, Anthropic messages, transcripts, agent snapshots, OpenInference exports, and Langfuse full traces into a common context report. This diagnostics surface may move into a separate package once usage justifies a cleaner boundary.
 
 ## Current Limits
 
-- token counts are approximate unless the provider reports usage
-- model limits are local registry data
-- trace import currently supports OpenInference-style exports and Langfuse full trace payloads, not every ecosystem export variant
+- `instructions-lint` is preset-based today with `copilot` and `agents-md`
+- model context budgets are local registry data, so model-window reporting stays conservative
+- prompt and trace diagnostics are still experimental and broader in scope than the stable lint contract
 - v1 is intentionally read-only
 
 ## Install For Local Use
@@ -58,49 +91,38 @@ npm link
 Then:
 
 ```bash
-orqis inspect ./fixtures/openai-request.json
+orqis instructions-lint ./fixtures/instructions/valid-repo
 ```
 
 ## Commands
 
+Stable command:
+
 ```bash
-orqis inspect ./fixtures/openai-request.json
-orqis inspect ./fixtures/openai-request.json --json
-orqis inspect ./fixtures/openai-compatible-chat-log.json
-orqis inspect ./fixtures/suggestions-high-pressure.json --format markdown
-orqis diff ./fixtures/turn-1.json ./fixtures/turn-2.json
-orqis diff ./fixtures/turn-1.json ./fixtures/turn-2.json --format markdown
-orqis budget ./fixtures/anthropic-request.json --model claude-3-5-sonnet-latest
-orqis budget ./fixtures/anthropic-request.json --model claude-3-5-sonnet-latest --format markdown
-orqis agent-report ./fixtures/agent-snapshot.json
-orqis agent-report ./fixtures/agent-snapshot-suggestions.json --format markdown
-orqis agent-report ./fixtures/langfuse-trace.json --format markdown
-orqis check ./fixtures/suggestions-high-pressure.json --max-total-tokens 100000 --max-usage-percent 80 --max-segment-tokens tool_schema=300 --fail-on-risk medium
-orqis instructions-lint ./fixtures/instructions/valid-repo
-orqis instructions-lint ./fixtures/instructions/valid-repo --surface coding-agent --model gpt-4o
-orqis instructions-lint ./fixtures/instructions/invalid-repo --format markdown
+orqis instructions-lint <path> [--preset <auto|copilot|agents-md>] [--profile <lite|standard|strict>] [--surface <code-review|chat|coding-agent>] [--model <id>] [--fail-on-severity <warning|error>] [--format <text|json|markdown>]
 ```
 
-## What It Does
+Experimental diagnostics:
 
-- Breaks context into normalized segments
-- Estimates or imports token usage
-- Labels confidence as exact, provider-reported, tokenizer-based, or heuristic
-- Reports remaining context window headroom for known models
-- Surfaces deterministic read-only suggestions for high-pressure reports
-- Supports threshold-based CI checks with deterministic exit codes
-- Supports `--format markdown` for shareable report output
-- Summarizes multi-agent context snapshots in read-only mode
-- Lints GitHub Copilot instruction files for compatibility, clarity, cross-file scope overlap, and surface-aware instruction token load
-
-## SDK
-
-```ts
-import { analyzePayload, diffReports } from "orqis";
-
-const report = analyzePayload(payload);
-const diff = diffReports(beforeReport, afterReport);
+```bash
+orqis inspect <file> [--format <text|json|markdown>]
+orqis diff <before> <after> [--format <text|json|markdown>]
+orqis budget <file> [--model <id>] [--format <text|json|markdown>]
+orqis agent-report <file> [--format <text|json|markdown>]
+orqis check <file> [--model <id>] [--max-usage-percent <n>] [--max-total-tokens <n>] [--max-segment-tokens <type=n>] [--fail-on-risk <low|medium|high>] [--baseline <file>] [--format <text|json|markdown>]
 ```
+
+## Release Integrity
+
+The public release posture is intentionally conservative:
+
+- GitHub Actions are pinned to full commit SHAs
+- CI uses least-privilege workflow permissions
+- pull requests get dependency review and code scanning
+- public publishing is configured for npm trusted publishing and provenance
+- package verification stays part of the default verification loop
+
+See [docs/releasing.md](/Users/raksha/Documents/Projects/probe/docs/releasing.md) for the release workflow and required repository setup.
 
 ## Development
 
@@ -124,9 +146,10 @@ Project docs:
 - See [INSTRUCTIONS.md](/Users/raksha/Documents/Projects/probe/INSTRUCTIONS.md) for contributor and maintenance guidance.
 - See [architecture.md](/Users/raksha/Documents/Projects/probe/docs/architecture.md) for the system architecture.
 - See [spec-driven-development.md](/Users/raksha/Documents/Projects/probe/docs/spec-driven-development.md) for the development workflow.
-- See [openai-compatible-request-logs-v1.md](/Users/raksha/Documents/Projects/probe/docs/specs/openai-compatible-request-logs-v1.md) for the request-log adapter spec.
+- See [docs/releasing.md](/Users/raksha/Documents/Projects/probe/docs/releasing.md) for the public release and supply-chain setup.
 - See [docs/examples/README.md](/Users/raksha/Documents/Projects/probe/docs/examples/README.md) for executable example workflows.
 - See [docs/examples/copilot-instructions-lint.md](/Users/raksha/Documents/Projects/probe/docs/examples/copilot-instructions-lint.md) for a Copilot instructions linting workflow.
+- See [docs/examples/agents-instructions-lint.md](/Users/raksha/Documents/Projects/probe/docs/examples/agents-instructions-lint.md) for an `AGENTS.md` linting workflow.
 - See [docs/adr/README.md](/Users/raksha/Documents/Projects/probe/docs/adr/README.md) for architectural decisions.
 - See [CONTRIBUTING.md](/Users/raksha/Documents/Projects/probe/CONTRIBUTING.md) for contribution rules.
 - See [SECURITY.md](/Users/raksha/Documents/Projects/probe/SECURITY.md) for vulnerability reporting.
