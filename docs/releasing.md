@@ -16,6 +16,7 @@ Before the first public publish:
 ## Release Workflow
 
 The repository ships a GitHub Actions publish workflow at [release.yml](/Users/raksha/Documents/Projects/probe/.github/workflows/release.yml).
+Use the GitHub issue template at [.github/ISSUE_TEMPLATE/release-checklist.md](/Users/raksha/Documents/Projects/probe/.github/ISSUE_TEMPLATE/release-checklist.md) to track each public release.
 
 That workflow:
 
@@ -26,6 +27,7 @@ That workflow:
 - uploads the tarball as a workflow artifact
 - generates build provenance for the packed artifact
 - publishes to npm with provenance through GitHub OIDC trusted publishing
+- verifies that the npm tarball excludes compiled tests and internal repository docs
 
 ## Local Verification
 
@@ -48,6 +50,7 @@ The public repository baseline is:
 - CodeQL scanning on pull requests, pushes, and a schedule
 - OSSF Scorecards on the default branch and on a schedule
 - npm trusted publishing instead of long-lived publish tokens
+- a lean published tarball that contains runtime artifacts plus public support metadata only
 
 ## Notes
 
@@ -55,3 +58,4 @@ The public repository baseline is:
 - The workflow publishes only on GitHub Release publication.
 - CodeQL, Scorecards, and dependency review are intended for the public repository baseline and skip automatically while the repository is private.
 - If package ownership, repository visibility, or trusted publisher setup is missing, publishing should remain disabled until those are corrected.
+- Repository settings still need to be configured outside git: branch protection or rulesets, private vulnerability reporting, and optional Discussions or a social preview image.

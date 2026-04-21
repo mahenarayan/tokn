@@ -1,5 +1,10 @@
 # Security Policy
 
+## Supported Versions
+
+Security fixes are best effort during public alpha.
+The supported line is the latest published `0.x` release and the current `main` branch tip.
+
 ## Reporting A Vulnerability
 
 Do not open a public GitHub issue for a potential security vulnerability.
@@ -42,5 +47,6 @@ The public release path is designed to minimize long-lived credential risk and m
 - CI and security workflows use least-privilege permissions
 - pull requests run dependency review before merge
 - public code scanning and scorecard checks are part of the repository baseline
+- the published npm artifact is checked to exclude compiled tests and internal design docs
 
 If you find a weakness in the release or packaging chain, report it through the private process above.

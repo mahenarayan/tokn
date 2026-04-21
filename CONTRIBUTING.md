@@ -84,6 +84,7 @@ Workflow changes should preserve the current supply-chain posture:
 - pin GitHub Actions to full SHAs
 - keep workflow permissions least-privilege
 - avoid long-lived publish tokens when GitHub OIDC trusted publishing can be used
+- keep the published npm tarball limited to runtime artifacts and public-facing support files
 
 ## Reporting Bugs
 

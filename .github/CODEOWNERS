@@ -1,0 +1,5 @@
+# Keep repository ownership explicit for public review and release paths.
+* @mahenarayan
+
+/.github/ @mahenarayan
+/.github/CODEOWNERS @mahenarayan
