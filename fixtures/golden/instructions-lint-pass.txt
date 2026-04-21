@@ -1,4 +1,6 @@
 Status: pass
+Preset: auto
+Detected presets: copilot
 Profile: standard
 Surface: code-review
 Model: unknown
@@ -16,8 +18,8 @@ Max applicable tokens: 85 (src/component.tsx)
 Findings: 0 (0 errors, 0 warnings)
 
 Files:
-- .github/copilot-instructions.md: repository-wide | active=yes | chars=176 | tokens=46 | statements=3 | matches=5 | findings=0
-- .github/instructions/typescript.instructions.md: path-specific | active=yes | chars=148 | tokens=39 | statements=2 | matches=2 | findings=0 | applyTo=**/*.ts,**/*.tsx
+- .github/copilot-instructions.md: repository-wide | preset=copilot | active=yes | chars=176 | tokens=46 | statements=3 | matches=5 | findings=0
+- .github/instructions/typescript.instructions.md: path-specific | preset=copilot | active=yes | chars=148 | tokens=39 | statements=2 | matches=2 | findings=0 | applyTo=**/*.ts,**/*.tsx
 
 Findings:
 - none

@@ -10,6 +10,8 @@ import type {
   InstructionFinding,
   InstructionFindingEvidence,
   InstructionLintOptions,
+  InstructionLintPreset,
+  InstructionLintPresetSelector,
   InstructionLintProfile,
   InstructionLintReport,
   InstructionLintSeverity,
@@ -21,7 +23,9 @@ interface CandidateFile {
   absolutePath: string;
   file: string;
   kind: InstructionFileKind;
+  preset?: InstructionLintPreset;
   repoRoot?: string;
+  scopePath?: string;
 }
 
 type MarkdownBlockType = "heading" | "bullet" | "numbered" | "paragraph" | "code";
@@ -59,7 +63,9 @@ interface InternalFileReport {
   absolutePath: string;
   file: string;
   kind: InstructionFileKind;
+  preset?: InstructionLintPreset;
   repoRoot?: string;
+  scopePath?: string;
   excludeAgents: InstructionExcludeAgent[];
   excludeAgentsLine?: number;
   appliesToSurface: boolean;
@@ -88,6 +94,7 @@ interface InstructionBudgets {
 const DEFAULT_PROFILE: InstructionLintProfile = "standard";
 const DEFAULT_FAIL_ON_SEVERITY: InstructionLintSeverity = "error";
 const DEFAULT_SURFACE: InstructionLintSurface = "code-review";
+const DEFAULT_PRESET: InstructionLintPresetSelector = "auto";
 
 const PROFILE_BUDGETS: Record<InstructionLintProfile, InstructionBudgets> = {
   lite: {
@@ -278,17 +285,31 @@ function walkFiles(directory: string): string[] {
   return files;
 }
 
+function fileExists(filePath: string): boolean {
+  return fs.existsSync(filePath) && fs.statSync(filePath).isFile();
+}
+
+function directoryExists(directoryPath: string): boolean {
+  return fs.existsSync(directoryPath) && fs.statSync(directoryPath).isDirectory();
+}
+
 function inferRepoRootFromFile(filePath: string): string | undefined {
   const normalized = path.resolve(filePath);
   let current = path.dirname(normalized);
+  let fallback: string | undefined;
   while (true) {
-    const candidate = path.join(current, ".github");
-    if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) {
+    if (directoryExists(path.join(current, ".github")) || fileExists(path.join(current, "AGENTS.md"))) {
       return current;
+    }
+    if (!fallback && fileExists(path.join(current, "package.json"))) {
+      fallback = current;
+    }
+    if (directoryExists(path.join(current, ".git"))) {
+      return fallback ?? current;
     }
     const parent = path.dirname(current);
     if (parent === current) {
-      return undefined;
+      return fallback;
     }
     current = parent;
   }
@@ -309,35 +330,68 @@ function classifyCandidate(absolutePath: string, repoRoot?: string): CandidateFi
     : normalizePath(absolutePath);
 
   let kind: InstructionFileKind = "unsupported";
+  let preset: InstructionLintPreset | undefined;
+  let scopePath: string | undefined;
   if (kindRelativePath === ".github/copilot-instructions.md") {
-    kind = "copilot-repository";
+    kind = "repository";
+    preset = "copilot";
   } else if (
     kindRelativePath.startsWith(".github/instructions/") &&
     kindRelativePath.endsWith(".instructions.md")
   ) {
-    kind = "copilot-path-specific";
+    kind = "path-specific";
+    preset = "copilot";
+  } else if (path.basename(absolutePath) === "AGENTS.md") {
+    preset = "agents-md";
+    if (!repoRoot) {
+      kind = "repository";
+    } else {
+      const relativeDirectory = normalizePath(path.dirname(kindRelativePath));
+      kind = relativeDirectory === "." ? "repository" : "path-specific";
+      if (relativeDirectory !== ".") {
+        scopePath = relativeDirectory;
+      }
+    }
   }
 
   return {
     absolutePath,
     file: displayPath(absolutePath, repoRoot),
     kind,
-    ...(repoRoot ? { repoRoot } : {})
+    ...(preset ? { preset } : {}),
+    ...(repoRoot ? { repoRoot } : {}),
+    ...(scopePath ? { scopePath } : {})
   };
 }
 
-function discoverDirectoryCandidates(root: string): CandidateFile[] {
+function discoverAgentsCandidates(root: string): CandidateFile[] {
+  return walkFiles(root)
+    .filter((filePath) => path.basename(filePath) === "AGENTS.md")
+    .map((filePath) => classifyCandidate(filePath, root))
+    .sort((left, right) => left.file.localeCompare(right.file));
+}
+
+function discoverDirectoryCandidates(
+  root: string,
+  preset: InstructionLintPresetSelector
+): CandidateFile[] {
   const candidates: CandidateFile[] = [];
-  const repoWidePath = path.join(root, ".github", "copilot-instructions.md");
-  if (fs.existsSync(repoWidePath) && fs.statSync(repoWidePath).isFile()) {
-    candidates.push(classifyCandidate(repoWidePath, root));
+  if (preset === "auto" || preset === "copilot") {
+    const repoWidePath = path.join(root, ".github", "copilot-instructions.md");
+    if (fileExists(repoWidePath)) {
+      candidates.push(classifyCandidate(repoWidePath, root));
+    }
+
+    const instructionDirectory = path.join(root, ".github", "instructions");
+    if (directoryExists(instructionDirectory)) {
+      for (const filePath of walkFiles(instructionDirectory)) {
+        candidates.push(classifyCandidate(filePath, root));
+      }
+    }
   }
 
-  const instructionDirectory = path.join(root, ".github", "instructions");
-  if (fs.existsSync(instructionDirectory) && fs.statSync(instructionDirectory).isDirectory()) {
-    for (const filePath of walkFiles(instructionDirectory)) {
-      candidates.push(classifyCandidate(filePath, root));
-    }
+  if (preset === "auto" || preset === "agents-md") {
+    candidates.push(...discoverAgentsCandidates(root));
   }
 
   return candidates.sort((left, right) => left.file.localeCompare(right.file));
@@ -633,6 +687,18 @@ function parseExcludeAgents(value: string | undefined): {
   };
 }
 
+function isRepositoryInstruction(report: Pick<InternalFileReport, "kind">): boolean {
+  return report.kind === "repository";
+}
+
+function isPathSpecificInstruction(report: Pick<InternalFileReport, "kind">): boolean {
+  return report.kind === "path-specific";
+}
+
+function isCopilotInstruction(report: Pick<InternalFileReport, "preset">): boolean {
+  return report.preset === "copilot";
+}
+
 function appliesToSurface(
   report: Pick<InternalFileReport, "kind" | "excludeAgents">,
   surface: InstructionLintSurface
@@ -660,9 +726,9 @@ function lintLocalRules(
       seen,
       "error",
       "invalid-file-path",
-      "Instruction file path is not a supported GitHub Copilot instructions location.",
+      "Instruction file path does not match a supported instruction preset location.",
       1,
-      "Use .github/copilot-instructions.md for repository-wide rules or .github/instructions/*.instructions.md for path-specific rules."
+      "Use .github/copilot-instructions.md, .github/instructions/*.instructions.md, or AGENTS.md."
     );
   }
 
@@ -670,7 +736,7 @@ function lintLocalRules(
     return;
   }
 
-  if (surface === "code-review" && report.chars > CODE_REVIEW_CHAR_LIMIT) {
+  if (isCopilotInstruction(report) && surface === "code-review" && report.chars > CODE_REVIEW_CHAR_LIMIT) {
     addFinding(
       report,
       seen,
@@ -687,15 +753,15 @@ function lintLocalRules(
     );
   }
 
-  if (report.kind === "copilot-repository" && report.chars > budgets.repositoryChars) {
+  if (isRepositoryInstruction(report) && report.chars > budgets.repositoryChars) {
     addFinding(
       report,
       seen,
       "warning",
       "repository-char-budget",
-      `Repository-wide instructions use ${report.chars} characters and exceed the ${profile} profile budget of ${budgets.repositoryChars}.`,
+      `Repository-scoped instructions use ${report.chars} characters and exceed the ${profile} profile budget of ${budgets.repositoryChars}.`,
       1,
-      "Keep always-on instructions short and move scoped guidance into path-specific files.",
+      "Keep always-on instructions short and move scoped guidance into narrower instruction files.",
       {
         actual: report.chars,
         expected: budgets.repositoryChars
@@ -703,15 +769,15 @@ function lintLocalRules(
     );
   }
 
-  if (report.kind === "copilot-repository" && report.estimatedTokens > budgets.repositoryTokens) {
+  if (isRepositoryInstruction(report) && report.estimatedTokens > budgets.repositoryTokens) {
     addFinding(
       report,
       seen,
       "warning",
       "repository-token-budget",
-      `Repository-wide instructions use ${report.estimatedTokens} estimated tokens and exceed the ${profile} profile budget of ${budgets.repositoryTokens}.`,
+      `Repository-scoped instructions use ${report.estimatedTokens} estimated tokens and exceed the ${profile} profile budget of ${budgets.repositoryTokens}.`,
       1,
-      "Keep global guidance dense and move path- or language-specific rules into narrower instruction files.",
+      "Keep global guidance dense and move path- or subsystem-specific rules into narrower instruction files.",
       {
         actual: report.estimatedTokens,
         expected: budgets.repositoryTokens
@@ -719,13 +785,13 @@ function lintLocalRules(
     );
   }
 
-  if (report.kind === "copilot-path-specific" && report.chars > budgets.pathSpecificChars) {
+  if (isPathSpecificInstruction(report) && report.chars > budgets.pathSpecificChars) {
     addFinding(
       report,
       seen,
       "warning",
       "path-specific-char-budget",
-      `Path-specific instructions use ${report.chars} characters and exceed the ${profile} profile budget of ${budgets.pathSpecificChars}.`,
+      `Scoped instructions use ${report.chars} characters and exceed the ${profile} profile budget of ${budgets.pathSpecificChars}.`,
       1,
       "Tighten the file to the rules that truly need to stay always-on for this scope.",
       {
@@ -735,13 +801,13 @@ function lintLocalRules(
     );
   }
 
-  if (report.kind === "copilot-path-specific" && report.estimatedTokens > budgets.pathSpecificTokens) {
+  if (isPathSpecificInstruction(report) && report.estimatedTokens > budgets.pathSpecificTokens) {
     addFinding(
       report,
       seen,
       "warning",
       "path-specific-token-budget",
-      `Path-specific instructions use ${report.estimatedTokens} estimated tokens and exceed the ${profile} profile budget of ${budgets.pathSpecificTokens}.`,
+      `Scoped instructions use ${report.estimatedTokens} estimated tokens and exceed the ${profile} profile budget of ${budgets.pathSpecificTokens}.`,
       1,
       "Trim this file to the rules that are unique to the matched paths.",
       {
@@ -774,7 +840,7 @@ function lintLocalRules(
         seen,
         "error",
         "order-dependent-wording",
-        "Instruction relies on relative ordering, but Copilot does not guarantee instruction-file order across all surfaces.",
+        "Instruction relies on relative ordering, but instruction runtimes do not guarantee file order across surfaces and presets.",
         statement.line,
         "Rewrite the instruction so it stands alone without referring to rules above or below."
       );
@@ -802,7 +868,7 @@ function lintLocalRules(
         seen,
         "warning",
         "weak-modal-phrasing",
-        "Instruction uses weak modal phrasing that is easy for Copilot to ignore or interpret loosely.",
+        "Instruction uses weak modal phrasing that is easy for assistants to ignore or interpret loosely.",
         statement.line,
         "Use direct imperative wording instead of try to, should consider, or best effort language."
       );
@@ -826,7 +892,7 @@ function lintLocalRules(
         seen,
         "warning",
         "paragraph-narrative",
-        "Paragraph-style narrative is harder for Copilot to scan than short atomic directives.",
+        "Paragraph-style narrative is harder for instruction runtimes to scan than short atomic directives.",
         statement.line,
         "Break this paragraph into short bullet rules."
       );
@@ -848,7 +914,7 @@ function lintLocalRules(
     }
   }
 
-  if (report.kind === "copilot-repository") {
+  if (isRepositoryInstruction(report)) {
     const scopedStatements = report.statements.filter((statement) => SCOPED_TOPIC_RE.test(statement.text));
     if (scopedStatements.length >= 3 && report.statements.length >= 6) {
       addFinding(
@@ -856,26 +922,41 @@ function lintLocalRules(
         seen,
         "warning",
         "repo-wide-scoped-topics",
-        "Repository-wide instructions mix in multiple scoped topics that likely belong in path-specific instruction files.",
+        "Repository-scoped instructions mix in multiple scoped topics that likely belong in narrower instruction files.",
         scopedStatements[0]?.line ?? 1,
-        "Move language-, path-, or subsystem-specific rules into .github/instructions/*.instructions.md files."
+        "Move language-, path-, or subsystem-specific rules into narrower scoped instruction files."
       );
     }
   }
 }
 
 function resolveMatchedFiles(report: InternalFileReport, repoFiles: string[]): string[] {
-  if (report.kind === "copilot-repository") {
+  if (isRepositoryInstruction(report)) {
     return [...repoFiles];
   }
 
-  if (report.kind !== "copilot-path-specific" || report.applyTo.length === 0) {
+  if (!isPathSpecificInstruction(report)) {
     return [];
   }
 
-  return repoFiles.filter((filePath) =>
-    report.applyTo.some((pattern) => path.matchesGlob(filePath, pattern))
-  );
+  if (isCopilotInstruction(report)) {
+    if (report.applyTo.length === 0) {
+      return [];
+    }
+    return repoFiles.filter((filePath) =>
+      report.applyTo.some((pattern) => path.matchesGlob(filePath, pattern))
+    );
+  }
+
+  if (report.preset === "agents-md") {
+    if (!report.scopePath) {
+      return [...repoFiles];
+    }
+    const scopePrefix = `${report.scopePath}/`;
+    return repoFiles.filter((filePath) => filePath.startsWith(scopePrefix));
+  }
+
+  return [];
 }
 
 function overlapExists(left: InternalFileReport, right: InternalFileReport): boolean {
@@ -1141,7 +1222,7 @@ function addApplicableTokenBudgetFindings(
       .slice()
       .sort((left, right) => {
         if (left.kind !== right.kind) {
-          return left.kind === "copilot-repository" ? -1 : 1;
+          return left.kind === "repository" ? -1 : 1;
         }
         if (left.estimatedTokens !== right.estimatedTokens) {
           return right.estimatedTokens - left.estimatedTokens;
@@ -1160,7 +1241,7 @@ function addApplicableTokenBudgetFindings(
         "applicable-token-budget",
         `Instructions applicable to ${targetFile} total ${maxTokens} estimated tokens for ${surface} and exceed the ${profile} profile budget of ${budgets.maxApplicableTokens}.`,
         1,
-        "Reduce overlap, shorten always-on guidance, or narrow applyTo so no single target pulls in a large instruction bundle.",
+        "Reduce overlap, shorten always-on guidance, or narrow the scoped files so no single target pulls in a large instruction bundle.",
         {
           actual: maxTokens,
           expected: budgets.maxApplicableTokens,
@@ -1189,8 +1270,8 @@ function buildStats(
 ): InstructionLintStats {
   return {
     totalFiles: files.length,
-    repositoryFiles: files.filter((file) => file.kind === "copilot-repository").length,
-    pathSpecificFiles: files.filter((file) => file.kind === "copilot-path-specific").length,
+    repositoryFiles: files.filter((file) => file.kind === "repository").length,
+    pathSpecificFiles: files.filter((file) => file.kind === "path-specific").length,
     unsupportedFiles: files.filter((file) => file.kind === "unsupported").length,
     totalStatements: files.reduce((sum, file) => sum + file.statementCount, 0),
     applicableStatements: files
@@ -1223,6 +1304,7 @@ export function lintInstructions(
   pathOrFiles: string | string[],
   options: InstructionLintOptions = {}
 ): InstructionLintReport {
+  const preset = options.preset ?? DEFAULT_PRESET;
   const profile = options.profile ?? DEFAULT_PROFILE;
   const failOnSeverity = options.failOnSeverity ?? DEFAULT_FAIL_ON_SEVERITY;
   const surface = options.surface ?? DEFAULT_SURFACE;
@@ -1245,9 +1327,13 @@ export function lintInstructions(
 
     const stat = fs.statSync(absoluteInput);
     if (stat.isDirectory()) {
-      const discovered = discoverDirectoryCandidates(absoluteInput);
+      const discovered = discoverDirectoryCandidates(absoluteInput, preset);
       if (discovered.length === 0) {
-        warnings.add(`No Copilot instruction files were found under ${normalizePath(input)}.`);
+        const message =
+          preset === "auto"
+            ? `No supported instruction files were found under ${normalizePath(input)}.`
+            : `No ${preset} instruction files were found under ${normalizePath(input)}.`;
+        warnings.add(message);
       }
       candidates.push(...discovered);
       const repoFiles = walkFiles(absoluteInput).map((filePath) =>
@@ -1262,7 +1348,15 @@ export function lintInstructions(
     }
 
     const repoRoot = inferRepoRootFromFile(absoluteInput);
-    candidates.push(classifyCandidate(absoluteInput, repoRoot));
+    const candidate = classifyCandidate(absoluteInput, repoRoot);
+    if (preset === "auto" || candidate.preset === preset) {
+      candidates.push(candidate);
+    } else {
+      candidates.push({
+        ...candidate,
+        kind: "unsupported"
+      });
+    }
     if (repoRoot && !repoFilesByRoot.has(repoRoot)) {
       repoFilesByRoot.set(
         repoRoot,
@@ -1278,7 +1372,7 @@ export function lintInstructions(
   for (const candidate of candidates.sort((left, right) => left.file.localeCompare(right.file))) {
     const rawText = fs.readFileSync(candidate.absolutePath, "utf8");
     const frontmatter =
-      candidate.kind === "copilot-path-specific"
+      candidate.preset === "copilot" && candidate.kind === "path-specific"
       ? parseFrontmatter(rawText)
       : {
           data: {},
@@ -1297,7 +1391,9 @@ export function lintInstructions(
       absolutePath: candidate.absolutePath,
       file: candidate.file,
       kind: candidate.kind,
+      ...(candidate.preset ? { preset: candidate.preset } : {}),
       ...(candidate.repoRoot ? { repoRoot: candidate.repoRoot } : {}),
+      ...(candidate.scopePath ? { scopePath: candidate.scopePath } : {}),
       excludeAgents: [],
       appliesToSurface: candidate.kind !== "unsupported",
       chars: rawText.length,
@@ -1311,7 +1407,7 @@ export function lintInstructions(
       findings: []
     };
 
-    if (candidate.kind === "copilot-path-specific") {
+    if (candidate.preset === "copilot" && candidate.kind === "path-specific") {
       if (frontmatter.error) {
         report.findings.push(
           createFinding(
@@ -1377,7 +1473,7 @@ export function lintInstructions(
 
   const repoWideRoots = new Set(
     internalReports
-      .filter((report) => report.kind === "copilot-repository" && report.repoRoot)
+      .filter((report) => report.preset === "copilot" && report.kind === "repository" && report.repoRoot)
       .map((report) => report.repoRoot as string)
   );
 
@@ -1387,7 +1483,8 @@ export function lintInstructions(
     report.matchedFileSet = new Set(report.matchedFiles);
 
     if (
-      report.kind === "copilot-path-specific" &&
+      report.preset === "copilot" &&
+      report.kind === "path-specific" &&
       report.applyTo.some((pattern) => pattern === "**" || pattern === "**/*") &&
       report.repoRoot &&
       repoWideRoots.has(report.repoRoot)
@@ -1415,7 +1512,12 @@ export function lintInstructions(
       );
     }
 
-    if (report.kind === "copilot-path-specific" && report.applyTo.length > 0 && report.matchedFiles.length === 0) {
+    if (
+      report.preset === "copilot" &&
+      report.kind === "path-specific" &&
+      report.applyTo.length > 0 &&
+      report.matchedFiles.length === 0
+    ) {
       const warning =
         `${report.file} applyTo patterns do not match any repository files.`;
       warnings.add(warning);
@@ -1449,7 +1551,9 @@ export function lintInstructions(
     .map((report) => ({
       file: report.file,
       kind: report.kind,
+      ...(report.preset ? { preset: report.preset } : {}),
       ...(report.applyTo.length > 0 ? { applyTo: report.applyTo } : {}),
+      ...(report.scopePath ? { scopePath: report.scopePath } : {}),
       ...(report.excludeAgents.length > 0 ? { excludeAgents: report.excludeAgents } : {}),
       appliesToSurface: report.appliesToSurface,
       chars: report.chars,
@@ -1465,8 +1569,11 @@ export function lintInstructions(
     .sort(findingSort);
   const stats = buildStats(files, findings, applicableTokenSummary);
   const passed = findings.every((finding) => !isSeverityFailing(finding, failOnSeverity));
+  const detectedPresets = [...new Set(files.flatMap((file) => (file.preset ? [file.preset] : [])))].sort();
 
   return {
+    preset,
+    detectedPresets,
     profile,
     surface,
     ...(model ? { model } : {}),

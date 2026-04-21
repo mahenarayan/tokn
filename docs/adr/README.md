@@ -20,6 +20,7 @@ ADRs are for decisions that should remain understandable even after the original
 - [0010 Langfuse Trace Import](/Users/raksha/Documents/Projects/probe/docs/adr/0010-langfuse-trace-import.md)
 - [0011 Defer LiteLLM Adapter And Prioritize OpenAI-Compatible Request Logs](/Users/raksha/Documents/Projects/probe/docs/adr/0011-defer-litellm-prioritize-openai-compatible-logs.md)
 - [0012 Separate Instruction Lint Report Family](/Users/raksha/Documents/Projects/probe/docs/adr/0012-separate-instruction-lint-report-family.md)
+- [0013 Lint-First Public Product Boundary](/Users/raksha/Documents/Projects/probe/docs/adr/0013-lint-first-public-product-boundary.md)
 
 ## Rules
 

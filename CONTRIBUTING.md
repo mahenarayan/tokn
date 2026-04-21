@@ -5,8 +5,8 @@
 Orqis should stay small, explicit, and trustworthy.
 Contributions are welcome, but new work has to preserve three properties:
 
-- read-only analysis scope
-- conservative token accounting
+- a lint-first public product boundary
+- read-only behavior
 - fixture-backed, regression-safe behavior
 
 ## Before You Start
@@ -54,14 +54,21 @@ For architecture or public-contract changes:
 
 ## Contribution Boundaries
 
-Good contributions usually fit one of these:
+Stable surface contributions usually fit one of these:
 
-- new input adapters
+- instruction discovery and parsing
+- instruction lint rules and evidence
+- report formatting and machine-readable output
+- CI and release hardening for the published package
+- realistic instruction fixtures and golden coverage
+
+Experimental diagnostics contributions can still land, but they need tighter discussion first because they are not the primary public contract:
+
+- new prompt or trace input adapters
 - improved segment normalization
 - better trace import
-- stronger model metadata
-- safer CLI/SDK contracts
-- more realistic fixtures and regression coverage
+- stronger model metadata for diagnostics
+- safer CLI/SDK contracts for the diagnostics surface
 
 Changes that need explicit discussion first:
 
@@ -70,6 +77,13 @@ Changes that need explicit discussion first:
 - telemetry collection beyond file and trace inspection
 - silently loosening confidence semantics
 - incompatible changes to report shapes or CLI behavior
+- expanding the stable surface beyond `instructions-lint` without an ADR
+
+Workflow changes should preserve the current supply-chain posture:
+
+- pin GitHub Actions to full SHAs
+- keep workflow permissions least-privilege
+- avoid long-lived publish tokens when GitHub OIDC trusted publishing can be used
 
 ## Reporting Bugs
 

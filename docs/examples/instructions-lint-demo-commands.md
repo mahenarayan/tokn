@@ -46,6 +46,12 @@ Then switch to the public suite:
 - multiple surfaces
 - both text and markdown output
 
+If you want a local non-Copilot example during the same demo, run:
+
+```bash
+node dist/cli.js instructions-lint fixtures/instructions/agents-repo --preset agents-md
+```
+
 ## Notes
 
 - Public repos are cloned with `--depth 1 --filter=blob:none` to keep setup lighter.
