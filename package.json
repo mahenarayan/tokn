@@ -1,10 +1,10 @@
 {
-  "name": "tokn",
+  "name": "@tokn-labs/tokn",
   "version": "0.1.0",
   "description": "CLI + SDK for linting repository instruction files and governing instruction context",
   "type": "module",
   "bin": {
-    "tokn": "./dist/cli.js"
+    "tokn": "dist/cli.js"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
