@@ -5,9 +5,9 @@ OpenAI-Compatible Request Logs V1
 ## Problem
 
 Many LLM gateways, proxies, and wrappers persist request logs that are close to OpenAI chat or responses payloads, but not identical.
-Orqis already handles several direct provider shapes, yet there is still a gap between "saved provider payload" and "log object emitted by a wrapper or gateway."
+Tokn already handles several direct provider shapes, yet there is still a gap between "saved provider payload" and "log object emitted by a wrapper or gateway."
 
-To improve real field usage, Orqis should support a conservative adapter for OpenAI-compatible request logs before expanding to more ecosystem-specific formats.
+To improve real field usage, Tokn should support a conservative adapter for OpenAI-compatible request logs before expanding to more ecosystem-specific formats.
 
 ## Goals
 
@@ -82,8 +82,8 @@ Expected behavior:
 
 ## Acceptance Criteria
 
-- Orqis accepts at least one wrapped chat-style request log
-- Orqis accepts at least one wrapped responses-style request log
+- Tokn accepts at least one wrapped chat-style request log
+- Tokn accepts at least one wrapped responses-style request log
 - wrapped request logs preserve normalized segment behavior instead of becoming generic metadata blobs
 - unsupported or ambiguous wrapper shapes fail clearly
 

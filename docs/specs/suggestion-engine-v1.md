@@ -4,7 +4,7 @@ Suggestion Engine V1
 
 ## Problem
 
-Orqis can already explain what is present in context, but it still makes the engineer do the interpretation step manually.
+Tokn can already explain what is present in context, but it still makes the engineer do the interpretation step manually.
 That limits day-one usefulness.
 
 The first suggestion engine should turn context reports into actionable diagnostics without mutating anything or pretending to optimize automatically.

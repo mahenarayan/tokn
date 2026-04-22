@@ -1,6 +1,6 @@
 # CI Gate Usage
 
-Use this when you want Orqis to fail a build as soon as prompt size or budget risk crosses an agreed threshold.
+Use this when you want Tokn to fail a build as soon as prompt size or budget risk crosses an agreed threshold.
 
 Fixtures:
 
@@ -31,7 +31,7 @@ What this demonstrates:
 Why it matters:
 
 Inspection is useful, but teams usually adopt tooling when it can stop regressions automatically.
-This is the starting point for wiring Orqis into pull-request checks, pre-merge validation, or regression scripts.
+This is the starting point for wiring Tokn into pull-request checks, pre-merge validation, or regression scripts.
 
 Tip:
 

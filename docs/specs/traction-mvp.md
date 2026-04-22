@@ -4,21 +4,21 @@ Traction MVP
 
 ## Problem
 
-Orqis has a credible technical core, but that alone will not create OSS traction.
-To get real usage in the field, Orqis needs a small set of capabilities that solve an obvious day-one problem for engineers:
+Tokn has a credible technical core, but that alone will not create OSS traction.
+To get real usage in the field, Tokn needs a small set of capabilities that solve an obvious day-one problem for engineers:
 
 - explain why context usage is bad
 - fail fast in CI when context regresses
 - ingest a few real ecosystem exports without hand-normalized snapshots
 - produce reports that are easy to share in issues and pull requests
 
-Without that, Orqis risks becoming an interesting analyzer that engineers evaluate once and do not adopt.
+Without that, Tokn risks becoming an interesting analyzer that engineers evaluate once and do not adopt.
 
 ## Goals
 
-- make Orqis immediately useful for debugging one failing prompt or agent run
-- make Orqis useful in CI and code review, not only on a laptop
-- make Orqis work on a few real-world exported inputs that people already have
+- make Tokn immediately useful for debugging one failing prompt or agent run
+- make Tokn useful in CI and code review, not only on a laptop
+- make Tokn work on a few real-world exported inputs that people already have
 - keep the scope read-only and local-first
 - defer npm publishing and release automation until after the MVP proves value
 
@@ -79,7 +79,7 @@ Suggestions must explain the cause clearly and avoid pretending to mutate or opt
 
 Add:
 
-- `orqis check <file>`
+- `tokn check <file>`
 
 First-pass flags should include:
 
@@ -133,7 +133,7 @@ Add practical examples and redacted sample inputs for:
 ## Edge Cases And Failure Behavior
 
 - If a threshold references an unknown model, `check` should fail conservatively only when the requested threshold can still be evaluated from available data; otherwise it should emit an explicit unknown-model warning.
-- If an adapter sees an unrecognized export shape, Orqis should fail with actionable diagnostics rather than silently classifying everything as `user`.
+- If an adapter sees an unrecognized export shape, Tokn should fail with actionable diagnostics rather than silently classifying everything as `user`.
 - Suggestions must tolerate partial reports and unknown token confidence.
 - Markdown output must not invent precision that the underlying report does not have.
 - CI exit behavior must stay deterministic even when estimates are heuristic.
@@ -153,8 +153,8 @@ Add practical examples and redacted sample inputs for:
 ## Acceptance Criteria
 
 - `inspect` and `agent-report` can surface actionable suggestions on high-pressure fixtures
-- `orqis check` can fail CI on token, usage, and risk thresholds
-- Orqis supports at least two additional real-world export shapes with fixture-backed coverage
+- `tokn check` can fail CI on token, usage, and risk thresholds
+- Tokn supports at least two additional real-world export shapes with fixture-backed coverage
 - markdown reports are usable in GitHub-native workflows
 - docs show at least three realistic adoption paths
 - npm publishing remains deferred until these behaviors exist and are validated

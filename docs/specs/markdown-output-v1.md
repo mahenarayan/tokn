@@ -4,7 +4,7 @@ Markdown Output V1
 
 ## Problem
 
-Orqis output is currently optimized for terminals and JSON consumers.
+Tokn output is currently optimized for terminals and JSON consumers.
 That leaves a gap for the main collaboration surfaces engineers actually use:
 
 - GitHub issues
@@ -32,10 +32,10 @@ Text output works locally but is awkward to paste into those systems.
 
 Support:
 
-- `orqis inspect <file> --format markdown`
-- `orqis diff <before> <after> --format markdown`
-- `orqis budget <file> --format markdown`
-- `orqis agent-report <file> --format markdown`
+- `tokn inspect <file> --format markdown`
+- `tokn diff <before> <after> --format markdown`
+- `tokn budget <file> --format markdown`
+- `tokn agent-report <file> --format markdown`
 
 Compatibility rules:
 

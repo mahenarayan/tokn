@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-Orqis is sensitive to:
+Tokn is sensitive to:
 
 - external payload schema drift
 - token-accounting regressions

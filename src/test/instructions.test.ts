@@ -138,7 +138,7 @@ test("lintInstructions preset filtering keeps the engine generic without mixing 
       "AGENTS.md": "# Agents\n\n- Keep tasks bounded.\n",
       "src/index.ts": "export const value = 1;\n"
     },
-    "orqis-instructions-preset-"
+    "tokn-instructions-preset-"
   );
 
   const auto = lintInstructions(repoRoot);
@@ -159,7 +159,7 @@ test("lintInstructions only applies the 4000 character cap on code-review", () =
       ".github/copilot-instructions.md": `# Repository Instructions\n\n- ${"use precise domain language ".repeat(220)}`,
       "src/index.ts": "export const value = 1;\n"
     },
-    "orqis-instructions-char-limit-"
+    "tokn-instructions-char-limit-"
   );
 
   const codeReview = lintInstructions(repoRoot);
@@ -183,7 +183,7 @@ test("lintInstructions respects excludeAgent for selected surfaces", () => {
       ].join("\n"),
       "src/index.ts": "export function demo(): number { return 1; }\n"
     },
-    "orqis-instructions-exclude-agent-"
+    "tokn-instructions-exclude-agent-"
   );
 
   const codeReview = lintInstructions(repoRoot, { surface: "code-review" });
@@ -207,7 +207,7 @@ test("lintInstructions warns when a single target accumulates too many instructi
       ].join("\n"),
       "src/index.ts": "export const value = 1;\n"
     },
-    "orqis-instructions-token-budget-"
+    "tokn-instructions-token-budget-"
   );
 
   const report = lintInstructions(repoRoot, {

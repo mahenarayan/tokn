@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-Orqis now has three output needs:
+Tokn now has three output needs:
 
 - human terminal output
 - machine-readable JSON

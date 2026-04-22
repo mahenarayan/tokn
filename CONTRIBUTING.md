@@ -1,8 +1,8 @@
-# Contributing To Orqis
+# Contributing To Tokn
 
 ## Goal
 
-Orqis should stay small, explicit, and trustworthy.
+Tokn should stay small, explicit, and trustworthy.
 Contributions are welcome, but new work has to preserve three properties:
 
 - a lint-first public product boundary
@@ -94,6 +94,6 @@ Open a GitHub issue with:
 - the input payload or a minimized redacted fixture
 - the expected behavior
 - the actual behavior
-- Orqis version and Node version
+- Tokn version and Node version
 
 If the bug involves a security issue, use the process in [SECURITY.md](/Users/raksha/Documents/Projects/probe/SECURITY.md) instead of a public issue.

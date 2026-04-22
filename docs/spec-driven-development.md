@@ -2,7 +2,7 @@
 
 ## Goal
 
-Orqis should evolve through explicit specifications, not implied intent from code changes.
+Tokn should evolve through explicit specifications, not implied intent from code changes.
 The workflow should make behavior, constraints, and tests clear before implementation.
 
 ## Required Workflow

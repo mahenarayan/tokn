@@ -9,7 +9,7 @@ Accepted
 OpenInference is not the only trace format engineers already have in the field.
 Langfuse is a common trace store for LLM and agent applications, and its public trace endpoint exposes full observation trees with types such as `AGENT`, `GENERATION`, `TOOL`, and `RETRIEVER`.
 
-Orqis needs to support this shape directly without introducing a separate hosted dependency or a custom export protocol.
+Tokn needs to support this shape directly without introducing a separate hosted dependency or a custom export protocol.
 
 ## Decision
 
@@ -25,7 +25,7 @@ The importer will:
 
 ## Consequences
 
-- Orqis can analyze another real trace ecosystem without forcing manual conversion
+- Tokn can analyze another real trace ecosystem without forcing manual conversion
 - the trace-import model becomes multi-adapter rather than OpenInference-only
 - trace summaries remain normalized through the existing `ContextReport` and `AgentSummary` contracts
 - Langfuse traces with partial or ID-only observations still require the full trace endpoint for analysis

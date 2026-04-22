@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-Orqis now contains two different kinds of value:
+Tokn now contains two different kinds of value:
 
 - `instructions-lint`, which is deterministic, CI-friendly, repository-scoped, and easy to explain to enterprise engineering teams
 - broader prompt and trace diagnostics, which are useful but adapter-heavy, faster-moving, and less cohesive as a stable public promise
@@ -24,7 +24,7 @@ Splitting into separate repositories immediately would also be premature because
 
 Keep one repository, but adopt a lint-first product boundary:
 
-- `instructions-lint` is the stable primary public surface for Orqis
+- `instructions-lint` is the stable primary public surface for Tokn
 - instruction lint report types and lint formatters are part of that stable surface
 - `inspect`, `diff`, `budget`, `agent-report`, and `check` remain available as experimental diagnostics
 - public demos, docs, release hardening, and enterprise positioning optimize for the linting workflow first
@@ -33,7 +33,7 @@ Keep one repository, but adopt a lint-first product boundary:
 Future package separation is allowed once usage justifies it.
 The expected next clean split would be:
 
-- `orqis` for stable instruction governance and linting
+- `tokn` for stable instruction governance and linting
 - a separate diagnostics package for broader prompt and trace analysis
 
 ## Consequences

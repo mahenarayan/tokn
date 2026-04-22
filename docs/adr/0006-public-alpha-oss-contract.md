@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-Orqis is moving from an internal engineering project toward public open-source usage.
+Tokn is moving from an internal engineering project toward public open-source usage.
 That changes the bar for clarity and maintenance:
 
 - users need explicit project boundaries

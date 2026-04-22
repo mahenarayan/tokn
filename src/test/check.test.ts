@@ -66,7 +66,7 @@ test("evaluateCheck emits warnings when budget metadata is unavailable", () => {
 test("stored ContextReport can be reused as a baseline", () => {
   const baselineReport = analyzePayload(readFixture("anthropic-request.json"));
   const report = analyzePayload(readFixture("suggestions-high-pressure.json"));
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "orqis-check-"));
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "tokn-check-"));
   const baselinePath = path.join(tempDir, "baseline-report.json");
   fs.writeFileSync(baselinePath, JSON.stringify(baselineReport, null, 2));
 

@@ -1,4 +1,4 @@
-# Orqis Instructions Lint Report
+# Tokn Instructions Lint Report
 
 ## Summary
 - Status: pass

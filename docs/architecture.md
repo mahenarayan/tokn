@@ -1,8 +1,8 @@
-# Orqis Architecture
+# Tokn Architecture
 
 ## Purpose
 
-Orqis is a read-only analysis system for LLM context visibility and Copilot instruction quality.
+Tokn is a read-only analysis system for LLM context visibility and Copilot instruction quality.
 It ingests heterogeneous payloads and traces, normalizes them into a single internal model for prompt analysis, computes token and budget metadata, and exposes the result through a CLI and SDK. It also includes a dedicated instruction-lint subsystem for GitHub Copilot instruction files.
 
 The architecture should optimize for:
@@ -90,7 +90,7 @@ Every adapter should map provider-specific structures into segment types rather 
 - budget summary
 - warnings
 
-This makes Orqis similar to a compiler pipeline:
+This makes Tokn similar to a compiler pipeline:
 
 1. parse external representation
 2. normalize into internal IR

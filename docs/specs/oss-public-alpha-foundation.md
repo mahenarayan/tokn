@@ -2,7 +2,7 @@
 
 ## Problem
 
-Orqis has a functioning codebase, but external adoption requires more than working code.
+Tokn has a functioning codebase, but external adoption requires more than working code.
 Open-source users need a clear support contract, contributor flow, packaging hygiene, and stable project boundaries.
 
 ## Goals

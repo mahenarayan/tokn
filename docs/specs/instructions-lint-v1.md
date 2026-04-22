@@ -4,7 +4,7 @@ Instructions Lint V1
 
 ## Problem
 
-Orqis can inspect prompt occupancy and CI-check token budgets, but it cannot yet lint repository instruction files themselves.
+Tokn can inspect prompt occupancy and CI-check token budgets, but it cannot yet lint repository instruction files themselves.
 Teams need a deterministic way to catch:
 
 - invalid instruction file layout
@@ -14,7 +14,7 @@ Teams need a deterministic way to catch:
 
 ## Goals
 
-- add `orqis instructions-lint <path>`
+- add `tokn instructions-lint <path>`
 - support repository instruction presets through one deterministic lint engine
 - ship GitHub Copilot as the stable preset
 - support `AGENTS.md` as a second preset without forking the core engine
@@ -196,8 +196,8 @@ Profile budgets in v1:
 
 ## Acceptance Criteria
 
-- `orqis instructions-lint` works on repo roots and individual files
-- `orqis instructions-lint` can lint both `copilot` and `agents-md` presets through one core engine
+- `tokn instructions-lint` works on repo roots and individual files
+- `tokn instructions-lint` can lint both `copilot` and `agents-md` presets through one core engine
 - output is deterministic across text, markdown, and JSON modes
 - cross-file overlap is based on actual repository file matches
 - profile budgets apply to both chars and estimated tokens

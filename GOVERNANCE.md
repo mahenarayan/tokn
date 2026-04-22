@@ -1,6 +1,6 @@
 # Governance
 
-Orqis is maintained as a small, lint-first open source project.
+Tokn is maintained as a small, lint-first open source project.
 The public contract is intentionally narrow so the package stays readable, stable, and secure.
 
 ## Maintainer Model

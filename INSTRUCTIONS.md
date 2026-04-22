@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Orqis is a TypeScript CLI + SDK for context visibility in LLM systems.
+Tokn is a TypeScript CLI + SDK for context visibility in LLM systems.
 The repository currently focuses on read-only inspection:
 
 - prompt/context composition
@@ -19,7 +19,7 @@ Do not expand the scope casually into hosted observability, policy enforcement, 
 
 - `src/analyzer.ts`: core normalization and analysis logic
 - `src/cli.ts`: CLI entrypoint for `inspect`, `diff`, `budget`, `agent-report`, and `check`
-- `src/check.ts`: threshold evaluation for `orqis check`
+- `src/check.ts`: threshold evaluation for `tokn check`
 - `src/instructions/`: Copilot instruction discovery, parsing, and lint rules
 - `src/format.ts`: human-readable report formatting
 - `src/models.ts`: model context-window registry
@@ -83,7 +83,7 @@ Preferred day-to-day loop:
 - When changing CLI behavior, update or add CLI integration tests.
 - When changing CLI flags or output modes, verify both text and `--json` paths.
 - When changing output format behavior, verify markdown output with golden files.
-- When changing `orqis check`, verify both pass and fail exit-code paths.
+- When changing `tokn check`, verify both pass and fail exit-code paths.
 - When changing `instructions-lint`, verify both pass and fail exit-code paths and both directory and single-file inputs.
 - When changing package metadata, exports, README installation instructions, or public docs, verify the package path with `npm run pack:check`.
 - When changing suggestion rules, keep one high-pressure fixture and one no-suggestion fixture in coverage.
@@ -155,7 +155,7 @@ If you change public-facing documentation or packaging behavior:
 - Token accounting is approximate unless usage is provider-reported.
 - Agent support is snapshot and trace-import based; it is not a live orchestration protocol.
 - CI is intentionally minimal and only runs the Node test suite.
-- Orqis is public alpha software; prefer explicit scope and compatibility notes over marketing language.
+- Tokn is public alpha software; prefer explicit scope and compatibility notes over marketing language.
 
 ## Preferred Next Work
 

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This directory stores major architectural and product-boundary decisions for Orqis.
+This directory stores major architectural and product-boundary decisions for Tokn.
 
 ADRs are for decisions that should remain understandable even after the original implementation context is gone.
 

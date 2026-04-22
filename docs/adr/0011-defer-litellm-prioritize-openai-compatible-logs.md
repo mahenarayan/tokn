@@ -6,19 +6,19 @@ Accepted
 
 ## Context
 
-As of March 31, 2026, LiteLLM adapter work is not the best next step for Orqis.
+As of March 31, 2026, LiteLLM adapter work is not the best next step for Tokn.
 There was a recent supply-chain compromise involving malicious PyPI releases on March 24, 2026, and that changes the risk profile of prioritizing LiteLLM-specific support right now.
 
-Orqis does not need a live LiteLLM dependency to parse exported data, but making LiteLLM the next public adapter target would still:
+Tokn does not need a live LiteLLM dependency to parse exported data, but making LiteLLM the next public adapter target would still:
 
 - create confusing product signaling during an active security concern
 - encourage users to treat LiteLLM as the preferred next integration path
-- compete with a simpler and safer near-term target already aligned with Orqis's current adapter model
+- compete with a simpler and safer near-term target already aligned with Tokn's current adapter model
 
 OpenAI-compatible request logs are a better next step because they are:
 
 - broadly useful across gateways and wrappers
-- closer to Orqis's existing request-payload normalization paths
+- closer to Tokn's existing request-payload normalization paths
 - lower-friction to validate with static fixtures
 
 ## Decision
@@ -31,5 +31,5 @@ OpenAI-compatible request logs are a better next step because they are:
 ## Consequences
 
 - the roadmap stays aligned with a lower-risk adapter target
-- Orqis still supports many LiteLLM-adjacent deployments indirectly if they emit OpenAI-compatible request logs
+- Tokn still supports many LiteLLM-adjacent deployments indirectly if they emit OpenAI-compatible request logs
 - future LiteLLM work requires an explicit re-evaluation instead of sliding in through roadmap inertia

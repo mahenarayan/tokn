@@ -1,14 +1,14 @@
-# Orqis: Next Feature Implementation Plan
+# Tokn: Next Feature Implementation Plan
 
 ## Summary
 
-This document defines the next implementation wave for Orqis after the initial CLI, SDK, analyzer, regression suite, and CI setup.
+This document defines the next implementation wave for Tokn after the initial CLI, SDK, analyzer, regression suite, and CI setup.
 
 Immediate priority is now defined by [docs/specs/traction-mvp.md](/Users/raksha/Documents/Projects/probe/docs/specs/traction-mvp.md).
 That spec is the active near-term plan for field adoption.
 npm publishing and release automation are intentionally deferred until the MVP proves value.
 
-The goal of the next phase is to make Orqis useful on real production payloads and traces, while preserving the current read-only product boundary.
+The goal of the next phase is to make Tokn useful on real production payloads and traces, while preserving the current read-only product boundary.
 
 Security note:
 
@@ -48,8 +48,8 @@ Extend the analyzer to support richer real-world payload shapes:
 
 ### Acceptance Criteria
 
-- Orqis can ingest at least one realistic OpenAI Responses-style fixture and classify its parts correctly.
-- Orqis can ingest at least one richer Anthropic fixture with structured blocks.
+- Tokn can ingest at least one realistic OpenAI Responses-style fixture and classify its parts correctly.
+- Tokn can ingest at least one richer Anthropic fixture with structured blocks.
 - New adapters are covered by analyzer and fixture-backed tests.
 - Existing golden CLI outputs remain stable unless intentionally changed.
 
@@ -57,7 +57,7 @@ Extend the analyzer to support richer real-world payload shapes:
 
 ### Scope
 
-Add structured output modes so Orqis can be used in scripts, CI, and editor tooling.
+Add structured output modes so Tokn can be used in scripts, CI, and editor tooling.
 
 ### Implementation Changes
 
@@ -79,7 +79,7 @@ Add structured output modes so Orqis can be used in scripts, CI, and editor tool
 
 ### Scope
 
-Allow Orqis to analyze real trace exports instead of requiring handcrafted `agents[]` snapshots.
+Allow Tokn to analyze real trace exports instead of requiring handcrafted `agents[]` snapshots.
 
 ### Implementation Changes
 
@@ -94,7 +94,7 @@ Allow Orqis to analyze real trace exports instead of requiring handcrafted `agen
 
 ### Acceptance Criteria
 
-- Orqis can ingest at least one trace fixture and produce an `agent-report`.
+- Tokn can ingest at least one trace fixture and produce an `agent-report`.
 - Parent/child agent grouping is preserved.
 - Missing token counts degrade gracefully to estimated or unknown states.
 
@@ -155,7 +155,7 @@ For every milestone:
 
 ## Guardrails
 
-- Keep Orqis read-only.
+- Keep Tokn read-only.
 - Do not add hosted-service assumptions.
 - Do not add policy enforcement or live steering controls in this phase.
 - Prefer explicit adapters over loose heuristics when supporting a new payload shape.

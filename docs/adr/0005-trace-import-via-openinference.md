@@ -22,6 +22,6 @@ This importer should:
 
 ## Consequences
 
-- Orqis can analyze real trace exports
+- Tokn can analyze real trace exports
 - trace import remains aligned with an existing ecosystem convention
 - exact token totals are only used when they remain semantically honest

@@ -396,7 +396,7 @@ test("cli check warns when model metadata is unavailable", () => {
 });
 
 test("cli check accepts a stored ContextReport as baseline input", () => {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "orqis-cli-check-"));
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "tokn-cli-check-"));
   const baselinePath = path.join(tempDir, "baseline-report.json");
   const baselineReport = runCliJson([
     "inspect",
@@ -548,7 +548,7 @@ test("cli instructions-lint supports --surface and only applies the 4000-char ru
       ".github/copilot-instructions.md": `# Repository Instructions\n\n- ${"use precise domain language ".repeat(220)}`,
       "src/index.ts": "export const value = 1;\n"
     },
-    "orqis-cli-instructions-surface-"
+    "tokn-cli-instructions-surface-"
   );
 
   const codeReview = runCliProcess(["instructions-lint", repoRoot]);

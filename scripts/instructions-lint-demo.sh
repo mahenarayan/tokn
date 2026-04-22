@@ -2,8 +2,8 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-DEMO_ROOT="${DEMO_ROOT:-${TMPDIR:-/tmp}/orqis-instructions-demo}"
-ORQIS_BIN=(node "$ROOT_DIR/dist/cli.js")
+DEMO_ROOT="${DEMO_ROOT:-${TMPDIR:-/tmp}/tokn-instructions-demo}"
+TOKN_BIN=(node "$ROOT_DIR/dist/cli.js")
 
 log() {
   printf '%s\n' "$*" >&2
@@ -24,7 +24,7 @@ Modes:
   prepare-public  Clone the verified public repos without running lint.
 
 Environment:
-  DEMO_ROOT       Checkout root for public repos. Defaults to /tmp/orqis-instructions-demo.
+  DEMO_ROOT       Checkout root for public repos. Defaults to /tmp/tokn-instructions-demo.
 EOF
 }
 
@@ -33,7 +33,7 @@ ensure_built() {
     return
   fi
 
-  log "Building Orqis..."
+  log "Building Tokn..."
   (
     cd "$ROOT_DIR"
     npm run build >/dev/null
@@ -60,7 +60,7 @@ run_case() {
   echo
   echo "### $label"
   set +e
-  "${ORQIS_BIN[@]}" instructions-lint "$@"
+  "${TOKN_BIN[@]}" instructions-lint "$@"
   local status=$?
   set -e
   echo "exit code: $status"
