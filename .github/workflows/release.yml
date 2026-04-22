@@ -55,4 +55,4 @@ jobs:
           subject-path: ${{ steps.pack.outputs.tgz }}
 
       - name: Publish to npm
-        run: npm publish --access public --provenance "${{ steps.pack.outputs.tgz }}"
+        run: npm publish "${{ steps.pack.outputs.tgz }}" --access public

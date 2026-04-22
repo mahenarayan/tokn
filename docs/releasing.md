@@ -7,7 +7,7 @@ The stable public contract is `instructions-lint`.
 
 Before the first public publish:
 
-1. Reserve the npm package and verify the intended maintainers.
+1. Publish or reserve the npm package `@tokn-labs/tokn` and verify the intended maintainers.
 2. Configure npm trusted publishing for this repository and the `release.yml` workflow.
 3. Require npm 2FA for maintainer accounts.
 4. Make the repository public so provenance, scorecards, and code scanning are visible.
@@ -26,7 +26,7 @@ That workflow:
 - creates the publishable tarball with `npm pack`
 - uploads the tarball as a workflow artifact
 - generates build provenance for the packed artifact
-- publishes to npm with provenance through GitHub OIDC trusted publishing
+- publishes to npm through GitHub OIDC trusted publishing
 - verifies that the npm tarball excludes compiled tests and internal repository docs
 
 ## Local Verification
@@ -55,6 +55,11 @@ The public repository baseline is:
 ## Notes
 
 - The release workflow assumes the npm trusted publisher has already been configured in npm.
+- For npm trusted publishing, configure package `@tokn-labs/tokn` with:
+  - provider: `GitHub Actions`
+  - GitHub user or organization: `mahenarayan`
+  - repository: `tokn`
+  - workflow filename: `release.yml`
 - The workflow publishes only on GitHub Release publication.
 - CodeQL, Scorecards, and dependency review are intended for the public repository baseline and skip automatically while the repository is private.
 - If package ownership, repository visibility, or trusted publisher setup is missing, publishing should remain disabled until those are corrected.
