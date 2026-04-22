@@ -1,10 +1,10 @@
 # Tokn
 
-[![CI](https://github.com/mahenarayan/orqis/actions/workflows/ci.yml/badge.svg)](https://github.com/mahenarayan/orqis/actions/workflows/ci.yml)
-[![License](https://img.shields.io/github/license/mahenarayan/orqis)](https://github.com/mahenarayan/orqis/blob/main/LICENSE)
-[![Node >=22](https://img.shields.io/badge/node-%3E%3D22-339933?logo=node.js&logoColor=white)](https://github.com/mahenarayan/orqis/blob/main/package.json)
-[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/mahenarayan/orqis/badge)](https://scorecard.dev/viewer/?uri=github.com/mahenarayan/orqis)
-[![Status: public alpha](https://img.shields.io/badge/status-public%20alpha-0a7ea4)](https://github.com/mahenarayan/orqis)
+[![CI](https://github.com/mahenarayan/tokn/actions/workflows/ci.yml/badge.svg)](https://github.com/mahenarayan/tokn/actions/workflows/ci.yml)
+[![License](https://img.shields.io/github/license/mahenarayan/tokn)](https://github.com/mahenarayan/tokn/blob/main/LICENSE)
+[![Node >=22](https://img.shields.io/badge/node-%3E%3D22-339933?logo=node.js&logoColor=white)](https://github.com/mahenarayan/tokn/blob/main/package.json)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/mahenarayan/tokn/badge)](https://scorecard.dev/viewer/?uri=github.com/mahenarayan/tokn)
+[![Status: public alpha](https://img.shields.io/badge/status-public%20alpha-0a7ea4)](https://github.com/mahenarayan/tokn)
 
 Read-only instruction linting and governance for repository instruction files.
 
@@ -18,7 +18,7 @@ The repository also still contains older prompt and trace diagnostics (`inspect`
 From source:
 
 ```bash
-git clone https://github.com/mahenarayan/orqis.git tokn
+git clone https://github.com/mahenarayan/tokn.git
 cd tokn
 npm install --cache .npm-cache
 npm run build
