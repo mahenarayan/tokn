@@ -10,6 +10,7 @@ Read-only instruction linting and governance for repository instruction files.
 
 Tokn is a TypeScript CLI + SDK centered on `instructions-lint`: a read-only, preset-based linter for repository instruction files. It helps teams catch overlap, ambiguity, stale scope patterns, surface-specific limits, and instruction-context waste before those files spread across repositories and CI.
 It is named for the token, the smallest unit a model actually consumes, with the missing `e` reflecting the tool's bias toward compression and signal.
+The npm package is published as `@tokn-labs/tokn`, while the installed CLI command remains `tokn`.
 
 The repository also still contains older prompt and trace diagnostics (`inspect`, `diff`, `budget`, `agent-report`, `check`). Those commands remain available, but they are currently an experimental diagnostics surface rather than the primary enterprise contract.
 
@@ -33,6 +34,13 @@ tokn instructions-lint ./fixtures/instructions/valid-repo
 ```
 
 The npm release path is wired for public publishing, but source install remains the supported setup until the first public package release is cut.
+
+Expected npm install path after publish:
+
+```bash
+npm install -g @tokn-labs/tokn
+tokn instructions-lint /path/to/repository
+```
 
 ## What Tokn Does
 
@@ -79,7 +87,7 @@ Stable inputs:
 Stable SDK entry points:
 
 ```ts
-import { formatInstructionLintReport, lintInstructions } from "tokn";
+import { formatInstructionLintReport, lintInstructions } from "@tokn-labs/tokn";
 
 const report = lintInstructions("./fixtures/instructions/valid-repo");
 console.log(formatInstructionLintReport(report));
