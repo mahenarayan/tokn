@@ -41,12 +41,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mahenarayan/orqis.git"
+    "url": "git+https://github.com/mahenarayan/tokn.git"
   },
   "bugs": {
-    "url": "https://github.com/mahenarayan/orqis/issues"
+    "url": "https://github.com/mahenarayan/tokn/issues"
   },
-  "homepage": "https://github.com/mahenarayan/orqis#readme",
+  "homepage": "https://github.com/mahenarayan/tokn#readme",
   "packageManager": "npm@11.6.2",
   "engines": {
     "node": ">=22"
