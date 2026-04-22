@@ -6,12 +6,12 @@ Accepted
 
 ## Context
 
-Orqis needs a CI-friendly surface that turns report data into a pass/fail outcome.
+Tokn needs a CI-friendly surface that turns report data into a pass/fail outcome.
 The key design question is where this logic belongs.
 
 ## Decision
 
-Implement `orqis check` as a dedicated threshold-evaluation module layered on top of `ContextReport`.
+Implement `tokn check` as a dedicated threshold-evaluation module layered on top of `ContextReport`.
 
 The analyzer remains responsible for normalization and report construction.
 The check module consumes those reports and evaluates deterministic thresholds.
@@ -28,4 +28,4 @@ In v1, baseline input provides diff context but does not alter threshold semanti
 
 - the analyzer stays focused on normalization
 - CI integration becomes straightforward
-- the check command is operational without expanding Orqis into enforcement middleware
+- the check command is operational without expanding Tokn into enforcement middleware

@@ -1,8 +1,8 @@
-# Orqis: Context Visibility for LLMs and Agents
+# Tokn: Context Visibility for LLMs and Agents
 
 ## Summary
 
-Build `Orqis`, a TypeScript/Node CLI + SDK for context visibility in LLM systems.
+Build `Tokn`, a TypeScript/Node CLI + SDK for context visibility in LLM systems.
 Its v1 purpose is read-only inspection:
 
 - explain what occupies a prompt/context window
@@ -19,9 +19,9 @@ This is not a full hosted observability platform in v1, and it does not enforce 
 
 Use:
 
-- Product name: `Orqis`
-- CLI name: `orqis`
-- Repo/package direction: `orqis` or `@orqis/cli`
+- Product name: `Tokn`
+- CLI name: `tokn`
+- Repo/package direction: `tokn` or `@tokn/cli`
 - Primary tagline: `Context visibility for LLMs and agents`
 
 ### Core architecture
@@ -71,10 +71,10 @@ Keep model context-limit metadata in a versioned local registry.
 
 CLI commands:
 
-- `orqis inspect <file>`
-- `orqis diff <a> <b>`
-- `orqis budget <file> --model <id>`
-- `orqis agent-report <file>`
+- `tokn inspect <file>`
+- `tokn diff <a> <b>`
+- `tokn budget <file> --model <id>`
+- `tokn agent-report <file>`
 
 SDK responsibilities:
 
@@ -114,11 +114,11 @@ Validate:
 
 Acceptance criteria:
 
-- a developer can run `orqis inspect` on a saved request and get a ranked context breakdown
+- a developer can run `tokn inspect` on a saved request and get a ranked context breakdown
 - the output clearly labels exact versus estimated counts
-- `orqis diff` explains where context changed between two turns
-- `orqis budget` reports remaining room and risk level for a model
-- `orqis agent-report` summarizes context pressure for at least one imported multi-agent trace format
+- `tokn diff` explains where context changed between two turns
+- `tokn budget` reports remaining room and risk level for a model
+- `tokn agent-report` summarizes context pressure for at least one imported multi-agent trace format
 
 ## Assumptions
 

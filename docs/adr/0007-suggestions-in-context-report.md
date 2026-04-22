@@ -12,7 +12,7 @@ There are two obvious implementation shapes:
 - a separate analysis endpoint
 - suggestions embedded in the existing normalized report
 
-Orqis already treats `ContextReport` as the core machine-facing contract.
+Tokn already treats `ContextReport` as the core machine-facing contract.
 
 ## Decision
 

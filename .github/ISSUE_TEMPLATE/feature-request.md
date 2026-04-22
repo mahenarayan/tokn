@@ -1,6 +1,6 @@
 ---
 name: Feature request
-about: Propose a new capability or extension for Orqis
+about: Propose a new capability or extension for Tokn
 title: "[Feature] "
 labels: enhancement
 assignees: ""
@@ -14,7 +14,7 @@ What user problem are you trying to solve?
 
 Describe the change at a behavior level.
 
-## Why This Fits Orqis
+## Why This Fits Tokn
 
 Explain how it stays aligned with:
 

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This directory stores implementation specs for non-trivial changes in Orqis.
+This directory stores implementation specs for non-trivial changes in Tokn.
 
 Specs describe intended behavior before or alongside implementation.
 They are the working design documents for feature work, adapter changes, contract changes, and major analysis behavior changes.

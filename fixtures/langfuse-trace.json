@@ -12,7 +12,7 @@
   "input": "Inspect the repository and delegate work.",
   "output": "Delegated parser analysis to worker-a.",
   "metadata": {
-    "feature": "orqis"
+    "feature": "tokn"
   },
   "observations": [
     {

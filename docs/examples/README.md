@@ -1,6 +1,6 @@
 # Example Gallery
 
-This gallery shows realistic Orqis workflows using fixtures already checked into the repository.
+This gallery shows realistic Tokn workflows using fixtures already checked into the repository.
 
 Run the commands from the repository root after:
 

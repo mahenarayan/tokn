@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-Orqis originally centered on prompt and trace analysis through `ContextSegment` and `ContextReport`.
+Tokn originally centered on prompt and trace analysis through `ContextSegment` and `ContextReport`.
 The Copilot instructions linter introduces a different source model:
 
 - Markdown files instead of provider payloads
@@ -30,4 +30,4 @@ The CLI and SDK may expose both report families, but the underlying analysis pip
 - instruction lint rules can evolve without distorting prompt-analysis types
 - formatting and JSON output can stay deterministic for both subsystems
 - future `AGENTS.md` support can reuse the instruction-lint subsystem instead of the payload analyzer
-- Orqis now has two public report families, so docs and tests must treat both as stable product surface
+- Tokn now has two public report families, so docs and tests must treat both as stable product surface

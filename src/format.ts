@@ -171,7 +171,7 @@ export function formatDiffReport(report: DiffReport): string {
 
 export function formatInspectReportMarkdown(report: ContextReport): string {
   const lines = [
-    "# Orqis Inspect Report",
+    "# Tokn Inspect Report",
     "",
     "## Summary",
     `- Source: ${report.sourceType}`,
@@ -221,7 +221,7 @@ export function formatInspectReportMarkdown(report: ContextReport): string {
 
 export function formatDiffReportMarkdown(report: DiffReport): string {
   const lines = [
-    "# Orqis Diff Report",
+    "# Tokn Diff Report",
     "",
     "## Summary",
     `- Before: ${report.totalBefore} tokens`,
@@ -266,7 +266,7 @@ export function formatBudgetReport(report: ContextReport): string {
 export function formatBudgetReportMarkdown(report: ContextReport): string {
   const budget = report.budget;
   return [
-    "# Orqis Budget Report",
+    "# Tokn Budget Report",
     "",
     "## Summary",
     `- Model: ${budget.model ?? report.model ?? "unknown"}`,
@@ -428,7 +428,7 @@ export function formatAgentSummary(summary: AgentSummary): string {
 
 export function formatAgentSummaryMarkdown(summary: AgentSummary): string {
   const lines = [
-    "# Orqis Agent Report",
+    "# Tokn Agent Report",
     "",
     "## Agents"
   ];
@@ -472,7 +472,7 @@ export function formatAgentSummaryMarkdown(summary: AgentSummary): string {
 
 export function formatInstructionLintReportMarkdown(report: InstructionLintReport): string {
   const lines = [
-    "# Orqis Instructions Lint Report",
+    "# Tokn Instructions Lint Report",
     "",
     "## Summary",
     `- Status: ${report.passed ? "pass" : "fail"}`,

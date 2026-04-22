@@ -58,5 +58,5 @@ node dist/cli.js instructions-lint fixtures/instructions/agents-repo --preset ag
 - Set `DEMO_ROOT` if you want a persistent clone location:
 
 ```bash
-DEMO_ROOT="$HOME/demo/orqis" bash scripts/instructions-lint-demo.sh public
+DEMO_ROOT="$HOME/demo/tokn" bash scripts/instructions-lint-demo.sh public
 ```

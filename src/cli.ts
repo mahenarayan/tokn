@@ -60,23 +60,23 @@ function loadJson(filePath: string): unknown {
 }
 
 function printUsage(): void {
-  console.log(`Orqis
+  console.log(`Tokn
 
 Usage:
   Stable public command:
-    orqis instructions-lint <path> [--preset <auto|copilot|agents-md>] [--profile <lite|standard|strict>] [--surface <code-review|chat|coding-agent>] [--model <id>] [--fail-on-severity <warning|error>] [--format <text|json|markdown>]
+    tokn instructions-lint <path> [--preset <auto|copilot|agents-md>] [--profile <lite|standard|strict>] [--surface <code-review|chat|coding-agent>] [--model <id>] [--fail-on-severity <warning|error>] [--format <text|json|markdown>]
 
   Experimental diagnostics:
-    orqis inspect <file> [--json]
-    orqis inspect <file> [--format <text|json|markdown>]
-    orqis diff <before> <after> [--json]
-    orqis diff <before> <after> [--format <text|json|markdown>]
-    orqis budget <file> [--model <id>] [--json]
-    orqis budget <file> [--model <id>] [--format <text|json|markdown>]
-    orqis agent-report <file> [--json]
-    orqis agent-report <file> [--format <text|json|markdown>]
-    orqis check <file> [--model <id>] [--max-usage-percent <n>] [--max-total-tokens <n>] [--max-segment-tokens <type=n>] [--fail-on-risk <low|medium|high>] [--baseline <file>] [--json]
-    orqis check <file> [--model <id>] [--max-usage-percent <n>] [--max-total-tokens <n>] [--max-segment-tokens <type=n>] [--fail-on-risk <low|medium|high>] [--baseline <file>] [--format <text|json|markdown>]
+    tokn inspect <file> [--json]
+    tokn inspect <file> [--format <text|json|markdown>]
+    tokn diff <before> <after> [--json]
+    tokn diff <before> <after> [--format <text|json|markdown>]
+    tokn budget <file> [--model <id>] [--json]
+    tokn budget <file> [--model <id>] [--format <text|json|markdown>]
+    tokn agent-report <file> [--json]
+    tokn agent-report <file> [--format <text|json|markdown>]
+    tokn check <file> [--model <id>] [--max-usage-percent <n>] [--max-total-tokens <n>] [--max-segment-tokens <type=n>] [--fail-on-risk <low|medium|high>] [--baseline <file>] [--json]
+    tokn check <file> [--model <id>] [--max-usage-percent <n>] [--max-total-tokens <n>] [--max-segment-tokens <type=n>] [--fail-on-risk <low|medium|high>] [--baseline <file>] [--format <text|json|markdown>]
 
 Notes:
   instructions-lint is the primary supported enterprise surface in public alpha.

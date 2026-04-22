@@ -21,6 +21,6 @@ Command JSON outputs are derived from existing analyzer/SDK objects:
 
 ## Consequences
 
-- Orqis becomes scriptable
+- Tokn becomes scriptable
 - JSON shape becomes part of the product contract
 - CLI changes must verify both text and JSON paths

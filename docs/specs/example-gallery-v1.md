@@ -4,7 +4,7 @@ Example Gallery V1
 
 ## Problem
 
-Orqis now has enough surface area to be useful, but the repo still expects a new user to infer adoption paths from commands and fixtures.
+Tokn now has enough surface area to be useful, but the repo still expects a new user to infer adoption paths from commands and fixtures.
 That is too much work for a public-alpha OSS tool.
 
 To get actual field usage, the repo needs a small example gallery that shows realistic workflows engineers can copy, run, and adapt:

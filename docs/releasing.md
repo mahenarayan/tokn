@@ -1,4 +1,4 @@
-# Releasing Orqis
+# Releasing Tokn
 
 This project keeps the public release path intentionally small and explicit.
 The stable public contract is `instructions-lint`.

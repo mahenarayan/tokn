@@ -4,8 +4,8 @@ Check Command V1
 
 ## Problem
 
-Orqis can inspect and explain context, but engineers still need a CI-friendly way to turn that analysis into a gate.
-Without that, Orqis remains diagnostic but not operational.
+Tokn can inspect and explain context, but engineers still need a CI-friendly way to turn that analysis into a gate.
+Without that, Tokn remains diagnostic but not operational.
 
 ## Goals
 
@@ -25,7 +25,7 @@ Without that, Orqis remains diagnostic but not operational.
 
 ## Inputs
 
-`orqis check <file>` should accept a JSON input payload that Orqis can analyze.
+`tokn check <file>` should accept a JSON input payload that Tokn can analyze.
 
 Supported flags in v1:
 
@@ -104,7 +104,7 @@ Exit behavior:
 
 ## Acceptance Criteria
 
-- `orqis check` can fail on total tokens, usage percent, segment totals, and budget risk
+- `tokn check` can fail on total tokens, usage percent, segment totals, and budget risk
 - text output is deterministic and golden-tested
 - JSON output is machine-consumable
 - threshold violations return exit code `2`

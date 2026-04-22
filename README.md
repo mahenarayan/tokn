@@ -1,4 +1,4 @@
-# Orqis
+# Tokn
 
 [![CI](https://github.com/mahenarayan/orqis/actions/workflows/ci.yml/badge.svg)](https://github.com/mahenarayan/orqis/actions/workflows/ci.yml)
 [![License](https://img.shields.io/github/license/mahenarayan/orqis)](https://github.com/mahenarayan/orqis/blob/main/LICENSE)
@@ -8,7 +8,8 @@
 
 Read-only instruction linting and governance for repository instruction files.
 
-Orqis is a TypeScript CLI + SDK centered on `instructions-lint`: a read-only, preset-based linter for repository instruction files. It helps teams catch overlap, ambiguity, stale scope patterns, surface-specific limits, and instruction-context waste before those files spread across repositories and CI.
+Tokn is a TypeScript CLI + SDK centered on `instructions-lint`: a read-only, preset-based linter for repository instruction files. It helps teams catch overlap, ambiguity, stale scope patterns, surface-specific limits, and instruction-context waste before those files spread across repositories and CI.
+It is named for the token, the smallest unit a model actually consumes, with the missing `e` reflecting the tool's bias toward compression and signal.
 
 The repository also still contains older prompt and trace diagnostics (`inspect`, `diff`, `budget`, `agent-report`, `check`). Those commands remain available, but they are currently an experimental diagnostics surface rather than the primary enterprise contract.
 
@@ -17,22 +18,23 @@ The repository also still contains older prompt and trace diagnostics (`inspect`
 From source:
 
 ```bash
-git clone https://github.com/mahenarayan/orqis.git
-cd orqis
+git clone https://github.com/mahenarayan/orqis.git tokn
+cd tokn
 npm install --cache .npm-cache
 npm run build
-node dist/cli.js instructions-lint /path/to/repository
+npm link
+tokn instructions-lint /path/to/repository
 ```
 
 Example:
 
 ```bash
-node dist/cli.js instructions-lint ./fixtures/instructions/valid-repo
+tokn instructions-lint ./fixtures/instructions/valid-repo
 ```
 
 The npm release path is wired for public publishing, but source install remains the supported setup until the first public package release is cut.
 
-## What Orqis Does
+## What Tokn Does
 
 - discovers repository instruction files using supported presets
 - lints overlap, duplication, vague wording, stale scope patterns, and surface-specific limits
@@ -42,7 +44,7 @@ The npm release path is wired for public publishing, but source install remains 
 
 ## Status
 
-Orqis is in public alpha.
+Tokn is in public alpha.
 
 - stable public surface: `instructions-lint`, instruction lint report types, and deterministic text/json/markdown lint output
 - stable preset: `copilot`
@@ -56,16 +58,16 @@ Orqis is in public alpha.
 Primary command:
 
 ```bash
-orqis instructions-lint ./fixtures/instructions/valid-repo
+tokn instructions-lint ./fixtures/instructions/valid-repo
 ```
 
 Common variants:
 
 ```bash
-orqis instructions-lint ./fixtures/instructions/valid-repo --surface coding-agent --model gpt-4o
-orqis instructions-lint ./fixtures/instructions/agents-repo --preset agents-md
-orqis instructions-lint ./fixtures/instructions/invalid-repo --format markdown
-orqis instructions-lint ./fixtures/instructions/invalid-repo --format json
+tokn instructions-lint ./fixtures/instructions/valid-repo --surface coding-agent --model gpt-4o
+tokn instructions-lint ./fixtures/instructions/agents-repo --preset agents-md
+tokn instructions-lint ./fixtures/instructions/invalid-repo --format markdown
+tokn instructions-lint ./fixtures/instructions/invalid-repo --format json
 ```
 
 Stable inputs:
@@ -77,7 +79,7 @@ Stable inputs:
 Stable SDK entry points:
 
 ```ts
-import { formatInstructionLintReport, lintInstructions } from "orqis";
+import { formatInstructionLintReport, lintInstructions } from "tokn";
 
 const report = lintInstructions("./fixtures/instructions/valid-repo");
 console.log(formatInstructionLintReport(report));
@@ -107,17 +109,17 @@ They normalize OpenAI-style payloads, OpenAI-compatible request logs, OpenAI Res
 Stable command:
 
 ```bash
-orqis instructions-lint <path> [--preset <auto|copilot|agents-md>] [--profile <lite|standard|strict>] [--surface <code-review|chat|coding-agent>] [--model <id>] [--fail-on-severity <warning|error>] [--format <text|json|markdown>]
+tokn instructions-lint <path> [--preset <auto|copilot|agents-md>] [--profile <lite|standard|strict>] [--surface <code-review|chat|coding-agent>] [--model <id>] [--fail-on-severity <warning|error>] [--format <text|json|markdown>]
 ```
 
 Experimental diagnostics:
 
 ```bash
-orqis inspect <file> [--format <text|json|markdown>]
-orqis diff <before> <after> [--format <text|json|markdown>]
-orqis budget <file> [--model <id>] [--format <text|json|markdown>]
-orqis agent-report <file> [--format <text|json|markdown>]
-orqis check <file> [--model <id>] [--max-usage-percent <n>] [--max-total-tokens <n>] [--max-segment-tokens <type=n>] [--fail-on-risk <low|medium|high>] [--baseline <file>] [--format <text|json|markdown>]
+tokn inspect <file> [--format <text|json|markdown>]
+tokn diff <before> <after> [--format <text|json|markdown>]
+tokn budget <file> [--model <id>] [--format <text|json|markdown>]
+tokn agent-report <file> [--format <text|json|markdown>]
+tokn check <file> [--model <id>] [--max-usage-percent <n>] [--max-total-tokens <n>] [--max-segment-tokens <type=n>] [--fail-on-risk <low|medium|high>] [--baseline <file>] [--format <text|json|markdown>]
 ```
 
 ## Release Integrity

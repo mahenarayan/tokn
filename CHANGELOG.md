@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to Orqis should be recorded in this file.
+All notable changes to Tokn should be recorded in this file.
 
 ## Unreleased
 
@@ -10,7 +10,7 @@ All notable changes to Orqis should be recorded in this file.
 - add `AGENTS.md` fixtures, preset-aware discovery, and CLI coverage
 - add SDK exports for instruction lint reports
 - add docs and examples for Copilot instruction linting
-- reposition Orqis as a lint-first public alpha with experimental diagnostics kept secondary
+- reposition Tokn as a lint-first public alpha with experimental diagnostics kept secondary
 - add trusted-publishing and supply-chain hardening workflows for public OSS release
 - tighten the published npm package so it excludes compiled tests and internal docs
 - add `CODEOWNERS`, `SUPPORT.md`, and `GOVERNANCE.md` for a clearer public maintainer posture

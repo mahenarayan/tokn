@@ -4,8 +4,8 @@ Langfuse Trace Import V1
 
 ## Problem
 
-Orqis can currently analyze handcrafted agent snapshots and OpenInference-style trace exports, but Langfuse is a common trace backend for LLM applications and agent systems.
-Without direct Langfuse support, engineers still need to hand-convert Langfuse traces before Orqis can explain context occupancy.
+Tokn can currently analyze handcrafted agent snapshots and OpenInference-style trace exports, but Langfuse is a common trace backend for LLM applications and agent systems.
+Without direct Langfuse support, engineers still need to hand-convert Langfuse traces before Tokn can explain context occupancy.
 
 ## Goals
 
@@ -108,8 +108,8 @@ Expected behavior:
 
 ## Acceptance Criteria
 
-- Orqis supports Langfuse full trace payloads through `inspect`
-- Orqis supports Langfuse full trace payloads through `agent-report`
+- Tokn supports Langfuse full trace payloads through `inspect`
+- Tokn supports Langfuse full trace payloads through `agent-report`
 - parent-child agent relationships are preserved when `AGENT` observations are present
 - `GENERATION` observations contribute prompt segments and model metadata
 - `TOOL` and `RETRIEVER` observations contribute external-context segments

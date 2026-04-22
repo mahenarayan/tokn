@@ -16,5 +16,5 @@ node dist/cli.js instructions-lint fixtures/instructions/agents-repo --preset ag
 
 ## Why It Matters
 
-This keeps the engine honest: Orqis is not just checking Copilot filenames.
+This keeps the engine honest: Tokn is not just checking Copilot filenames.
 It is using a preset-based instruction-lint core, with `copilot` and `agents-md` as supported presets today.

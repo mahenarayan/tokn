@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Report a reproducible bug in Orqis
+about: Report a reproducible bug in Tokn
 title: "[Bug] "
 labels: bug
 assignees: ""
@@ -22,7 +22,7 @@ Provide a minimized payload, redacted fixture, or trace shape if possible.
 
 ## Expected Behavior
 
-Describe what you expected Orqis to do.
+Describe what you expected Tokn to do.
 
 ## Actual Behavior
 
@@ -30,7 +30,7 @@ Describe what happened instead.
 
 ## Environment
 
-- Orqis version:
+- Tokn version:
 - Node version:
 - OS:
 

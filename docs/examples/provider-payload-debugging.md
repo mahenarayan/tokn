@@ -50,7 +50,7 @@ What this demonstrates:
 Why it matters:
 
 Provider payloads are not just plain chat history anymore.
-This is the fastest way to verify whether Orqis is classifying modern request structure the way you expect before you trust the rest of the diagnosis.
+This is the fastest way to verify whether Tokn is classifying modern request structure the way you expect before you trust the rest of the diagnosis.
 
 ## OpenAI-Compatible Request Log Example
 
