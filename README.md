@@ -9,7 +9,7 @@
 
 Read-only instruction linting and governance for repository instruction files.
 
-Tokn is a TypeScript CLI + SDK centered on `instructions-lint`: a read-only, preset-based linter for repository instruction files such as `.github/copilot-instructions.md`, `.github/instructions/*.instructions.md`, and `AGENTS.md`. It helps teams catch duplicated guidance, conflicting rules, vague wording, stale scope patterns, surface-specific limits, and instruction-context waste before those files spread across repositories and CI.
+Tokn is a TypeScript CLI + SDK centered on `instructions-lint`: a read-only, preset-based linter for repository instruction files such as `.github/copilot-instructions.md`, `.github/instructions/*.instructions.md`, and `AGENTS.md`. It helps teams catch duplicated guidance, conflicting rules, vague wording, stale scope patterns, surface-specific limits, and instruction-context waste before those files spread across repositories and CI. Once installed, the core CLI runs on local files and is offline-capable.
 The npm package is published as `@tokn-labs/tokn`, while the installed CLI command remains `tokn`.
 
 Tokn is also working on advanced diagnostics for prompts, traces, and context composition through `inspect`, `diff`, `budget`, `agent-report`, and `check`. That diagnostics surface is experimental today and is not part of the primary public contract.
@@ -46,6 +46,7 @@ tokn instructions-lint ./fixtures/instructions/valid-repo
 - lints overlap, duplication, vague wording, stale scope patterns, and surface-specific limits
 - estimates instruction-context pressure with compactness and token-budget checks
 - emits deterministic text, JSON, and Markdown output for CI, PR comments, editor tooling, and demos
+- runs locally on repository files without requiring network access during analysis
 - stays read-only so it can fit conservative enterprise workflows
 
 ## What Instruction Linting Means
