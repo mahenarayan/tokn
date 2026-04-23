@@ -3,6 +3,9 @@ contact_links:
   - name: Security vulnerability
     url: https://github.com/mahenarayan/tokn/security/policy
     about: Report security issues privately. Do not open a public issue.
-  - name: Support and usage
+  - name: GitHub Discussions
+    url: https://github.com/mahenarayan/tokn/discussions
+    about: Ask usage questions, demo questions, and general support questions in Discussions.
+  - name: Support policy
     url: https://github.com/mahenarayan/tokn/blob/main/SUPPORT.md
-    about: Use the support policy before opening a public issue.
+    about: Read the support routing policy before opening a public issue.

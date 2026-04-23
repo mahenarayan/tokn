@@ -206,6 +206,6 @@ Profile budgets in v1:
 
 ## Related ADRs
 
-- [0004 Machine-Readable CLI Contract](/Users/raksha/Documents/Projects/probe/docs/adr/0004-machine-readable-cli-contract.md)
-- [0009 Multi-Format CLI Output](/Users/raksha/Documents/Projects/probe/docs/adr/0009-multi-format-cli-output.md)
-- [0012 Separate Instruction Lint Report Family](/Users/raksha/Documents/Projects/probe/docs/adr/0012-separate-instruction-lint-report-family.md)
+- [0004 Machine-Readable CLI Contract](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0004-machine-readable-cli-contract.md)
+- [0009 Multi-Format CLI Output](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0009-multi-format-cli-output.md)
+- [0012 Separate Instruction Lint Report Family](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0012-separate-instruction-lint-report-family.md)

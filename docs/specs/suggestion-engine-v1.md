@@ -97,6 +97,6 @@ For segment-heavy rules, compare against visible prompt composition rather than 
 
 ## Related ADRs
 
-- [0001 Read-Only Analysis Boundary](/Users/raksha/Documents/Projects/probe/docs/adr/0001-read-only-analysis-boundary.md)
-- [0004 Machine-Readable CLI Contract](/Users/raksha/Documents/Projects/probe/docs/adr/0004-machine-readable-cli-contract.md)
-- [0006 Public Alpha OSS Contract](/Users/raksha/Documents/Projects/probe/docs/adr/0006-public-alpha-oss-contract.md)
+- [0001 Read-Only Analysis Boundary](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0001-read-only-analysis-boundary.md)
+- [0004 Machine-Readable CLI Contract](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0004-machine-readable-cli-contract.md)
+- [0006 Public Alpha OSS Contract](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0006-public-alpha-oss-contract.md)

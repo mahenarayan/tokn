@@ -4,7 +4,7 @@
 
 This document defines the next implementation wave for Tokn after the initial CLI, SDK, analyzer, regression suite, and CI setup.
 
-Immediate priority is now defined by [docs/specs/traction-mvp.md](/Users/raksha/Documents/Projects/probe/docs/specs/traction-mvp.md).
+Immediate priority is now defined by [docs/specs/traction-mvp.md](https://github.com/mahenarayan/tokn/blob/main/docs/specs/traction-mvp.md).
 That spec is the active near-term plan for field adoption.
 npm publishing and release automation are intentionally deferred until the MVP proves value.
 

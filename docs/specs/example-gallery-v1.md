@@ -103,7 +103,7 @@ Add:
 
 ## Related ADRs
 
-- [0003 Fixture And Golden Test Bed](/Users/raksha/Documents/Projects/probe/docs/adr/0003-fixture-and-golden-test-bed.md)
-- [0006 Public Alpha OSS Contract](/Users/raksha/Documents/Projects/probe/docs/adr/0006-public-alpha-oss-contract.md)
-- [0008 Threshold-Based Check Command](/Users/raksha/Documents/Projects/probe/docs/adr/0008-threshold-based-check-command.md)
-- [0009 Multi-Format CLI Output](/Users/raksha/Documents/Projects/probe/docs/adr/0009-multi-format-cli-output.md)
+- [0003 Fixture And Golden Test Bed](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0003-fixture-and-golden-test-bed.md)
+- [0006 Public Alpha OSS Contract](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0006-public-alpha-oss-contract.md)
+- [0008 Threshold-Based Check Command](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0008-threshold-based-check-command.md)
+- [0009 Multi-Format CLI Output](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0009-multi-format-cli-output.md)

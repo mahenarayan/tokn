@@ -37,7 +37,7 @@
     "test": "node --test dist/test/**/*.test.js",
     "start": "node dist/cli.js"
   },
-  "author": "Mahesh Narayan <154434373+mahenarayan@users.noreply.github.com>",
+  "author": "Tokn Labs",
   "license": "MIT",
   "repository": {
     "type": "git",

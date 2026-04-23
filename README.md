@@ -1,6 +1,7 @@
 # Tokn
 
 [![CI](https://github.com/mahenarayan/tokn/actions/workflows/ci.yml/badge.svg)](https://github.com/mahenarayan/tokn/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/%40tokn-labs%2Ftokn?logo=npm)](https://www.npmjs.com/package/@tokn-labs/tokn)
 [![License](https://img.shields.io/github/license/mahenarayan/tokn)](https://github.com/mahenarayan/tokn/blob/main/LICENSE)
 [![Node >=22](https://img.shields.io/badge/node-%3E%3D22-339933?logo=node.js&logoColor=white)](https://github.com/mahenarayan/tokn/blob/main/package.json)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/mahenarayan/tokn/badge)](https://scorecard.dev/viewer/?uri=github.com/mahenarayan/tokn)
@@ -15,6 +16,13 @@ The npm package is published as `@tokn-labs/tokn`, while the installed CLI comma
 The repository also still contains older prompt and trace diagnostics (`inspect`, `diff`, `budget`, `agent-report`, `check`). Those commands remain available, but they are currently an experimental diagnostics surface rather than the primary enterprise contract.
 
 ## Quick Start
+
+Install from npm:
+
+```bash
+npm install -g @tokn-labs/tokn
+tokn instructions-lint /path/to/repository
+```
 
 From source:
 
@@ -31,15 +39,6 @@ Example:
 
 ```bash
 tokn instructions-lint ./fixtures/instructions/valid-repo
-```
-
-The npm release path is wired for public publishing, but source install remains the supported setup until the first public package release is cut.
-
-Expected npm install path after publish:
-
-```bash
-npm install -g @tokn-labs/tokn
-tokn instructions-lint /path/to/repository
 ```
 
 ## What Tokn Does
@@ -140,15 +139,16 @@ The public release posture is intentionally conservative:
 - public publishing is configured for npm trusted publishing and provenance
 - package verification stays part of the default verification loop
 
-See [docs/releasing.md](/Users/raksha/Documents/Projects/probe/docs/releasing.md) for the release workflow and required repository setup.
+See [docs/releasing.md](https://github.com/mahenarayan/tokn/blob/main/docs/releasing.md) for the release workflow and required repository setup.
+See [docs/public-launch-checklist.md](https://github.com/mahenarayan/tokn/blob/main/docs/public-launch-checklist.md) for the one-time public OSS launch checklist.
 The npm package itself is intentionally lean: runtime artifacts and public support documents ship, while compiled tests and internal ADR/spec docs stay in the repository only.
 
 ## Support And Governance
 
-- usage and support routing: [SUPPORT.md](/Users/raksha/Documents/Projects/probe/SUPPORT.md)
-- vulnerability reporting: [SECURITY.md](/Users/raksha/Documents/Projects/probe/SECURITY.md)
-- contribution rules: [CONTRIBUTING.md](/Users/raksha/Documents/Projects/probe/CONTRIBUTING.md)
-- maintainer and decision boundaries: [GOVERNANCE.md](/Users/raksha/Documents/Projects/probe/GOVERNANCE.md)
+- usage and support routing: [SUPPORT.md](https://github.com/mahenarayan/tokn/blob/main/SUPPORT.md)
+- vulnerability reporting: [SECURITY.md](https://github.com/mahenarayan/tokn/blob/main/SECURITY.md)
+- contribution rules: [CONTRIBUTING.md](https://github.com/mahenarayan/tokn/blob/main/CONTRIBUTING.md)
+- maintainer and decision boundaries: [GOVERNANCE.md](https://github.com/mahenarayan/tokn/blob/main/GOVERNANCE.md)
 
 ## Development
 
@@ -169,16 +169,16 @@ npm run smoke
 
 Project docs:
 
-- See [INSTRUCTIONS.md](/Users/raksha/Documents/Projects/probe/INSTRUCTIONS.md) for contributor and maintenance guidance.
-- See [architecture.md](/Users/raksha/Documents/Projects/probe/docs/architecture.md) for the system architecture.
-- See [spec-driven-development.md](/Users/raksha/Documents/Projects/probe/docs/spec-driven-development.md) for the development workflow.
-- See [docs/releasing.md](/Users/raksha/Documents/Projects/probe/docs/releasing.md) for the public release and supply-chain setup.
-- See [docs/examples/README.md](/Users/raksha/Documents/Projects/probe/docs/examples/README.md) for executable example workflows.
-- See [docs/examples/copilot-instructions-lint.md](/Users/raksha/Documents/Projects/probe/docs/examples/copilot-instructions-lint.md) for a Copilot instructions linting workflow.
-- See [docs/examples/agents-instructions-lint.md](/Users/raksha/Documents/Projects/probe/docs/examples/agents-instructions-lint.md) for an `AGENTS.md` linting workflow.
-- See [docs/adr/README.md](/Users/raksha/Documents/Projects/probe/docs/adr/README.md) for architectural decisions.
-- See [CONTRIBUTING.md](/Users/raksha/Documents/Projects/probe/CONTRIBUTING.md) for contribution rules.
-- See [SECURITY.md](/Users/raksha/Documents/Projects/probe/SECURITY.md) for vulnerability reporting.
-- See [SUPPORT.md](/Users/raksha/Documents/Projects/probe/SUPPORT.md) for support routing.
-- See [GOVERNANCE.md](/Users/raksha/Documents/Projects/probe/GOVERNANCE.md) for maintainer and decision boundaries.
-- See [CHANGELOG.md](/Users/raksha/Documents/Projects/probe/CHANGELOG.md) for release history.
+- See [INSTRUCTIONS.md](https://github.com/mahenarayan/tokn/blob/main/INSTRUCTIONS.md) for contributor and maintenance guidance.
+- See [architecture.md](https://github.com/mahenarayan/tokn/blob/main/docs/architecture.md) for the system architecture.
+- See [spec-driven-development.md](https://github.com/mahenarayan/tokn/blob/main/docs/spec-driven-development.md) for the development workflow.
+- See [docs/releasing.md](https://github.com/mahenarayan/tokn/blob/main/docs/releasing.md) for the public release and supply-chain setup.
+- See [docs/examples/README.md](https://github.com/mahenarayan/tokn/blob/main/docs/examples/README.md) for executable example workflows.
+- See [docs/examples/copilot-instructions-lint.md](https://github.com/mahenarayan/tokn/blob/main/docs/examples/copilot-instructions-lint.md) for a Copilot instructions linting workflow.
+- See [docs/examples/agents-instructions-lint.md](https://github.com/mahenarayan/tokn/blob/main/docs/examples/agents-instructions-lint.md) for an `AGENTS.md` linting workflow.
+- See [docs/adr/README.md](https://github.com/mahenarayan/tokn/blob/main/docs/adr/README.md) for architectural decisions.
+- See [CONTRIBUTING.md](https://github.com/mahenarayan/tokn/blob/main/CONTRIBUTING.md) for contribution rules.
+- See [SECURITY.md](https://github.com/mahenarayan/tokn/blob/main/SECURITY.md) for vulnerability reporting.
+- See [SUPPORT.md](https://github.com/mahenarayan/tokn/blob/main/SUPPORT.md) for support routing.
+- See [GOVERNANCE.md](https://github.com/mahenarayan/tokn/blob/main/GOVERNANCE.md) for maintainer and decision boundaries.
+- See [CHANGELOG.md](https://github.com/mahenarayan/tokn/blob/main/CHANGELOG.md) for release history.

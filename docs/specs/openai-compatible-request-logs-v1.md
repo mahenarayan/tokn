@@ -89,6 +89,6 @@ Expected behavior:
 
 ## Related ADRs
 
-- [0002 Normalized Context Report Model](/Users/raksha/Documents/Projects/probe/docs/adr/0002-normalized-context-report-model.md)
-- [0006 Public Alpha OSS Contract](/Users/raksha/Documents/Projects/probe/docs/adr/0006-public-alpha-oss-contract.md)
-- [0011 Defer LiteLLM Adapter And Prioritize OpenAI-Compatible Request Logs](/Users/raksha/Documents/Projects/probe/docs/adr/0011-defer-litellm-prioritize-openai-compatible-logs.md)
+- [0002 Normalized Context Report Model](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0002-normalized-context-report-model.md)
+- [0006 Public Alpha OSS Contract](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0006-public-alpha-oss-contract.md)
+- [0011 Defer LiteLLM Adapter And Prioritize OpenAI-Compatible Request Logs](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0011-defer-litellm-prioritize-openai-compatible-logs.md)

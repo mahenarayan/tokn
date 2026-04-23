@@ -55,4 +55,4 @@ Only maintainers should:
 - modify GitHub Actions release workflows
 - change repository security posture or rulesets
 
-Public releases should preserve the documented supply-chain posture in [docs/releasing.md](/Users/raksha/Documents/Projects/probe/docs/releasing.md).
+Public releases should preserve the documented supply-chain posture in [docs/releasing.md](https://github.com/mahenarayan/tokn/blob/main/docs/releasing.md).

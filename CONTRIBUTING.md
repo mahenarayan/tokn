@@ -13,11 +13,11 @@ Contributions are welcome, but new work has to preserve three properties:
 
 Read:
 
-- [README.md](/Users/raksha/Documents/Projects/probe/README.md)
-- [INSTRUCTIONS.md](/Users/raksha/Documents/Projects/probe/INSTRUCTIONS.md)
-- [docs/architecture.md](/Users/raksha/Documents/Projects/probe/docs/architecture.md)
-- [docs/spec-driven-development.md](/Users/raksha/Documents/Projects/probe/docs/spec-driven-development.md)
-- [docs/adr/README.md](/Users/raksha/Documents/Projects/probe/docs/adr/README.md)
+- [README.md](https://github.com/mahenarayan/tokn/blob/main/README.md)
+- [INSTRUCTIONS.md](https://github.com/mahenarayan/tokn/blob/main/INSTRUCTIONS.md)
+- [docs/architecture.md](https://github.com/mahenarayan/tokn/blob/main/docs/architecture.md)
+- [docs/spec-driven-development.md](https://github.com/mahenarayan/tokn/blob/main/docs/spec-driven-development.md)
+- [docs/adr/README.md](https://github.com/mahenarayan/tokn/blob/main/docs/adr/README.md)
 
 ## Development Workflow
 
@@ -96,4 +96,4 @@ Open a GitHub issue with:
 - the actual behavior
 - Tokn version and Node version
 
-If the bug involves a security issue, use the process in [SECURITY.md](/Users/raksha/Documents/Projects/probe/SECURITY.md) instead of a public issue.
+If the bug involves a security issue, use the process in [SECURITY.md](https://github.com/mahenarayan/tokn/blob/main/SECURITY.md) instead of a public issue.

@@ -117,7 +117,7 @@ Expected behavior:
 
 ## Related ADRs
 
-- [0001 Read-Only Analysis Boundary](/Users/raksha/Documents/Projects/probe/docs/adr/0001-read-only-analysis-boundary.md)
-- [0003 Fixture And Golden Test Bed](/Users/raksha/Documents/Projects/probe/docs/adr/0003-fixture-and-golden-test-bed.md)
-- [0005 Trace Import Via OpenInference](/Users/raksha/Documents/Projects/probe/docs/adr/0005-trace-import-via-openinference.md)
-- [0006 Public Alpha OSS Contract](/Users/raksha/Documents/Projects/probe/docs/adr/0006-public-alpha-oss-contract.md)
+- [0001 Read-Only Analysis Boundary](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0001-read-only-analysis-boundary.md)
+- [0003 Fixture And Golden Test Bed](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0003-fixture-and-golden-test-bed.md)
+- [0005 Trace Import Via OpenInference](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0005-trace-import-via-openinference.md)
+- [0006 Public Alpha OSS Contract](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0006-public-alpha-oss-contract.md)

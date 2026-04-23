@@ -113,7 +113,7 @@ Exit behavior:
 
 ## Related ADRs
 
-- [0001 Read-Only Analysis Boundary](/Users/raksha/Documents/Projects/probe/docs/adr/0001-read-only-analysis-boundary.md)
-- [0004 Machine-Readable CLI Contract](/Users/raksha/Documents/Projects/probe/docs/adr/0004-machine-readable-cli-contract.md)
-- [0006 Public Alpha OSS Contract](/Users/raksha/Documents/Projects/probe/docs/adr/0006-public-alpha-oss-contract.md)
-- [0007 Suggestions Embedded In Context Reports](/Users/raksha/Documents/Projects/probe/docs/adr/0007-suggestions-in-context-report.md)
+- [0001 Read-Only Analysis Boundary](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0001-read-only-analysis-boundary.md)
+- [0004 Machine-Readable CLI Contract](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0004-machine-readable-cli-contract.md)
+- [0006 Public Alpha OSS Contract](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0006-public-alpha-oss-contract.md)
+- [0007 Suggestions Embedded In Context Reports](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0007-suggestions-in-context-report.md)

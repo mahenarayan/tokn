@@ -5,18 +5,20 @@ The stable public contract is `instructions-lint`.
 
 ## Prerequisites
 
-Before the first public publish:
+Before the first public launch:
 
-1. Publish or reserve the npm package `@tokn-labs/tokn` and verify the intended maintainers.
+1. Publish the npm package `@tokn-labs/tokn` and verify the intended maintainers.
 2. Configure npm trusted publishing for this repository and the `release.yml` workflow.
-3. Require npm 2FA for maintainer accounts.
+3. Require npm 2FA for maintainer accounts and disable token-based publishing if possible.
 4. Make the repository public so provenance, scorecards, and code scanning are visible.
-5. Enable branch protection on `main` and require the CI, Dependency Review, CodeQL, and Scorecards workflows.
+5. Enable branch protection or rulesets on `main` and require the CI, Dependency Review, and CodeQL workflows.
+
+Track the one-time launch work in [docs/public-launch-checklist.md](https://github.com/mahenarayan/tokn/blob/main/docs/public-launch-checklist.md) or from the issue template at [.github/ISSUE_TEMPLATE/public-launch-checklist.md](https://github.com/mahenarayan/tokn/blob/main/.github/ISSUE_TEMPLATE/public-launch-checklist.md).
 
 ## Release Workflow
 
-The repository ships a GitHub Actions publish workflow at [release.yml](/Users/raksha/Documents/Projects/probe/.github/workflows/release.yml).
-Use the GitHub issue template at [.github/ISSUE_TEMPLATE/release-checklist.md](/Users/raksha/Documents/Projects/probe/.github/ISSUE_TEMPLATE/release-checklist.md) to track each public release.
+The repository ships a GitHub Actions publish workflow at [release.yml](https://github.com/mahenarayan/tokn/blob/main/.github/workflows/release.yml).
+Use the GitHub issue template at [.github/ISSUE_TEMPLATE/release-checklist.md](https://github.com/mahenarayan/tokn/blob/main/.github/ISSUE_TEMPLATE/release-checklist.md) to track each public release after launch.
 
 That workflow:
 

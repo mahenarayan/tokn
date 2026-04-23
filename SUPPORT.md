@@ -2,10 +2,10 @@
 
 Use the right channel so issues are routed cleanly:
 
-- security vulnerability: follow [SECURITY.md](/Users/raksha/Documents/Projects/probe/SECURITY.md) and do not open a public issue
+- security vulnerability: follow [SECURITY.md](https://github.com/mahenarayan/tokn/blob/main/SECURITY.md) and do not open a public issue
 - reproducible bug: open a GitHub bug report with a minimized fixture or redacted input when possible
 - feature or product proposal: open a GitHub feature request with the expected behavior and why it fits Tokn
-- usage question or demo clarification: open a GitHub issue and label it as a support question until GitHub Discussions is enabled
+- usage question or demo clarification: use [GitHub Discussions](https://github.com/mahenarayan/tokn/discussions)
 
 Include:
 
