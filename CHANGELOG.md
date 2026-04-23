@@ -10,6 +10,9 @@ All notable changes to Tokn should be recorded in this file.
 - add `AGENTS.md` fixtures, preset-aware discovery, and CLI coverage
 - add SDK exports for instruction lint reports
 - add docs and examples for Copilot instruction linting
+- add local config discovery, ignore/suppression controls, and baseline support for `instructions-lint`
+- add stable JSON schemas and schema-versioned instruction lint reports
+- add GitHub annotation output plus published rule docs and support matrix for `instructions-lint`
 - reposition Tokn as a lint-first public alpha with experimental diagnostics kept secondary
 - add trusted-publishing and supply-chain hardening workflows for public OSS release
 - tighten the published npm package so it excludes compiled tests and internal docs

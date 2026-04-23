@@ -17,6 +17,32 @@ export type InstructionLintSurface = "code-review" | "chat" | "coding-agent";
 export type InstructionLintPreset = "copilot" | "agents-md";
 export type InstructionLintPresetSelector = "auto" | InstructionLintPreset;
 export type InstructionExcludeAgent = "code-review" | "coding-agent";
+export type InstructionRuleId =
+  | "invalid-file-path"
+  | "malformed-frontmatter"
+  | "missing-frontmatter"
+  | "missing-applyto"
+  | "invalid-exclude-agent"
+  | "global-applyto-overlap"
+  | "stale-applyto"
+  | "file-char-limit"
+  | "repository-char-budget"
+  | "repository-token-budget"
+  | "path-specific-char-budget"
+  | "path-specific-token-budget"
+  | "statement-count-budget"
+  | "order-dependent-wording"
+  | "statement-too-long"
+  | "weak-modal-phrasing"
+  | "vague-instruction"
+  | "paragraph-narrative"
+  | "oversized-code-example"
+  | "repo-wide-scoped-topics"
+  | "exact-duplicate-statement"
+  | "possible-conflict"
+  | "high-similarity-statement"
+  | "applicable-token-budget";
+export type InstructionRuleSelector = InstructionRuleId | "*";
 export type InstructionFileKind =
   | "repository"
   | "path-specific"
@@ -138,6 +164,47 @@ export interface InstructionLintOptions {
   surface?: InstructionLintSurface;
   model?: string;
   preset?: InstructionLintPresetSelector;
+  configPath?: string;
+  baseline?: string;
+  ignore?: string[];
+  ruleOverrides?: Partial<Record<InstructionRuleId, InstructionRuleOverride>>;
+  suppressions?: InstructionSuppression[];
+}
+
+export interface InstructionRuleOverride {
+  enabled?: boolean;
+  severity?: InstructionLintSeverity;
+}
+
+export interface InstructionSuppression {
+  path: string | string[];
+  rules?: InstructionRuleSelector[];
+  reason?: string;
+}
+
+export interface InstructionLintConfigSection {
+  profile?: InstructionLintProfile;
+  failOnSeverity?: InstructionLintSeverity;
+  surface?: InstructionLintSurface;
+  model?: string;
+  preset?: InstructionLintPresetSelector;
+  baseline?: string;
+  ignore?: string[];
+  rules?: Partial<Record<InstructionRuleId, InstructionRuleOverride>>;
+  suppressions?: InstructionSuppression[];
+}
+
+export interface InstructionLintConfigFile {
+  $schema?: string;
+  instructionsLint?: InstructionLintConfigSection;
+}
+
+export interface InstructionLintAppliedConfig {
+  source?: string;
+  baselinePath?: string;
+  ignore: string[];
+  suppressionCount: number;
+  overriddenRules: InstructionRuleId[];
 }
 
 export interface InstructionFindingLocation {
@@ -161,7 +228,7 @@ export interface InstructionFindingEvidence {
 }
 
 export interface InstructionFinding {
-  ruleId: string;
+  ruleId: InstructionRuleId;
   severity: InstructionLintSeverity;
   message: string;
   file: string;
@@ -200,11 +267,18 @@ export interface InstructionLintStats {
   totalMatchedFiles: number;
   maxApplicableTokens: number;
   maxApplicableTargetFile?: string;
+  ignoredInstructionFileCount: number;
+  ignoredTargetFileCount: number;
+  suppressedFindingCount: number;
+  baselineMatchedFindingCount: number;
   warningCount: number;
   errorCount: number;
 }
 
 export interface InstructionLintReport {
+  kind: "instructions-lint-report";
+  schemaVersion: "instructions-lint-report/v1";
+  schemaPath: string;
   preset: InstructionLintPresetSelector;
   detectedPresets: InstructionLintPreset[];
   profile: InstructionLintProfile;
@@ -215,6 +289,7 @@ export interface InstructionLintReport {
   passed: boolean;
   exitCode: 0 | 2;
   failOnSeverity: InstructionLintSeverity;
+  config?: InstructionLintAppliedConfig;
   stats: InstructionLintStats;
   files: InstructionFileReport[];
   findings: InstructionFinding[];

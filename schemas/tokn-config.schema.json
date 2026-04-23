@@ -1,0 +1,143 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/mahenarayan/tokn/blob/main/schemas/tokn-config.schema.json",
+  "title": "Tokn Config",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "instructionsLint": {
+      "$ref": "#/$defs/instructionsLint"
+    }
+  },
+  "$defs": {
+    "ruleId": {
+      "enum": [
+        "invalid-file-path",
+        "malformed-frontmatter",
+        "missing-frontmatter",
+        "missing-applyto",
+        "invalid-exclude-agent",
+        "global-applyto-overlap",
+        "stale-applyto",
+        "file-char-limit",
+        "repository-char-budget",
+        "repository-token-budget",
+        "path-specific-char-budget",
+        "path-specific-token-budget",
+        "statement-count-budget",
+        "order-dependent-wording",
+        "statement-too-long",
+        "weak-modal-phrasing",
+        "vague-instruction",
+        "paragraph-narrative",
+        "oversized-code-example",
+        "repo-wide-scoped-topics",
+        "exact-duplicate-statement",
+        "possible-conflict",
+        "high-similarity-statement",
+        "applicable-token-budget"
+      ]
+    },
+    "ruleOverride": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "severity": {
+          "enum": ["warning", "error"]
+        }
+      }
+    },
+    "suppression": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path"],
+      "properties": {
+        "path": {
+          "oneOf": [
+            { "type": "string" },
+            {
+              "type": "array",
+              "items": { "type": "string" },
+              "minItems": 1
+            }
+          ]
+        },
+        "rules": {
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": ["*"]
+            },
+            {
+              "type": "array",
+              "items": {
+                "oneOf": [
+                  { "const": "*" },
+                  { "$ref": "#/$defs/ruleId" }
+                ]
+              },
+              "minItems": 1
+            }
+          ]
+        },
+        "reason": {
+          "type": "string"
+        }
+      }
+    },
+    "instructionsLint": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "preset": {
+          "enum": ["auto", "copilot", "agents-md"]
+        },
+        "profile": {
+          "enum": ["lite", "standard", "strict"]
+        },
+        "surface": {
+          "enum": ["code-review", "chat", "coding-agent"]
+        },
+        "model": {
+          "type": "string"
+        },
+        "failOnSeverity": {
+          "enum": ["warning", "error"]
+        },
+        "baseline": {
+          "type": "string"
+        },
+        "ignore": {
+          "oneOf": [
+            { "type": "string" },
+            {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          ]
+        },
+        "rules": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/$defs/ruleId"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/ruleOverride"
+          }
+        },
+        "suppressions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/suppression"
+          }
+        }
+      }
+    }
+  }
+}

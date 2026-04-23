@@ -115,6 +115,90 @@ function appendInstructionFindingMarkdown(lines: string[], finding: InstructionF
   }
 }
 
+function appendInstructionLintControlLines(lines: string[], report: InstructionLintReport): void {
+  const controlLines: string[] = [];
+
+  if (report.config?.source) {
+    controlLines.push(`Config: ${report.config.source}`);
+  }
+  if (report.config?.baselinePath) {
+    controlLines.push(`Baseline: ${report.config.baselinePath}`);
+  }
+  if (report.config && report.config.overriddenRules.length > 0) {
+    controlLines.push(`Rule overrides: ${report.config.overriddenRules.join(", ")}`);
+  }
+  if (report.config && report.config.ignore.length > 0) {
+    controlLines.push(`Ignore globs: ${report.config.ignore.join(", ")}`);
+  }
+  if (report.config && report.config.suppressionCount > 0) {
+    controlLines.push(`Suppressions: ${report.config.suppressionCount}`);
+  }
+  if (report.stats.ignoredInstructionFileCount > 0) {
+    controlLines.push(`Ignored instruction files: ${report.stats.ignoredInstructionFileCount}`);
+  }
+  if (report.stats.ignoredTargetFileCount > 0) {
+    controlLines.push(`Ignored target files: ${report.stats.ignoredTargetFileCount}`);
+  }
+  if (report.stats.suppressedFindingCount > 0) {
+    controlLines.push(`Suppressed findings: ${report.stats.suppressedFindingCount}`);
+  }
+  if (report.stats.baselineMatchedFindingCount > 0) {
+    controlLines.push(`Baseline-matched findings: ${report.stats.baselineMatchedFindingCount}`);
+  }
+
+  if (controlLines.length === 0) {
+    return;
+  }
+
+  lines.push(...controlLines);
+}
+
+function appendInstructionLintControlMarkdown(lines: string[], report: InstructionLintReport): void {
+  const controlLines: string[] = [];
+
+  if (report.config?.source) {
+    controlLines.push(`- Config: ${report.config.source}`);
+  }
+  if (report.config?.baselinePath) {
+    controlLines.push(`- Baseline: ${report.config.baselinePath}`);
+  }
+  if (report.config && report.config.overriddenRules.length > 0) {
+    controlLines.push(`- Rule overrides: ${report.config.overriddenRules.join(", ")}`);
+  }
+  if (report.config && report.config.ignore.length > 0) {
+    controlLines.push(`- Ignore globs: ${report.config.ignore.join(", ")}`);
+  }
+  if (report.config && report.config.suppressionCount > 0) {
+    controlLines.push(`- Suppressions: ${report.config.suppressionCount}`);
+  }
+  if (report.stats.ignoredInstructionFileCount > 0) {
+    controlLines.push(`- Ignored instruction files: ${report.stats.ignoredInstructionFileCount}`);
+  }
+  if (report.stats.ignoredTargetFileCount > 0) {
+    controlLines.push(`- Ignored target files: ${report.stats.ignoredTargetFileCount}`);
+  }
+  if (report.stats.suppressedFindingCount > 0) {
+    controlLines.push(`- Suppressed findings: ${report.stats.suppressedFindingCount}`);
+  }
+  if (report.stats.baselineMatchedFindingCount > 0) {
+    controlLines.push(`- Baseline-matched findings: ${report.stats.baselineMatchedFindingCount}`);
+  }
+
+  if (controlLines.length === 0) {
+    return;
+  }
+
+  lines.push("", "## Rollout Controls", ...controlLines);
+}
+
+function escapeGithubCommandData(value: string): string {
+  return value.replace(/%/g, "%25").replace(/\r/g, "%0D").replace(/\n/g, "%0A");
+}
+
+function escapeGithubProperty(value: string): string {
+  return escapeGithubCommandData(value).replace(/:/g, "%3A").replace(/,/g, "%2C");
+}
+
 export function formatInspectReport(report: ContextReport): string {
   const lines = [
     `Source: ${report.sourceType}`,
@@ -345,6 +429,64 @@ export function formatCheckReport(result: CheckResult): string {
   return lines.join("\n");
 }
 
+export function formatCheckReportMarkdown(result: CheckResult): string {
+  const lines = [
+    "# Tokn Check Report",
+    "",
+    "## Summary",
+    `- Status: ${result.passed ? "pass" : "fail"}`,
+    `- Source: ${result.report.sourceType}`,
+    `- Provider: ${result.report.provider ?? "unknown"}`,
+    `- Model: ${result.report.model ?? "unknown"}`,
+    `- Input tokens: ${result.report.totalInputTokens} (${result.report.totalConfidence})`,
+    `- Usage: ${formatPercent(result.report.budget.usagePercent)}`,
+    `- Risk: ${result.report.budget.risk}`,
+    "",
+    "## Thresholds"
+  ];
+
+  if (result.thresholds.maxTotalTokens !== undefined) {
+    lines.push(`- Max total tokens: ${result.thresholds.maxTotalTokens}`);
+  }
+  if (result.thresholds.maxUsagePercent !== undefined) {
+    lines.push(`- Max usage percent: ${formatPercent(result.thresholds.maxUsagePercent)}`);
+  }
+  if (result.thresholds.failOnRisk !== undefined) {
+    lines.push(`- Fail on risk: ${result.thresholds.failOnRisk}`);
+  }
+  for (const [segmentType, limit] of Object.entries(result.thresholds.maxSegmentTokens ?? {})) {
+    lines.push(`- Max segment tokens: ${segmentType} <= ${limit}`);
+  }
+
+  lines.push("", "## Violations");
+  if (result.violations.length === 0) {
+    lines.push("- none");
+  } else {
+    for (const violation of result.violations) {
+      lines.push(`- ${violation.message}`);
+    }
+  }
+
+  if (result.baseline) {
+    lines.push(
+      "",
+      "## Baseline",
+      `- Source: ${result.baseline.report.sourceType}`,
+      `- Input tokens: ${result.baseline.report.totalInputTokens}`,
+      `- Delta vs baseline: ${result.baseline.diff.totalDelta >= 0 ? "+" : ""}${result.baseline.diff.totalDelta} tokens`
+    );
+  }
+
+  if (result.warnings.length > 0) {
+    lines.push("", "## Warnings");
+    for (const warning of result.warnings) {
+      lines.push(`- ${warning}`);
+    }
+  }
+
+  return lines.join("\n");
+}
+
 export function formatInstructionLintReport(report: InstructionLintReport): string {
   const lines = [
     `Status: ${report.passed ? "pass" : "fail"}`,
@@ -364,10 +506,11 @@ export function formatInstructionLintReport(report: InstructionLintReport): stri
     `Estimated tokens: ${report.stats.totalEstimatedTokens} total | ${report.stats.applicableEstimatedTokens} applicable`,
     `Matched scope files: ${report.stats.totalMatchedFiles}`,
     `Max applicable tokens: ${report.stats.maxApplicableTokens}${report.stats.maxApplicableTargetFile ? ` (${report.stats.maxApplicableTargetFile})` : ""}`,
-    `Findings: ${report.findings.length} (${report.stats.errorCount} errors, ${report.stats.warningCount} warnings)`,
-    "",
-    "Files:"
+    `Findings: ${report.findings.length} (${report.stats.errorCount} errors, ${report.stats.warningCount} warnings)`
   ];
+
+  appendInstructionLintControlLines(lines, report);
+  lines.push("", "Files:");
 
   if (report.files.length === 0) {
     lines.push("- none");
@@ -493,9 +636,10 @@ export function formatInstructionLintReportMarkdown(report: InstructionLintRepor
     `- Matched scope files: ${report.stats.totalMatchedFiles}`,
     `- Max applicable tokens: ${report.stats.maxApplicableTokens}${report.stats.maxApplicableTargetFile ? ` (${report.stats.maxApplicableTargetFile})` : ""}`,
     `- Findings: ${report.findings.length} (${report.stats.errorCount} errors, ${report.stats.warningCount} warnings)`,
-    "",
-    "## Files"
   ];
+
+  appendInstructionLintControlMarkdown(lines, report);
+  lines.push("", "## Files");
 
   if (report.files.length === 0) {
     lines.push("- none");
@@ -536,6 +680,41 @@ export function formatInstructionLintReportMarkdown(report: InstructionLintRepor
       lines.push(`- ${warning}`);
     }
   }
+
+  return lines.join("\n");
+}
+
+export function formatInstructionLintReportGithub(report: InstructionLintReport): string {
+  const lines: string[] = [];
+
+  for (const finding of report.findings) {
+    const level = finding.severity === "error" ? "error" : "warning";
+    const properties = [
+      `file=${escapeGithubProperty(finding.file)}`,
+      `line=${finding.line}`,
+      `title=${escapeGithubProperty(`Tokn ${finding.ruleId}`)}`
+    ];
+    const evidenceParts = finding.evidence
+      ? formatInstructionFindingEvidenceParts(finding.evidence)
+      : [];
+    const messageParts = [`[${finding.ruleId}] ${finding.message}`];
+    if (finding.suggestion) {
+      messageParts.push(`Suggestion: ${finding.suggestion}`);
+    }
+    if (evidenceParts.length > 0) {
+      messageParts.push(`Evidence: ${evidenceParts.join(" | ")}`);
+    }
+
+    lines.push(`::${level} ${properties.join(",")}::${escapeGithubCommandData(messageParts.join(" "))}`);
+  }
+
+  const summaryLevel = report.passed ? "notice" : "notice";
+  const summaryTitle = report.passed ? "Tokn instructions-lint passed" : "Tokn instructions-lint findings";
+  lines.push(
+    `::${summaryLevel} title=${escapeGithubProperty(summaryTitle)}::${escapeGithubCommandData(
+      `files=${report.stats.totalFiles} findings=${report.findings.length} errors=${report.stats.errorCount} warnings=${report.stats.warningCount}`
+    )}`
+  );
 
   return lines.join("\n");
 }

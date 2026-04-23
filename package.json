@@ -19,6 +19,7 @@
     "dist/*.d.ts",
     "dist/instructions/**/*.js",
     "dist/instructions/**/*.d.ts",
+    "schemas/*.json",
     "LICENSE",
     "README.md",
     "CHANGELOG.md",

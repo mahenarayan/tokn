@@ -30,7 +30,9 @@ const requiredFiles = [
   "GOVERNANCE.md",
   "dist/cli.js",
   "dist/index.js",
-  "dist/types.d.ts"
+  "dist/types.d.ts",
+  "schemas/instructions-lint-report.schema.json",
+  "schemas/tokn-config.schema.json"
 ];
 
 const forbiddenPrefixes = [

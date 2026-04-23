@@ -472,6 +472,9 @@ test("cli instructions-lint supports --json", () => {
 
   assert.equal(result.status, 2, result.stderr);
   const output = JSON.parse(result.stdout) as Record<string, unknown>;
+  assert.equal(output.kind, "instructions-lint-report");
+  assert.equal(output.schemaVersion, "instructions-lint-report/v1");
+  assert.equal(output.schemaPath, "schemas/instructions-lint-report.schema.json");
   assert.equal(output.passed, false);
   assert.equal(output.exitCode, 2);
   assert.equal(output.preset, "auto");
@@ -484,6 +487,83 @@ test("cli instructions-lint supports --json", () => {
   const relatedLocation = evidence?.relatedLocation as Record<string, unknown> | undefined;
   assert.equal(relatedLocation?.file, ".github/instructions/all.instructions.md");
   assert.equal(relatedLocation?.line, 6);
+});
+
+test("cli instructions-lint supports --config and includes rollout controls in json output", () => {
+  const repoRoot = createInstructionRepo(
+    {
+      "tokn.config.json": JSON.stringify(
+        {
+          instructionsLint: {
+            profile: "strict",
+            rules: {
+              "statement-too-long": { severity: "error" }
+            },
+            ignore: ["generated/**"]
+          }
+        },
+        null,
+        2
+      ),
+      ".github/copilot-instructions.md": [
+        "# Repository Instructions",
+        "",
+        "- Keep exported interfaces explicit, spell out the constrained domain vocabulary for every repository-facing API change, and include the compatibility rationale in each review note."
+      ].join("\n"),
+      "src/index.ts": "export const value = 1;\n",
+      "generated/out.ts": "export const value = 2;\n"
+    },
+    "tokn-cli-config-"
+  );
+
+  const result = runCliProcess([
+    "instructions-lint",
+    repoRoot,
+    "--config",
+    path.join(repoRoot, "tokn.config.json"),
+    "--format",
+    "json"
+  ]);
+  assert.equal(result.status, 2, result.stderr);
+
+  const output = JSON.parse(result.stdout) as Record<string, unknown>;
+
+  const config = output.config as Record<string, unknown>;
+  const stats = output.stats as Record<string, unknown>;
+  const findings = output.findings as Array<Record<string, unknown>>;
+
+  assert.equal(output.profile, "strict");
+  assert.ok(String(config.source).endsWith("tokn.config.json"));
+  assert.deepEqual(config.ignore, ["generated/**"]);
+  assert.equal(stats.ignoredTargetFileCount, 1);
+  assert.equal(findings[0]?.severity, "error");
+});
+
+test("cli instructions-lint supports --baseline for incremental rollout", () => {
+  const baselineDir = fs.mkdtempSync(path.join(os.tmpdir(), "tokn-cli-baseline-"));
+  const baselinePath = path.join(baselineDir, "baseline.json");
+  const baselineResult = runCliProcess([
+    "instructions-lint",
+    "fixtures/instructions/invalid-repo",
+    "--format",
+    "json"
+  ]);
+  assert.equal(baselineResult.status, 2, baselineResult.stderr);
+  fs.writeFileSync(baselinePath, baselineResult.stdout);
+
+  const result = runCliProcess([
+    "instructions-lint",
+    "fixtures/instructions/invalid-repo",
+    "--baseline",
+    baselinePath,
+    "--fail-on-severity",
+    "warning"
+  ]);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Baseline:/);
+  assert.match(result.stdout, /Baseline-matched findings:/);
+  assert.match(result.stdout, /Findings:\n- none/);
 });
 
 test("cli instructions-lint supports --format markdown", () => {
@@ -517,6 +597,20 @@ test("cli instructions-lint renders structured evidence in text output", () => {
   assert.match(output, /evidence: related=\.github\/instructions\/all\.instructions\.md:6/);
   assert.match(output, /patterns=\*\*\/\*\.rs/);
   assert.match(output, /matched=0/);
+});
+
+test("cli instructions-lint supports --format github", () => {
+  const result = runCliProcess([
+    "instructions-lint",
+    "fixtures/instructions/invalid-repo",
+    "--format",
+    "github"
+  ]);
+
+  assert.equal(result.status, 2, result.stderr);
+  assert.match(result.stdout, /::error file=\.github\/instructions\/legacy\.md,line=1,title=Tokn invalid-file-path::/);
+  assert.match(result.stdout, /::warning file=\.github\/instructions\/rust\.instructions\.md,line=2,title=Tokn stale-applyto::/);
+  assert.match(result.stdout, /::notice title=Tokn instructions-lint findings::/);
 });
 
 test("cli instructions-lint supports single-file lint", () => {

@@ -1,0 +1,305 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/mahenarayan/tokn/blob/main/schemas/instructions-lint-report.schema.json",
+  "title": "Tokn Instructions Lint Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind",
+    "schemaVersion",
+    "schemaPath",
+    "preset",
+    "detectedPresets",
+    "profile",
+    "surface",
+    "passed",
+    "exitCode",
+    "failOnSeverity",
+    "stats",
+    "files",
+    "findings",
+    "warnings"
+  ],
+  "properties": {
+    "kind": {
+      "const": "instructions-lint-report"
+    },
+    "schemaVersion": {
+      "const": "instructions-lint-report/v1"
+    },
+    "schemaPath": {
+      "const": "schemas/instructions-lint-report.schema.json"
+    },
+    "preset": {
+      "enum": ["auto", "copilot", "agents-md"]
+    },
+    "detectedPresets": {
+      "type": "array",
+      "items": {
+        "enum": ["copilot", "agents-md"]
+      }
+    },
+    "profile": {
+      "enum": ["lite", "standard", "strict"]
+    },
+    "surface": {
+      "enum": ["code-review", "chat", "coding-agent"]
+    },
+    "model": {
+      "type": "string"
+    },
+    "contextWindow": {
+      "type": "number"
+    },
+    "maxApplicableContextPercent": {
+      "type": "number"
+    },
+    "passed": {
+      "type": "boolean"
+    },
+    "exitCode": {
+      "enum": [0, 2]
+    },
+    "failOnSeverity": {
+      "enum": ["warning", "error"]
+    },
+    "config": {
+      "$ref": "#/$defs/appliedConfig"
+    },
+    "stats": {
+      "$ref": "#/$defs/stats"
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/fileReport"
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/finding"
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$defs": {
+    "appliedConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ignore", "suppressionCount", "overriddenRules"],
+      "properties": {
+        "source": {
+          "type": "string"
+        },
+        "baselinePath": {
+          "type": "string"
+        },
+        "ignore": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "suppressionCount": {
+          "type": "number"
+        },
+        "overriddenRules": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ruleId"
+          }
+        }
+      }
+    },
+    "stats": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "totalFiles",
+        "repositoryFiles",
+        "pathSpecificFiles",
+        "unsupportedFiles",
+        "totalStatements",
+        "applicableStatements",
+        "totalChars",
+        "totalEstimatedTokens",
+        "applicableFiles",
+        "applicableEstimatedTokens",
+        "totalMatchedFiles",
+        "maxApplicableTokens",
+        "ignoredInstructionFileCount",
+        "ignoredTargetFileCount",
+        "suppressedFindingCount",
+        "baselineMatchedFindingCount",
+        "warningCount",
+        "errorCount"
+      ],
+      "properties": {
+        "totalFiles": { "type": "number" },
+        "repositoryFiles": { "type": "number" },
+        "pathSpecificFiles": { "type": "number" },
+        "unsupportedFiles": { "type": "number" },
+        "totalStatements": { "type": "number" },
+        "applicableStatements": { "type": "number" },
+        "totalChars": { "type": "number" },
+        "totalEstimatedTokens": { "type": "number" },
+        "applicableFiles": { "type": "number" },
+        "applicableEstimatedTokens": { "type": "number" },
+        "totalMatchedFiles": { "type": "number" },
+        "maxApplicableTokens": { "type": "number" },
+        "maxApplicableTargetFile": { "type": "string" },
+        "ignoredInstructionFileCount": { "type": "number" },
+        "ignoredTargetFileCount": { "type": "number" },
+        "suppressedFindingCount": { "type": "number" },
+        "baselineMatchedFindingCount": { "type": "number" },
+        "warningCount": { "type": "number" },
+        "errorCount": { "type": "number" }
+      }
+    },
+    "fileReport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "file",
+        "kind",
+        "appliesToSurface",
+        "chars",
+        "words",
+        "estimatedTokens",
+        "statementCount",
+        "findings"
+      ],
+      "properties": {
+        "file": { "type": "string" },
+        "kind": {
+          "enum": ["repository", "path-specific", "unsupported"]
+        },
+        "preset": {
+          "enum": ["copilot", "agents-md"]
+        },
+        "applyTo": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "scopePath": { "type": "string" },
+        "excludeAgents": {
+          "type": "array",
+          "items": {
+            "enum": ["code-review", "coding-agent"]
+          }
+        },
+        "appliesToSurface": { "type": "boolean" },
+        "chars": { "type": "number" },
+        "words": { "type": "number" },
+        "estimatedTokens": { "type": "number" },
+        "statementCount": { "type": "number" },
+        "matchedFileCount": { "type": "number" },
+        "findings": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/finding" }
+        }
+      }
+    },
+    "findingLocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["file", "line"],
+      "properties": {
+        "file": { "type": "string" },
+        "line": { "type": "number" }
+      }
+    },
+    "findingEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "actual": {
+          "oneOf": [{ "type": "number" }, { "type": "string" }]
+        },
+        "expected": {
+          "oneOf": [{ "type": "number" }, { "type": "string" }]
+        },
+        "surface": {
+          "enum": ["code-review", "chat", "coding-agent"]
+        },
+        "relatedLocation": {
+          "$ref": "#/$defs/findingLocation"
+        },
+        "overlapFileCount": { "type": "number" },
+        "overlapFilesSample": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "matchedFileCount": { "type": "number" },
+        "matchedFilesSample": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "similarityScore": { "type": "number" },
+        "patterns": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "targetFile": { "type": "string" },
+        "contributorFiles": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ruleId", "severity", "message", "file", "line"],
+      "properties": {
+        "ruleId": {
+          "$ref": "#/$defs/ruleId"
+        },
+        "severity": {
+          "enum": ["warning", "error"]
+        },
+        "message": { "type": "string" },
+        "file": { "type": "string" },
+        "line": { "type": "number" },
+        "suggestion": { "type": "string" },
+        "evidence": {
+          "$ref": "#/$defs/findingEvidence"
+        }
+      }
+    },
+    "ruleId": {
+      "enum": [
+        "invalid-file-path",
+        "malformed-frontmatter",
+        "missing-frontmatter",
+        "missing-applyto",
+        "invalid-exclude-agent",
+        "global-applyto-overlap",
+        "stale-applyto",
+        "file-char-limit",
+        "repository-char-budget",
+        "repository-token-budget",
+        "path-specific-char-budget",
+        "path-specific-token-budget",
+        "statement-count-budget",
+        "order-dependent-wording",
+        "statement-too-long",
+        "weak-modal-phrasing",
+        "vague-instruction",
+        "paragraph-narrative",
+        "oversized-code-example",
+        "repo-wide-scoped-topics",
+        "exact-duplicate-statement",
+        "possible-conflict",
+        "high-similarity-statement",
+        "applicable-token-budget"
+      ]
+    }
+  }
+}

@@ -3,19 +3,36 @@ import path from "node:path";
 
 import { getModelLimit } from "../models.js";
 import { estimateTextTokens } from "../tokenizer.js";
+import {
+  discoverInstructionLintConfigPath,
+  loadInstructionLintConfig,
+  type NormalizedInstructionSuppression,
+  type ResolvedInstructionLintConfig
+} from "./config.js";
+import {
+  getInstructionRuleDefaultSeverity,
+  INSTRUCTION_LINT_REPORT_SCHEMA_PATH,
+  INSTRUCTION_LINT_REPORT_SCHEMA_VERSION,
+  isInstructionRuleId
+} from "./rules.js";
 import type {
   InstructionExcludeAgent,
   InstructionFileKind,
   InstructionFileReport,
   InstructionFinding,
   InstructionFindingEvidence,
+  InstructionLintAppliedConfig,
   InstructionLintOptions,
   InstructionLintPreset,
   InstructionLintPresetSelector,
   InstructionLintProfile,
   InstructionLintReport,
+  InstructionRuleId,
+  InstructionRuleOverride,
+  InstructionRuleSelector,
   InstructionLintSeverity,
   InstructionLintSurface,
+  InstructionSuppression,
   InstructionLintStats
 } from "../types.js";
 
@@ -79,6 +96,30 @@ interface InternalFileReport {
   matchedFiles: string[];
   matchedFileSet: Set<string>;
   findings: InstructionFinding[];
+}
+
+interface PostProcessSummary {
+  suppressedFindingCount: number;
+  baselineMatchedFindingCount: number;
+}
+
+interface IgnoreSummary {
+  ignoredInstructionFileCount: number;
+  ignoredTargetFileCount: number;
+}
+
+interface ResolvedLintPolicy {
+  config?: ResolvedInstructionLintConfig;
+  appliedConfig?: InstructionLintAppliedConfig;
+  preset: InstructionLintPresetSelector;
+  profile: InstructionLintProfile;
+  failOnSeverity: InstructionLintSeverity;
+  surface: InstructionLintSurface;
+  model?: string;
+  baselinePath?: string;
+  ignore: string[];
+  suppressions: NormalizedInstructionSuppression[];
+  ruleOverrides: Partial<Record<InstructionRuleId, InstructionRuleOverride>>;
 }
 
 interface InstructionBudgets {
@@ -293,6 +334,27 @@ function directoryExists(directoryPath: string): boolean {
   return fs.existsSync(directoryPath) && fs.statSync(directoryPath).isDirectory();
 }
 
+function inferRepoRootFromDirectory(directoryPath: string): string | undefined {
+  let current = path.resolve(directoryPath);
+  let fallback: string | undefined;
+  while (true) {
+    if (directoryExists(path.join(current, ".github")) || fileExists(path.join(current, "AGENTS.md"))) {
+      return current;
+    }
+    if (!fallback && fileExists(path.join(current, "package.json"))) {
+      fallback = current;
+    }
+    if (directoryExists(path.join(current, ".git"))) {
+      return fallback ?? current;
+    }
+    const parent = path.dirname(current);
+    if (parent === current) {
+      return fallback;
+    }
+    current = parent;
+  }
+}
+
 function inferRepoRootFromFile(filePath: string): string | undefined {
   const normalized = path.resolve(filePath);
   let current = path.dirname(normalized);
@@ -322,6 +384,10 @@ function displayPath(absolutePath: string, repoRoot?: string): string {
 
   const relativeToCwd = path.relative(process.cwd(), absolutePath);
   return relativeToCwd.startsWith("..") ? normalizePath(absolutePath) : normalizePath(relativeToCwd);
+}
+
+function matchesAnyGlob(filePath: string, patterns: string[]): boolean {
+  return patterns.some((pattern) => path.matchesGlob(filePath, pattern));
 }
 
 function classifyCandidate(absolutePath: string, repoRoot?: string): CandidateFile {
@@ -618,7 +684,7 @@ function statementFromBlock(block: MarkdownBlock): Statement | undefined {
 function createFinding(
   file: string,
   severity: InstructionLintSeverity,
-  ruleId: string,
+  ruleId: InstructionRuleId,
   message: string,
   line: number,
   suggestion?: string,
@@ -639,7 +705,7 @@ function addFinding(
   report: InternalFileReport,
   seen: Set<string>,
   severity: InstructionLintSeverity,
-  ruleId: string,
+  ruleId: InstructionRuleId,
   message: string,
   line: number,
   suggestion?: string,
@@ -1012,7 +1078,7 @@ function addCrossFileFinding(
   seen: Set<string>,
   hostFile: string,
   severity: InstructionLintSeverity,
-  ruleId: string,
+  ruleId: InstructionRuleId,
   line: number,
   message: string,
   suggestion?: string,
@@ -1266,7 +1332,9 @@ function addApplicableTokenBudgetFindings(
 function buildStats(
   files: InstructionFileReport[],
   findings: InstructionFinding[],
-  summary: { maxApplicableTokens: number; maxApplicableTargetFile?: string }
+  summary: { maxApplicableTokens: number; maxApplicableTargetFile?: string },
+  ignoreSummary: IgnoreSummary,
+  postProcessSummary: PostProcessSummary
 ): InstructionLintStats {
   return {
     totalFiles: files.length,
@@ -1288,6 +1356,10 @@ function buildStats(
     ...(summary.maxApplicableTargetFile
       ? { maxApplicableTargetFile: summary.maxApplicableTargetFile }
       : {}),
+    ignoredInstructionFileCount: ignoreSummary.ignoredInstructionFileCount,
+    ignoredTargetFileCount: ignoreSummary.ignoredTargetFileCount,
+    suppressedFindingCount: postProcessSummary.suppressedFindingCount,
+    baselineMatchedFindingCount: postProcessSummary.baselineMatchedFindingCount,
     warningCount: findings.filter((finding) => finding.severity === "warning").length,
     errorCount: findings.filter((finding) => finding.severity === "error").length
   };
@@ -1300,20 +1372,242 @@ function isSeverityFailing(
   return compareSeverity(finding.severity, failOnSeverity) >= 0;
 }
 
+function splitCliList(values: string[] | undefined): string[] {
+  if (!values) {
+    return [];
+  }
+  return values
+    .flatMap((value) => value.split(","))
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+function normalizeOptionSuppressions(
+  suppressions: InstructionSuppression[] | undefined
+): NormalizedInstructionSuppression[] {
+  if (!suppressions) {
+    return [];
+  }
+
+  return suppressions.map((suppression) => {
+    const paths = (Array.isArray(suppression.path) ? suppression.path : [suppression.path])
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+    const rules = (suppression.rules ?? ["*"])
+      .map((entry) => entry.trim())
+      .filter((entry): entry is InstructionRuleSelector => entry === "*" || isInstructionRuleId(entry));
+
+    return {
+      paths,
+      rules: rules.length > 0 ? rules : ["*"],
+      ...(suppression.reason ? { reason: suppression.reason } : {})
+    };
+  });
+}
+
+function inferConfigBaseDirectory(inputs: string[]): string | undefined {
+  const firstInput = inputs[0];
+  if (!firstInput) {
+    return undefined;
+  }
+
+  const absoluteInput = path.resolve(firstInput);
+  if (!fs.existsSync(absoluteInput)) {
+    return undefined;
+  }
+
+  const stat = fs.statSync(absoluteInput);
+  if (stat.isDirectory()) {
+    return inferRepoRootFromDirectory(absoluteInput) ?? absoluteInput;
+  }
+  if (stat.isFile()) {
+    return inferRepoRootFromFile(absoluteInput) ?? path.dirname(absoluteInput);
+  }
+  return undefined;
+}
+
+function resolveLintPolicy(
+  inputs: string[],
+  options: InstructionLintOptions
+): ResolvedLintPolicy {
+  const explicitConfigPath = options.configPath ? path.resolve(options.configPath) : undefined;
+  const discoveredConfigPath =
+    explicitConfigPath ?? (() => {
+      const baseDirectory = inferConfigBaseDirectory(inputs);
+      return baseDirectory ? discoverInstructionLintConfigPath(baseDirectory) : undefined;
+    })();
+  const loadedConfig = discoveredConfigPath
+    ? loadInstructionLintConfig(discoveredConfigPath)
+    : undefined;
+
+  const ignore = [...new Set([
+    ...splitCliList(loadedConfig?.ignore),
+    ...splitCliList(options.ignore)
+  ])];
+
+  const ruleOverrides = {
+    ...(loadedConfig?.ruleOverrides ?? {}),
+    ...(options.ruleOverrides ?? {})
+  };
+
+  const suppressions = [
+    ...(loadedConfig?.suppressions ?? []),
+    ...normalizeOptionSuppressions(options.suppressions)
+  ];
+
+  const baselinePath = options.baseline
+    ? path.resolve(options.baseline)
+    : loadedConfig?.baselinePath;
+  const model = options.model ?? loadedConfig?.model;
+
+  const appliedConfig =
+    loadedConfig || baselinePath || ignore.length > 0 || suppressions.length > 0 || Object.keys(ruleOverrides).length > 0
+      ? {
+          ...(loadedConfig ? { source: displayPath(loadedConfig.sourcePath) } : {}),
+          ...(baselinePath ? { baselinePath: displayPath(baselinePath) } : {}),
+          ignore,
+          suppressionCount: suppressions.length,
+          overriddenRules: Object.keys(ruleOverrides)
+            .filter((ruleId): ruleId is InstructionRuleId => isInstructionRuleId(ruleId))
+            .sort((left, right) => left.localeCompare(right))
+        }
+      : undefined;
+
+  return {
+    ...(loadedConfig ? { config: loadedConfig } : {}),
+    ...(appliedConfig ? { appliedConfig } : {}),
+    preset: options.preset ?? loadedConfig?.preset ?? DEFAULT_PRESET,
+    profile: options.profile ?? loadedConfig?.profile ?? DEFAULT_PROFILE,
+    failOnSeverity:
+      options.failOnSeverity ?? loadedConfig?.failOnSeverity ?? DEFAULT_FAIL_ON_SEVERITY,
+    surface: options.surface ?? loadedConfig?.surface ?? DEFAULT_SURFACE,
+    ...(model !== undefined ? { model } : {}),
+    ...(baselinePath ? { baselinePath } : {}),
+    ignore,
+    suppressions,
+    ruleOverrides
+  };
+}
+
+function resolveRuleSeverity(
+  finding: InstructionFinding,
+  ruleOverrides: Partial<Record<InstructionRuleId, InstructionRuleOverride>>
+): InstructionLintSeverity | undefined {
+  const override = ruleOverrides[finding.ruleId];
+  if (override?.enabled === false) {
+    return undefined;
+  }
+  return override?.severity ?? finding.severity ?? getInstructionRuleDefaultSeverity(finding.ruleId);
+}
+
+function shouldSuppressFinding(
+  finding: InstructionFinding,
+  suppressions: NormalizedInstructionSuppression[]
+): boolean {
+  return suppressions.some((suppression) => {
+    if (!suppression.paths.some((pattern) => path.matchesGlob(finding.file, pattern))) {
+      return false;
+    }
+    return suppression.rules.includes("*") || suppression.rules.includes(finding.ruleId);
+  });
+}
+
+function findingSignature(finding: InstructionFinding): string {
+  return [finding.ruleId, finding.file, String(finding.line), finding.message].join("|");
+}
+
+function loadBaselineFindingSignatures(baselinePath: string): Set<string> {
+  const absolutePath = path.resolve(baselinePath);
+  if (!fs.existsSync(absolutePath) || !fs.statSync(absolutePath).isFile()) {
+    throw new Error(`Baseline path does not exist: ${baselinePath}`);
+  }
+
+  const raw = JSON.parse(fs.readFileSync(absolutePath, "utf8")) as unknown;
+  if (!raw || typeof raw !== "object" || !("findings" in raw) || !Array.isArray(raw.findings)) {
+    throw new Error("Instruction lint baseline must be a JSON report with a findings array.");
+  }
+
+  const signatures = new Set<string>();
+  for (const entry of raw.findings) {
+    if (!entry || typeof entry !== "object") {
+      continue;
+    }
+    const finding = entry as Partial<InstructionFinding>;
+    if (
+      typeof finding.ruleId === "string" &&
+      isInstructionRuleId(finding.ruleId) &&
+      typeof finding.file === "string" &&
+      typeof finding.line === "number" &&
+      typeof finding.message === "string"
+    ) {
+      signatures.add(findingSignature(finding as InstructionFinding));
+    }
+  }
+
+  return signatures;
+}
+
+function postProcessFindings(
+  reports: InternalFileReport[],
+  policy: ResolvedLintPolicy
+): PostProcessSummary {
+  const baselineSignatures = policy.baselinePath
+    ? loadBaselineFindingSignatures(policy.baselinePath)
+    : new Set<string>();
+  let suppressedFindingCount = 0;
+  let baselineMatchedFindingCount = 0;
+
+  for (const report of reports) {
+    const finalized: InstructionFinding[] = [];
+    for (const finding of report.findings) {
+      const severity = resolveRuleSeverity(finding, policy.ruleOverrides);
+      if (!severity) {
+        suppressedFindingCount += 1;
+        continue;
+      }
+
+      const withSeverity =
+        severity === finding.severity ? finding : { ...finding, severity };
+      if (shouldSuppressFinding(withSeverity, policy.suppressions)) {
+        suppressedFindingCount += 1;
+        continue;
+      }
+
+      if (baselineSignatures.has(findingSignature(withSeverity))) {
+        baselineMatchedFindingCount += 1;
+        continue;
+      }
+
+      finalized.push(withSeverity);
+    }
+    report.findings = finalized.sort(findingSort);
+  }
+
+  return {
+    suppressedFindingCount,
+    baselineMatchedFindingCount
+  };
+}
+
 export function lintInstructions(
   pathOrFiles: string | string[],
   options: InstructionLintOptions = {}
 ): InstructionLintReport {
-  const preset = options.preset ?? DEFAULT_PRESET;
-  const profile = options.profile ?? DEFAULT_PROFILE;
-  const failOnSeverity = options.failOnSeverity ?? DEFAULT_FAIL_ON_SEVERITY;
-  const surface = options.surface ?? DEFAULT_SURFACE;
-  const model = options.model;
-  const modelLimit = getModelLimit(model);
   const inputs = Array.isArray(pathOrFiles) ? pathOrFiles : [pathOrFiles];
+  const policy = resolveLintPolicy(inputs, options);
+  const preset = policy.preset;
+  const profile = policy.profile;
+  const failOnSeverity = policy.failOnSeverity;
+  const surface = policy.surface;
+  const model = policy.model;
+  const modelLimit = getModelLimit(model);
   const candidates: CandidateFile[] = [];
   const warnings = new Set<string>();
   const repoFilesByRoot = new Map<string, string[]>();
+  const ignoreSummary: IgnoreSummary = {
+    ignoredInstructionFileCount: 0,
+    ignoredTargetFileCount: 0
+  };
 
   if (model && !modelLimit) {
     warnings.add(`Model limits are unknown for ${model}; context-window share metrics are unavailable.`);
@@ -1328,18 +1622,24 @@ export function lintInstructions(
     const stat = fs.statSync(absoluteInput);
     if (stat.isDirectory()) {
       const discovered = discoverDirectoryCandidates(absoluteInput, preset);
-      if (discovered.length === 0) {
+      const visibleCandidates = discovered.filter((candidate) => !matchesAnyGlob(candidate.file, policy.ignore));
+      ignoreSummary.ignoredInstructionFileCount += discovered.length - visibleCandidates.length;
+      if (visibleCandidates.length === 0) {
         const message =
           preset === "auto"
             ? `No supported instruction files were found under ${normalizePath(input)}.`
             : `No ${preset} instruction files were found under ${normalizePath(input)}.`;
         warnings.add(message);
       }
-      candidates.push(...discovered);
-      const repoFiles = walkFiles(absoluteInput).map((filePath) =>
-        normalizePath(path.relative(absoluteInput, filePath))
-      );
-      repoFilesByRoot.set(absoluteInput, repoFiles);
+      candidates.push(...visibleCandidates);
+      if (!repoFilesByRoot.has(absoluteInput)) {
+        const repoFiles = walkFiles(absoluteInput).map((filePath) =>
+          normalizePath(path.relative(absoluteInput, filePath))
+        );
+        const visibleRepoFiles = repoFiles.filter((filePath) => !matchesAnyGlob(filePath, policy.ignore));
+        ignoreSummary.ignoredTargetFileCount += repoFiles.length - visibleRepoFiles.length;
+        repoFilesByRoot.set(absoluteInput, visibleRepoFiles);
+      }
       continue;
     }
 
@@ -1350,18 +1650,29 @@ export function lintInstructions(
     const repoRoot = inferRepoRootFromFile(absoluteInput);
     const candidate = classifyCandidate(absoluteInput, repoRoot);
     if (preset === "auto" || candidate.preset === preset) {
-      candidates.push(candidate);
+      if (matchesAnyGlob(candidate.file, policy.ignore)) {
+        ignoreSummary.ignoredInstructionFileCount += 1;
+      } else {
+        candidates.push(candidate);
+      }
     } else {
-      candidates.push({
+      const unsupportedCandidate = {
         ...candidate,
-        kind: "unsupported"
-      });
+        kind: "unsupported" as const
+      };
+      if (matchesAnyGlob(unsupportedCandidate.file, policy.ignore)) {
+        ignoreSummary.ignoredInstructionFileCount += 1;
+      } else {
+        candidates.push(unsupportedCandidate);
+      }
     }
     if (repoRoot && !repoFilesByRoot.has(repoRoot)) {
-      repoFilesByRoot.set(
-        repoRoot,
-        walkFiles(repoRoot).map((filePath) => normalizePath(path.relative(repoRoot, filePath)))
+      const repoFiles = walkFiles(repoRoot).map((filePath) =>
+        normalizePath(path.relative(repoRoot, filePath))
       );
+      const visibleRepoFiles = repoFiles.filter((filePath) => !matchesAnyGlob(filePath, policy.ignore));
+      ignoreSummary.ignoredTargetFileCount += repoFiles.length - visibleRepoFiles.length;
+      repoFilesByRoot.set(repoRoot, visibleRepoFiles);
     }
     if (!repoRoot) {
       warnings.add(`Repository root could not be inferred for ${normalizePath(input)}; overlap resolution is limited.`);
@@ -1545,6 +1856,7 @@ export function lintInstructions(
     profile,
     surface
   );
+  const postProcessSummary = postProcessFindings(internalReports, policy);
 
   const files: InstructionFileReport[] = internalReports
     .sort((left, right) => left.file.localeCompare(right.file))
@@ -1567,11 +1879,14 @@ export function lintInstructions(
   const findings = files
     .flatMap((file) => file.findings)
     .sort(findingSort);
-  const stats = buildStats(files, findings, applicableTokenSummary);
+  const stats = buildStats(files, findings, applicableTokenSummary, ignoreSummary, postProcessSummary);
   const passed = findings.every((finding) => !isSeverityFailing(finding, failOnSeverity));
   const detectedPresets = [...new Set(files.flatMap((file) => (file.preset ? [file.preset] : [])))].sort();
 
   return {
+    kind: "instructions-lint-report",
+    schemaVersion: INSTRUCTION_LINT_REPORT_SCHEMA_VERSION,
+    schemaPath: INSTRUCTION_LINT_REPORT_SCHEMA_PATH,
     preset,
     detectedPresets,
     profile,
@@ -1587,6 +1902,7 @@ export function lintInstructions(
     passed,
     exitCode: passed ? 0 : 2,
     failOnSeverity,
+    ...(policy.appliedConfig ? { config: policy.appliedConfig } : {}),
     stats,
     files,
     findings,

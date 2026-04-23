@@ -7,10 +7,12 @@ import {
   formatBudgetReport,
   formatBudgetReportMarkdown,
   formatCheckReport,
+  formatCheckReportMarkdown,
   formatDiffReport,
   formatDiffReportMarkdown,
   formatInspectReport,
   formatInspectReportMarkdown,
+  formatInstructionLintReportGithub,
   formatInstructionLintReport,
   formatInstructionLintReportMarkdown
 } from "./format.js";
@@ -44,7 +46,9 @@ const VALUE_FLAGS = new Set([
   "--profile",
   "--fail-on-severity",
   "--surface",
-  "--preset"
+  "--preset",
+  "--config",
+  "--ignore"
 ]);
 const RISK_THRESHOLDS = new Set<CheckRiskThreshold>(["low", "medium", "high"]);
 const INSTRUCTION_PROFILES = new Set<InstructionLintProfile>(["lite", "standard", "strict"]);
@@ -52,8 +56,8 @@ const INSTRUCTION_SEVERITIES = new Set<InstructionLintSeverity>(["warning", "err
 const INSTRUCTION_SURFACES = new Set<InstructionLintSurface>(["code-review", "chat", "coding-agent"]);
 const INSTRUCTION_PRESETS = new Set<InstructionLintPresetSelector>(["auto", "copilot", "agents-md"]);
 const SEGMENT_TYPES = new Set<SegmentType>(KNOWN_SEGMENT_TYPES);
-const OUTPUT_FORMATS = new Set(["text", "json", "markdown"]);
-type OutputMode = "text" | "json" | "markdown";
+const OUTPUT_FORMATS = new Set(["text", "json", "markdown", "github"]);
+type OutputMode = "text" | "json" | "markdown" | "github";
 
 function loadJson(filePath: string): unknown {
   return safeJsonParse(readText(filePath));
@@ -64,7 +68,7 @@ function printUsage(): void {
 
 Usage:
   Stable public command:
-    tokn instructions-lint <path> [--preset <auto|copilot|agents-md>] [--profile <lite|standard|strict>] [--surface <code-review|chat|coding-agent>] [--model <id>] [--fail-on-severity <warning|error>] [--format <text|json|markdown>]
+    tokn instructions-lint <path> [--config <file>] [--baseline <file>] [--ignore <glob>] [--preset <auto|copilot|agents-md>] [--profile <lite|standard|strict>] [--surface <code-review|chat|coding-agent>] [--model <id>] [--fail-on-severity <warning|error>] [--format <text|json|markdown|github>]
 
   Experimental diagnostics:
     tokn inspect <file> [--json]
@@ -240,7 +244,7 @@ function resolveOutputMode(parsed: ParsedArgs): OutputMode {
 
   if (format !== undefined) {
     if (!OUTPUT_FORMATS.has(format)) {
-      throw new Error("--format must be one of: text, json, markdown.");
+      throw new Error("--format must be one of: text, json, markdown, github.");
     }
     if (jsonFlag && format !== "json") {
       throw new Error("--json cannot be combined with a non-json --format.");
@@ -295,13 +299,21 @@ function parseInstructionPreset(parsed: ParsedArgs): InstructionLintPresetSelect
   return preset as InstructionLintPresetSelector;
 }
 
-function printOutput(value: unknown, formatter: Record<Exclude<OutputMode, "json">, () => string>, outputMode: OutputMode): void {
+function printOutput(
+  value: unknown,
+  formatter: Partial<Record<Exclude<OutputMode, "json">, () => string>>,
+  outputMode: OutputMode
+): void {
   if (outputMode === "json") {
     console.log(JSON.stringify(value, null, 2));
     return;
   }
 
-  console.log(formatter[outputMode]());
+  const render = formatter[outputMode];
+  if (!render) {
+    throw new Error(`--format ${outputMode} is not supported for this command.`);
+  }
+  console.log(render());
 }
 
 async function main(): Promise<void> {
@@ -399,7 +411,7 @@ async function main(): Promise<void> {
           result,
           {
             text: () => formatCheckReport(result),
-            markdown: () => formatCheckReport(result)
+            markdown: () => formatCheckReportMarkdown(result)
           },
           outputMode
         );
@@ -417,18 +429,25 @@ async function main(): Promise<void> {
         const surface = parseInstructionSurface(parsed);
         const preset = parseInstructionPreset(parsed);
         const model = getLastValue(parsed, "--model");
+        const configPath = getLastValue(parsed, "--config");
+        const baseline = getLastValue(parsed, "--baseline");
+        const ignore = getAllValues(parsed, "--ignore");
         const report = lintInstructions(inputPath, {
           ...(preset ? { preset } : {}),
           ...(profile ? { profile } : {}),
           ...(failOnSeverity ? { failOnSeverity } : {}),
           ...(surface ? { surface } : {}),
-          ...(model ? { model } : {})
+          ...(model ? { model } : {}),
+          ...(configPath ? { configPath } : {}),
+          ...(baseline ? { baseline } : {}),
+          ...(ignore.length > 0 ? { ignore } : {})
         });
         printOutput(
           report,
           {
             text: () => formatInstructionLintReport(report),
-            markdown: () => formatInstructionLintReportMarkdown(report)
+            markdown: () => formatInstructionLintReportMarkdown(report),
+            github: () => formatInstructionLintReportGithub(report)
           },
           outputMode
         );

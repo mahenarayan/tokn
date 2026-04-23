@@ -45,7 +45,7 @@ tokn instructions-lint ./fixtures/instructions/valid-repo
 - discovers repository instruction files using supported presets
 - lints overlap, duplication, vague wording, stale scope patterns, and surface-specific limits
 - estimates instruction-context pressure with compactness and token-budget checks
-- emits deterministic text, JSON, and Markdown output for CI, PR comments, editor tooling, and demos
+- emits deterministic text, JSON, Markdown, and GitHub-annotation output for CI, PR comments, editor tooling, and demos
 - runs locally on repository files without requiring network access during analysis
 - stays read-only so it can fit conservative enterprise workflows
 
@@ -63,11 +63,13 @@ Tokn reads the instruction files that shape agent behavior and flags problems su
 
 The goal is not to generate prompts. The goal is to keep repository instruction sets precise, compact, and governable.
 
+Reference documentation for the stable lint surface lives in [docs/instructions-lint.md](https://github.com/mahenarayan/tokn/blob/main/docs/instructions-lint.md).
+
 ## Status
 
 Tokn is in public alpha.
 
-- stable public surface: `instructions-lint`, instruction lint report types, and deterministic text/json/markdown lint output
+- stable public surface: `instructions-lint`, instruction lint report types, stable rule IDs, and deterministic text/json/markdown/github lint output
 - stable preset: `copilot`
 - supported preset: `agents-md`
 - experimental diagnostics surface: `inspect`, `diff`, `budget`, `agent-report`, and `check`
@@ -85,10 +87,13 @@ tokn instructions-lint ./fixtures/instructions/valid-repo
 Common variants:
 
 ```bash
+tokn instructions-lint ./fixtures/instructions/valid-repo --config ./tokn.config.json
+tokn instructions-lint ./fixtures/instructions/invalid-repo --baseline ./tokn-baseline.json
 tokn instructions-lint ./fixtures/instructions/valid-repo --surface coding-agent --model gpt-4o
 tokn instructions-lint ./fixtures/instructions/agents-repo --preset agents-md
 tokn instructions-lint ./fixtures/instructions/invalid-repo --format markdown
 tokn instructions-lint ./fixtures/instructions/invalid-repo --format json
+tokn instructions-lint ./fixtures/instructions/invalid-repo --format github
 ```
 
 Stable inputs:
@@ -130,7 +135,7 @@ They normalize OpenAI-style payloads, OpenAI-compatible request logs, OpenAI Res
 Stable command:
 
 ```bash
-tokn instructions-lint <path> [--preset <auto|copilot|agents-md>] [--profile <lite|standard|strict>] [--surface <code-review|chat|coding-agent>] [--model <id>] [--fail-on-severity <warning|error>] [--format <text|json|markdown>]
+tokn instructions-lint <path> [--config <file>] [--baseline <file>] [--ignore <glob>] [--preset <auto|copilot|agents-md>] [--profile <lite|standard|strict>] [--surface <code-review|chat|coding-agent>] [--model <id>] [--fail-on-severity <warning|error>] [--format <text|json|markdown|github>]
 ```
 
 Experimental diagnostics:

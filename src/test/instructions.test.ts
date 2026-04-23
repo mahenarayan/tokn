@@ -226,3 +226,106 @@ test("lintInstructions warns when a single target accumulates too many instructi
   assert.ok((finding?.evidence?.actual as number) > (finding?.evidence?.expected as number));
   assert.ok((finding?.evidence?.contributorFiles?.length ?? 0) > 0);
 });
+
+test("lintInstructions emits a stable schema contract and discovers config defaults", () => {
+  const repoRoot = createInstructionRepo(
+    {
+      "tokn.config.json": JSON.stringify(
+        {
+          instructionsLint: {
+            profile: "strict",
+            surface: "chat",
+            rules: {
+              "statement-too-long": { severity: "error" },
+              "weak-modal-phrasing": { enabled: false }
+            },
+            ignore: ["generated/**"]
+          }
+        },
+        null,
+        2
+      ),
+      ".github/copilot-instructions.md": [
+        "# Repository Instructions",
+        "",
+        "- Try to keep exported interfaces explicit, spell out the constrained domain vocabulary for every repository-facing API change, and include the compatibility rationale in each review note."
+      ].join("\n"),
+      "src/index.ts": "export const value = 1;\n",
+      "generated/out.ts": "export const generated = 1;\n"
+    },
+    "tokn-instructions-config-"
+  );
+
+  const report = lintInstructions(repoRoot);
+  const finding = report.findings.find((candidate) => candidate.ruleId === "statement-too-long");
+
+  assert.equal(report.kind, "instructions-lint-report");
+  assert.equal(report.schemaVersion, "instructions-lint-report/v1");
+  assert.equal(report.schemaPath, "schemas/instructions-lint-report.schema.json");
+  assert.equal(report.profile, "strict");
+  assert.equal(report.surface, "chat");
+  assert.ok(String(report.config?.source).endsWith("tokn.config.json"));
+  assert.deepEqual(report.config?.ignore, ["generated/**"]);
+  assert.deepEqual(report.config?.overriddenRules, ["statement-too-long", "weak-modal-phrasing"]);
+  assert.equal(report.stats.ignoredTargetFileCount, 1);
+  assert.equal(finding?.severity, "error");
+  assert.ok(!report.findings.some((candidate) => candidate.ruleId === "weak-modal-phrasing"));
+});
+
+test("lintInstructions applies suppressions from config", () => {
+  const repoRoot = createInstructionRepo(
+    {
+      "tokn.config.json": JSON.stringify(
+        {
+          instructionsLint: {
+            suppressions: [
+              {
+                path: ".github/copilot-instructions.md",
+                rules: ["statement-too-long"],
+                reason: "legacy migration window"
+              }
+            ]
+          }
+        },
+        null,
+        2
+      ),
+      ".github/copilot-instructions.md": [
+        "# Repository Instructions",
+        "",
+        "- Keep exported interfaces explicit, spell out the constrained domain vocabulary for every repository-facing API change, and include the compatibility rationale in each review note."
+      ].join("\n"),
+      "src/index.ts": "export const value = 1;\n"
+    },
+    "tokn-instructions-suppressions-"
+  );
+
+  const report = lintInstructions(repoRoot, {
+    profile: "strict",
+    failOnSeverity: "warning"
+  });
+
+  assert.equal(report.findings.length, 0);
+  assert.equal(report.stats.suppressedFindingCount, 1);
+  assert.equal(report.exitCode, 0);
+  assert.equal(report.config?.suppressionCount, 1);
+});
+
+test("lintInstructions supports baseline suppression for incremental rollout", () => {
+  const baselineReport = lintInstructions(instructionFixture("invalid-repo"), {
+    failOnSeverity: "warning"
+  });
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "tokn-instructions-baseline-"));
+  const baselinePath = path.join(tempDir, "instructions-baseline.json");
+  fs.writeFileSync(baselinePath, JSON.stringify(baselineReport, null, 2));
+
+  const report = lintInstructions(instructionFixture("invalid-repo"), {
+    failOnSeverity: "warning",
+    baseline: baselinePath
+  });
+
+  assert.equal(report.findings.length, 0);
+  assert.equal(report.stats.baselineMatchedFindingCount, baselineReport.findings.length);
+  assert.equal(report.exitCode, 0);
+  assert.equal(report.config?.baselinePath, baselinePath);
+});
