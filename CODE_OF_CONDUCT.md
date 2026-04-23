@@ -25,7 +25,7 @@ This applies to project spaces and public interactions representing the project.
 
 ## Reporting
 
-Report conduct issues to `154434373+mahenarayan@users.noreply.github.com`.
+Report conduct issues by opening a GitHub Discussion or issue requesting maintainer follow-up without posting sensitive personal details publicly.
 Include enough detail for the report to be actionable.
 
 ## Enforcement

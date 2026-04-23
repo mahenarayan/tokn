@@ -9,9 +9,8 @@ The supported line is the latest published `0.x` release and the current `main` 
 
 Do not open a public GitHub issue for a potential security vulnerability.
 
-Report vulnerabilities privately to:
-
-- `154434373+mahenarayan@users.noreply.github.com`
+Report vulnerabilities through GitHub private vulnerability reporting when it is enabled for the repository.
+If private vulnerability reporting is not available yet, open a minimal public issue requesting a private reporting channel and do not include exploit details.
 
 Please include:
 
