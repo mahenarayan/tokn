@@ -9,8 +9,8 @@ The supported line is the latest published `0.x` release and the current `main` 
 
 Do not open a public GitHub issue for a potential security vulnerability.
 
-Report vulnerabilities through GitHub private vulnerability reporting when it is enabled for the repository.
-If private vulnerability reporting is not available yet, open a minimal public issue requesting a private reporting channel and do not include exploit details.
+Use GitHub private vulnerability reporting when it is enabled for the repository.
+If it is not available yet, open a minimal public issue requesting a private reporting channel and do not include exploit details.
 
 Please include:
 
@@ -30,7 +30,7 @@ Best effort process:
 
 ## Scope
 
-This project is a read-only CLI + SDK for local/offline analysis and instruction governance.
+This project is a read-only CLI + SDK for local and CI-facing analysis.
 The main realistic security concerns are:
 
 - malicious or malformed input files

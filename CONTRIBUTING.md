@@ -3,7 +3,7 @@
 ## Goal
 
 Tokn should stay small, explicit, and trustworthy.
-Contributions are welcome, but new work has to preserve three properties:
+New work has to preserve three properties:
 
 - a lint-first public product boundary
 - read-only behavior

@@ -56,7 +56,7 @@ The public repository baseline is:
 
 ## Notes
 
-- The release workflow assumes the npm trusted publisher has already been configured in npm.
+- The release workflow assumes the npm trusted publisher is already configured in npm.
 - For npm trusted publishing, configure package `@tokn-labs/tokn` with:
   - provider: `GitHub Actions`
   - GitHub user or organization: `mahenarayan`
@@ -65,4 +65,4 @@ The public repository baseline is:
 - The workflow publishes only on GitHub Release publication.
 - CodeQL, Scorecards, and dependency review are intended for the public repository baseline and skip automatically while the repository is private.
 - If package ownership, repository visibility, or trusted publisher setup is missing, publishing should remain disabled until those are corrected.
-- Repository settings still need to be configured outside git: branch protection or rulesets, private vulnerability reporting, and optional Discussions or a social preview image.
+- Some repository settings still need to be configured outside git: branch protection or rulesets, private vulnerability reporting, and optional Discussions or a social preview image.

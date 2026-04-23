@@ -9,8 +9,7 @@
 
 Read-only instruction linting and governance for repository instruction files.
 
-Tokn is a TypeScript CLI + SDK centered on `instructions-lint`: a read-only, preset-based linter for repository instruction files. It helps teams catch overlap, ambiguity, stale scope patterns, surface-specific limits, and instruction-context waste before those files spread across repositories and CI.
-It is named for the token, the smallest unit a model actually consumes, with the missing `e` reflecting the tool's bias toward compression and signal.
+Tokn is a TypeScript CLI + SDK centered on `instructions-lint`: a read-only, preset-based linter for repository instruction files such as `.github/copilot-instructions.md`, `.github/instructions/*.instructions.md`, and `AGENTS.md`. It helps teams catch duplicated guidance, conflicting rules, vague wording, stale scope patterns, surface-specific limits, and instruction-context waste before those files spread across repositories and CI.
 The npm package is published as `@tokn-labs/tokn`, while the installed CLI command remains `tokn`.
 
 Tokn is also working on advanced diagnostics for prompts, traces, and context composition through `inspect`, `diff`, `budget`, `agent-report`, and `check`. That diagnostics surface is experimental today and is not part of the primary public contract.
@@ -48,6 +47,20 @@ tokn instructions-lint ./fixtures/instructions/valid-repo
 - estimates instruction-context pressure with compactness and token-budget checks
 - emits deterministic text, JSON, and Markdown output for CI, PR comments, editor tooling, and demos
 - stays read-only so it can fit conservative enterprise workflows
+
+## What Instruction Linting Means
+
+Instruction linting means checking repository instruction files the same way a code linter checks source files.
+
+Tokn reads the instruction files that shape agent behavior and flags problems such as:
+
+- duplicate rules repeated across overlapping files
+- conflicting instructions for the same paths or surfaces
+- vague directives like "follow best practices"
+- stale `applyTo` patterns that match nothing
+- instruction bundles that are larger or noisier than they need to be
+
+The goal is not to generate prompts. The goal is to keep repository instruction sets precise, compact, and governable.
 
 ## Status
 
@@ -166,3 +179,7 @@ npm run dev
 npm run pack:check
 npm run smoke
 ```
+
+## Why Tokn
+
+Tokn is named for the token, the smallest unit a model actually consumes. The missing `e` reflects the project's bias toward compression, signal, and instruction sets that stay small enough to remain useful.
