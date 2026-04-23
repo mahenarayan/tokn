@@ -13,7 +13,7 @@ Tokn is a TypeScript CLI + SDK centered on `instructions-lint`: a read-only, pre
 It is named for the token, the smallest unit a model actually consumes, with the missing `e` reflecting the tool's bias toward compression and signal.
 The npm package is published as `@tokn-labs/tokn`, while the installed CLI command remains `tokn`.
 
-The repository also still contains older prompt and trace diagnostics (`inspect`, `diff`, `budget`, `agent-report`, `check`). Those commands remain available, but they are currently an experimental diagnostics surface rather than the primary enterprise contract.
+Tokn is also working on advanced diagnostics for prompts, traces, and context composition through `inspect`, `diff`, `budget`, `agent-report`, and `check`. That diagnostics surface is experimental today and is not part of the primary public contract.
 
 ## Quick Start
 
@@ -166,19 +166,3 @@ npm run dev
 npm run pack:check
 npm run smoke
 ```
-
-Project docs:
-
-- See [INSTRUCTIONS.md](https://github.com/mahenarayan/tokn/blob/main/INSTRUCTIONS.md) for contributor and maintenance guidance.
-- See [architecture.md](https://github.com/mahenarayan/tokn/blob/main/docs/architecture.md) for the system architecture.
-- See [spec-driven-development.md](https://github.com/mahenarayan/tokn/blob/main/docs/spec-driven-development.md) for the development workflow.
-- See [docs/releasing.md](https://github.com/mahenarayan/tokn/blob/main/docs/releasing.md) for the public release and supply-chain setup.
-- See [docs/examples/README.md](https://github.com/mahenarayan/tokn/blob/main/docs/examples/README.md) for executable example workflows.
-- See [docs/examples/copilot-instructions-lint.md](https://github.com/mahenarayan/tokn/blob/main/docs/examples/copilot-instructions-lint.md) for a Copilot instructions linting workflow.
-- See [docs/examples/agents-instructions-lint.md](https://github.com/mahenarayan/tokn/blob/main/docs/examples/agents-instructions-lint.md) for an `AGENTS.md` linting workflow.
-- See [docs/adr/README.md](https://github.com/mahenarayan/tokn/blob/main/docs/adr/README.md) for architectural decisions.
-- See [CONTRIBUTING.md](https://github.com/mahenarayan/tokn/blob/main/CONTRIBUTING.md) for contribution rules.
-- See [SECURITY.md](https://github.com/mahenarayan/tokn/blob/main/SECURITY.md) for vulnerability reporting.
-- See [SUPPORT.md](https://github.com/mahenarayan/tokn/blob/main/SUPPORT.md) for support routing.
-- See [GOVERNANCE.md](https://github.com/mahenarayan/tokn/blob/main/GOVERNANCE.md) for maintainer and decision boundaries.
-- See [CHANGELOG.md](https://github.com/mahenarayan/tokn/blob/main/CHANGELOG.md) for release history.
