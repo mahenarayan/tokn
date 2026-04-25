@@ -6,6 +6,7 @@ export {
   formatBudgetReport,
   formatDiffReport,
   formatInspectReport,
+  formatInstructionLintReportAzure,
   formatInstructionLintReportGithub,
   formatInstructionLintReport
 } from "./format.js";

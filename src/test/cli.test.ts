@@ -613,6 +613,20 @@ test("cli instructions-lint supports --format github", () => {
   assert.match(result.stdout, /::notice title=Tokn instructions-lint findings::/);
 });
 
+test("cli instructions-lint supports --format azure", () => {
+  const result = runCliProcess([
+    "instructions-lint",
+    "fixtures/instructions/invalid-repo",
+    "--format",
+    "azure"
+  ]);
+
+  assert.equal(result.status, 2, result.stderr);
+  assert.match(result.stdout, /##vso\[task\.logissue type=error;sourcepath=\.github\/instructions\/legacy\.md;linenumber=1;code=invalid-file-path;\]/);
+  assert.match(result.stdout, /##vso\[task\.logissue type=warning;sourcepath=\.github\/instructions\/rust\.instructions\.md;linenumber=2;code=stale-applyto;\]/);
+  assert.match(result.stdout, /##vso\[task\.logissue type=error;code=tokn-instructions-lint-summary;\]Tokn instructions-lint found issues:/);
+});
+
 test("cli instructions-lint supports single-file lint", () => {
   const output = runCli([
     "instructions-lint",

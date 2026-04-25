@@ -4,11 +4,25 @@
 
 It is a read-only linter for repository instruction files. Today it supports the `copilot` preset for `.github/copilot-instructions.md` and `.github/instructions/*.instructions.md`, plus the `agents-md` preset for root or nested `AGENTS.md` files.
 
+## Why Lint First
+
+Instruction files are part of the context supply chain for coding assistants and coding agents. They are easy to review as prose and hard to reason about as repeated model input.
+
+`instructions-lint` gives teams a low-risk starting point for context engineering:
+
+- measure always-on instruction load before it becomes invisible context pressure
+- find duplicated or conflicting guidance across scoped instruction files
+- catch stale path scopes before instructions silently stop applying
+- separate platform-specific limits from general context-budget pressure
+- create baselines so teams can improve instruction quality over time without blocking every existing issue on day one
+
+Advanced prompt and trace diagnostics build on the same idea, but linting is the first place most teams can adopt this safely because it is offline, read-only, and CI-friendly.
+
 ## Stable Contract
 
 The stable contract for `instructions-lint` includes:
 
-- deterministic text, JSON, Markdown, and GitHub-annotation output
+- deterministic text, JSON, Markdown, GitHub Actions, and Azure Pipelines output
 - stable rule IDs
 - a versioned JSON report contract
 - local JSON config discovery
@@ -94,6 +108,63 @@ Example workflow step:
 
 If you want machine-readable output instead, use `--format json` and archive the report as a workflow artifact.
 
+## Azure DevOps Integration
+
+`--format azure` emits Azure Pipelines logging commands using `##vso[task.logissue ...]`, so findings show up as build warnings and errors in Azure DevOps Services.
+
+Minimal Azure Pipelines example:
+
+```yaml
+trigger:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+  - task: NodeTool@0
+    inputs:
+      versionSpec: 22.x
+
+  - script: |
+      npm exec --yes --package @tokn-labs/tokn -- tokn instructions-lint . \
+        --format azure \
+        --fail-on-severity warning
+    displayName: Lint repository instructions
+```
+
+Rollout-friendly Azure Pipelines example:
+
+```yaml
+steps:
+  - task: NodeTool@0
+    inputs:
+      versionSpec: 22.x
+
+  - script: |
+      mkdir -p "$(Build.ArtifactStagingDirectory)/tokn"
+      npm exec --yes --package @tokn-labs/tokn -- tokn instructions-lint . \
+        --config ./tokn.config.json \
+        --format json \
+        > "$(Build.ArtifactStagingDirectory)/tokn/instructions-lint.json"
+    displayName: Generate Tokn instructions report
+
+  - script: |
+      npm exec --yes --package @tokn-labs/tokn -- tokn instructions-lint . \
+        --config ./tokn.config.json \
+        --format azure
+    displayName: Annotate instruction lint findings
+
+  - task: PublishPipelineArtifact@1
+    inputs:
+      targetPath: "$(Build.ArtifactStagingDirectory)/tokn"
+      artifact: tokn-instructions-lint
+```
+
+For locked-down enterprise agents, install `@tokn-labs/tokn` from an approved internal npm mirror and call the installed `tokn` binary. Tokn itself only reads local repository files during analysis.
+
 ## Support Matrix
 
 ### Presets
@@ -120,6 +191,7 @@ If you want machine-readable output instead, use `--format json` and archive the
 | `json` | stable | CI artifacts, editor tooling, and baselines |
 | `markdown` | stable | PR comments, issue comments, and human review |
 | `github` | stable | GitHub Actions annotations |
+| `azure` | stable | Azure Pipelines logging commands |
 
 ## Rule Reference
 

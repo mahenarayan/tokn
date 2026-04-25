@@ -13,6 +13,8 @@ All notable changes to Tokn should be recorded in this file.
 - add local config discovery, ignore/suppression controls, and baseline support for `instructions-lint`
 - add stable JSON schemas and schema-versioned instruction lint reports
 - add GitHub annotation output plus published rule docs and support matrix for `instructions-lint`
+- add Azure Pipelines output and enterprise rollout docs for instruction lint adoption
+- add a reproducible OpenAI Agents Python case study for context-engineering instruction diagnostics
 - reposition Tokn as a lint-first public alpha with experimental diagnostics kept secondary
 - add trusted-publishing and supply-chain hardening workflows for public OSS release
 - tighten the published npm package so it excludes compiled tests and internal docs

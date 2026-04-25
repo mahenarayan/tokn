@@ -12,6 +12,7 @@ import {
   formatDiffReportMarkdown,
   formatInspectReport,
   formatInspectReportMarkdown,
+  formatInstructionLintReportAzure,
   formatInstructionLintReportGithub,
   formatInstructionLintReport,
   formatInstructionLintReportMarkdown
@@ -56,8 +57,8 @@ const INSTRUCTION_SEVERITIES = new Set<InstructionLintSeverity>(["warning", "err
 const INSTRUCTION_SURFACES = new Set<InstructionLintSurface>(["code-review", "chat", "coding-agent"]);
 const INSTRUCTION_PRESETS = new Set<InstructionLintPresetSelector>(["auto", "copilot", "agents-md"]);
 const SEGMENT_TYPES = new Set<SegmentType>(KNOWN_SEGMENT_TYPES);
-const OUTPUT_FORMATS = new Set(["text", "json", "markdown", "github"]);
-type OutputMode = "text" | "json" | "markdown" | "github";
+const OUTPUT_FORMATS = new Set(["text", "json", "markdown", "github", "azure"]);
+type OutputMode = "text" | "json" | "markdown" | "github" | "azure";
 
 function loadJson(filePath: string): unknown {
   return safeJsonParse(readText(filePath));
@@ -68,7 +69,7 @@ function printUsage(): void {
 
 Usage:
   Stable public command:
-    tokn instructions-lint <path> [--config <file>] [--baseline <file>] [--ignore <glob>] [--preset <auto|copilot|agents-md>] [--profile <lite|standard|strict>] [--surface <code-review|chat|coding-agent>] [--model <id>] [--fail-on-severity <warning|error>] [--format <text|json|markdown|github>]
+    tokn instructions-lint <path> [--config <file>] [--baseline <file>] [--ignore <glob>] [--preset <auto|copilot|agents-md>] [--profile <lite|standard|strict>] [--surface <code-review|chat|coding-agent>] [--model <id>] [--fail-on-severity <warning|error>] [--format <text|json|markdown|github|azure>]
 
   Experimental diagnostics:
     tokn inspect <file> [--json]
@@ -244,7 +245,7 @@ function resolveOutputMode(parsed: ParsedArgs): OutputMode {
 
   if (format !== undefined) {
     if (!OUTPUT_FORMATS.has(format)) {
-      throw new Error("--format must be one of: text, json, markdown, github.");
+      throw new Error("--format must be one of: text, json, markdown, github, azure.");
     }
     if (jsonFlag && format !== "json") {
       throw new Error("--json cannot be combined with a non-json --format.");
@@ -447,7 +448,8 @@ async function main(): Promise<void> {
           {
             text: () => formatInstructionLintReport(report),
             markdown: () => formatInstructionLintReportMarkdown(report),
-            github: () => formatInstructionLintReportGithub(report)
+            github: () => formatInstructionLintReportGithub(report),
+            azure: () => formatInstructionLintReportAzure(report)
           },
           outputMode
         );

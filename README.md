@@ -45,7 +45,7 @@ tokn instructions-lint ./fixtures/instructions/valid-repo
 - discovers repository instruction files using supported presets
 - lints overlap, duplication, vague wording, stale scope patterns, and surface-specific limits
 - estimates instruction-context pressure with compactness and token-budget checks
-- emits deterministic text, JSON, Markdown, and GitHub-annotation output for CI, PR comments, editor tooling, and demos
+- emits deterministic text, JSON, Markdown, GitHub Actions, and Azure Pipelines output for CI, PR comments, editor tooling, and demos
 - runs locally on repository files without requiring network access during analysis
 - stays read-only so it can fit conservative enterprise workflows
 
@@ -69,7 +69,7 @@ Reference documentation for the stable lint surface lives in [docs/instructions-
 
 Tokn is in public alpha.
 
-- stable public surface: `instructions-lint`, instruction lint report types, stable rule IDs, and deterministic text/json/markdown/github lint output
+- stable public surface: `instructions-lint`, instruction lint report types, stable rule IDs, and deterministic text/json/markdown/github/azure lint output
 - stable preset: `copilot`
 - supported preset: `agents-md`
 - experimental diagnostics surface: `inspect`, `diff`, `budget`, `agent-report`, and `check`
@@ -94,6 +94,7 @@ tokn instructions-lint ./fixtures/instructions/agents-repo --preset agents-md
 tokn instructions-lint ./fixtures/instructions/invalid-repo --format markdown
 tokn instructions-lint ./fixtures/instructions/invalid-repo --format json
 tokn instructions-lint ./fixtures/instructions/invalid-repo --format github
+tokn instructions-lint ./fixtures/instructions/invalid-repo --format azure
 ```
 
 Stable inputs:
@@ -135,7 +136,7 @@ They normalize OpenAI-style payloads, OpenAI-compatible request logs, OpenAI Res
 Stable command:
 
 ```bash
-tokn instructions-lint <path> [--config <file>] [--baseline <file>] [--ignore <glob>] [--preset <auto|copilot|agents-md>] [--profile <lite|standard|strict>] [--surface <code-review|chat|coding-agent>] [--model <id>] [--fail-on-severity <warning|error>] [--format <text|json|markdown|github>]
+tokn instructions-lint <path> [--config <file>] [--baseline <file>] [--ignore <glob>] [--preset <auto|copilot|agents-md>] [--profile <lite|standard|strict>] [--surface <code-review|chat|coding-agent>] [--model <id>] [--fail-on-severity <warning|error>] [--format <text|json|markdown|github|azure>]
 ```
 
 Experimental diagnostics:

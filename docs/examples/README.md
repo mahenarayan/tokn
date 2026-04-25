@@ -16,6 +16,8 @@ The examples use `node dist/cli.js` so they work without `npm link` or npm publi
 - [Copilot Instructions Lint](https://github.com/mahenarayan/tokn/blob/main/docs/examples/copilot-instructions-lint.md)
 - [AGENTS.md Instructions Lint](https://github.com/mahenarayan/tokn/blob/main/docs/examples/agents-instructions-lint.md)
 - [Instructions Lint Demo Commands](https://github.com/mahenarayan/tokn/blob/main/docs/examples/instructions-lint-demo-commands.md)
+- [Azure DevOps Instructions Lint](https://github.com/mahenarayan/tokn/blob/main/docs/examples/azure-devops-instructions-lint.md)
+- [OpenAI Agents Python Instructions Case Study](https://github.com/mahenarayan/tokn/blob/main/docs/examples/openai-agents-instructions-case-study.md)
 - [CI Gate Usage](https://github.com/mahenarayan/tokn/blob/main/docs/examples/ci-gate.md)
 
 Experimental diagnostics examples:

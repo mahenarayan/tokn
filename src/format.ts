@@ -199,6 +199,19 @@ function escapeGithubProperty(value: string): string {
   return escapeGithubCommandData(value).replace(/:/g, "%3A").replace(/,/g, "%2C");
 }
 
+function escapeAzureProperty(value: string): string {
+  return value
+    .replace(/%/g, "%25")
+    .replace(/\r/g, " ")
+    .replace(/\n/g, " ")
+    .replace(/]/g, "%5D")
+    .replace(/;/g, "%3B");
+}
+
+function escapeAzureMessage(value: string): string {
+  return value.replace(/\r?\n/g, " ").replace(/]/g, "%5D");
+}
+
 export function formatInspectReport(report: ContextReport): string {
   const lines = [
     `Source: ${report.sourceType}`,
@@ -715,6 +728,39 @@ export function formatInstructionLintReportGithub(report: InstructionLintReport)
       `files=${report.stats.totalFiles} findings=${report.findings.length} errors=${report.stats.errorCount} warnings=${report.stats.warningCount}`
     )}`
   );
+
+  return lines.join("\n");
+}
+
+export function formatInstructionLintReportAzure(report: InstructionLintReport): string {
+  const lines: string[] = [];
+
+  for (const finding of report.findings) {
+    const level = finding.severity === "error" ? "error" : "warning";
+    const evidenceParts = finding.evidence
+      ? formatInstructionFindingEvidenceParts(finding.evidence)
+      : [];
+    const messageParts = [`[${finding.ruleId}] ${finding.message}`];
+    if (finding.suggestion) {
+      messageParts.push(`Suggestion: ${finding.suggestion}`);
+    }
+    if (evidenceParts.length > 0) {
+      messageParts.push(`Evidence: ${evidenceParts.join(" | ")}`);
+    }
+
+    lines.push(
+      `##vso[task.logissue type=${level};sourcepath=${escapeAzureProperty(finding.file)};linenumber=${finding.line};code=${escapeAzureProperty(finding.ruleId)};]${escapeAzureMessage(messageParts.join(" "))}`
+    );
+  }
+
+  const summary = `Tokn instructions-lint ${report.passed ? "passed" : "found issues"}: files=${report.stats.totalFiles} findings=${report.findings.length} errors=${report.stats.errorCount} warnings=${report.stats.warningCount}`;
+  if (report.passed) {
+    lines.push(summary);
+  } else {
+    lines.push(
+      `##vso[task.logissue type=error;code=tokn-instructions-lint-summary;]${escapeAzureMessage(summary)}`
+    );
+  }
 
   return lines.join("\n");
 }
