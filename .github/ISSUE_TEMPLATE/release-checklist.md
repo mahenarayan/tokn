@@ -22,7 +22,7 @@ assignees: ""
 ## Package And Docs
 
 - [ ] `CHANGELOG.md` is updated
-- [ ] public-facing docs changed with the release are updated
+- [ ] public docs changed with the release are updated
 - [ ] stable vs experimental scope is still accurately described
 - [ ] package contents were reviewed and remain lean
 
@@ -38,9 +38,9 @@ assignees: ""
 - [ ] GitHub Release notes are drafted
 - [ ] GitHub Release is published
 - [ ] npm package published with provenance
-- [ ] published install path is spot-checked
+- [ ] published install path is checked
 
-## Follow-Up
+## Follow Up
 
 - [ ] release announcement or demo notes updated if needed
-- [ ] next milestone or follow-up issue is tracked
+- [ ] next milestone or follow up issue is tracked

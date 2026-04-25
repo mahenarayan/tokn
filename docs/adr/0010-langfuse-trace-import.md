@@ -13,19 +13,19 @@ Tokn needs to support this shape directly without introducing a separate hosted 
 
 ## Decision
 
-Support Langfuse full trace payloads from `GET /api/public/traces/{traceId}` as a first-class trace adapter.
+Support Langfuse full trace payloads from `GET /api/public/traces/{traceId}` as a core trace adapter.
 
 The importer will:
 
 - prefer `AGENT` observations as explicit agent boundaries
 - fall back to root observations when no `AGENT` observations exist
-- extract prompt-bearing input from `GENERATION` observations
-- map `TOOL` and `RETRIEVER` observations into normalized external-context segments
-- remain conservative when generation token totals and external-context observations would otherwise double count
+- extract prompt bearing input from `GENERATION` observations
+- map `TOOL` and `RETRIEVER` observations into normalized external context segments
+- remain conservative when generation token totals and external context observations would otherwise double count
 
 ## Consequences
 
 - Tokn can analyze another real trace ecosystem without forcing manual conversion
-- the trace-import model becomes multi-adapter rather than OpenInference-only
+- the trace import model supports multiple adapters rather than only OpenInference
 - trace summaries remain normalized through the existing `ContextReport` and `AgentSummary` contracts
-- Langfuse traces with partial or ID-only observations still require the full trace endpoint for analysis
+- Langfuse traces with partial or ID only observations still require the full trace endpoint for analysis

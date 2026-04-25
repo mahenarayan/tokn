@@ -52,7 +52,7 @@ Create or update an ADR when the change alters a lasting decision about:
 - CLI or JSON contract
 - testing strategy
 - architecture boundaries
-- production/read-only scope
+- production scope and file mutation boundaries
 - trace import model
 
 Use `docs/templates/adr-template.md`.
@@ -71,7 +71,7 @@ Expected loop:
 
 ## Default Documentation Outputs
 
-Most non-trivial work should update at least one of:
+Most substantial work should update at least one of:
 
 - `docs/architecture.md`
 - `docs/spec-driven-development.md`

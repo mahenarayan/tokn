@@ -3,12 +3,12 @@
 ## Problem
 
 Tokn has a functioning codebase, but external adoption requires more than working code.
-Open-source users need a clear support contract, contributor flow, packaging hygiene, and stable project boundaries.
+Open source users need a clear support contract, contributor flow, packaging hygiene, and stable project boundaries.
 
 ## Goals
 
 - make the repository legible to external contributors
-- define the public-alpha support posture
+- define the public alpha support posture
 - verify the npm package contents and installability path
 - harden public CI and publishing for a lean supply chain
 - document how the project is intended to evolve without expanding scope casually
@@ -20,7 +20,7 @@ Open-source users need a clear support contract, contributor flow, packaging hyg
 - license and changelog
 - package metadata for public consumption
 - CI checks for package verification
-- dependency and code-scanning workflows
+- dependency and code scanning workflows
 - secure npm publishing workflow and release guide
 - explicit status messaging in the README
 
@@ -52,7 +52,7 @@ Open-source users need a clear support contract, contributor flow, packaging hyg
 - the repository has a clear license and disclosure path
 - package metadata points to the source repository and issue tracker
 - CI verifies both tests and package creation
-- the public release path avoids long-lived npm publish tokens
+- the public release path avoids long lived npm publish tokens
 - workflow permissions and action pinning are explicit in version control
 
 ## Verification

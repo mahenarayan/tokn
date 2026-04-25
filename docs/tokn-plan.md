@@ -3,7 +3,7 @@
 ## Summary
 
 Build `Tokn`, a TypeScript/Node CLI + SDK for context visibility in LLM systems.
-Its v1 purpose is read-only inspection:
+Its v1 purpose is inspection without file mutation:
 
 - explain what occupies a prompt/context window
 - show token usage by segment
@@ -52,11 +52,11 @@ Each segment should include:
 
 Support these first:
 
-- OpenAI-style request payloads
-- Anthropic messages payloads
-- generic OpenAI-compatible JSON
+- OpenAI style request payloads
+- Anthropic message payloads
+- generic OpenAI compatible JSON
 - offline conversation/transcript JSON
-- optional multi-agent snapshots or trace exports
+- optional multi agent snapshots or trace exports
 
 Counting strategy:
 
@@ -85,7 +85,7 @@ SDK responsibilities:
 
 ### Agent visibility
 
-Treat remote agents as read-only entities in v1.
+Treat remote agents as observed entities in v1.
 Import per-agent state from traces or structured JSON snapshots with:
 
 - agent id
@@ -109,7 +109,7 @@ Validate:
 - correct attribution for tools, retrieved chunks, and attachments
 - diff reports that identify which segment caused context growth
 - headroom calculations with reserved output budget
-- multi-agent reports that separate and group agents correctly
+- reports for multiple agents that separate and group agents correctly
 - clear diagnostics for unsupported payload shapes
 
 Acceptance criteria:
@@ -118,7 +118,7 @@ Acceptance criteria:
 - the output clearly labels exact versus estimated counts
 - `tokn diff` explains where context changed between two turns
 - `tokn budget` reports remaining room and risk level for a model
-- `tokn agent-report` summarizes context pressure for at least one imported multi-agent trace format
+- `tokn agent-report` summarizes context pressure for at least one imported trace format with multiple agents
 
 ## Assumptions
 
@@ -126,5 +126,5 @@ Acceptance criteria:
 - v1 is CLI + SDK, not a hosted dashboard
 - v1 prefers passive adapters over a mandatory proxy
 - v1 focuses on prompt composition reports rather than automated optimization
-- v1 agent support is read-only visibility, not steering or policy enforcement
-- open-source plain-English discoverability will come from the tagline and docs, not the product name alone
+- v1 agent support is visibility, not steering or policy enforcement
+- open source plain English discoverability will come from the tagline and docs, not the product name alone

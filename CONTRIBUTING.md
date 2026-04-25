@@ -5,9 +5,9 @@
 Tokn should stay small, explicit, and trustworthy.
 New work has to preserve three properties:
 
-- a lint-first public product boundary
-- read-only behavior
-- fixture-backed, regression-safe behavior
+- a lint focused public product boundary
+- behavior that does not modify files
+- fixture based behavior that protects regressions
 
 ## Before You Start
 
@@ -21,7 +21,7 @@ Read:
 
 ## Development Workflow
 
-1. start from a spec for non-trivial work
+1. start from a spec for substantial work
 2. add or update fixtures before trusting a provider shape
 3. add or update tests
 4. implement one behavioral change at a time
@@ -47,7 +47,7 @@ npm run pack:check
 - tests or fixture updates for the affected path
 - doc updates if the public surface changed
 
-For architecture or public-contract changes:
+For architecture or public contract changes:
 
 - add or update a spec under `docs/specs/`
 - add or update an ADR under `docs/adr/` when the decision is lasting
@@ -58,7 +58,7 @@ Stable surface contributions usually fit one of these:
 
 - instruction discovery and parsing
 - instruction lint rules and evidence
-- report formatting and machine-readable output
+- report formatting and structured output
 - CI and release hardening for the published package
 - realistic instruction fixtures and golden coverage
 
@@ -79,12 +79,12 @@ Changes that need explicit discussion first:
 - incompatible changes to report shapes or CLI behavior
 - expanding the stable surface beyond `instructions-lint` without an ADR
 
-Workflow changes should preserve the current supply-chain posture:
+Workflow changes should preserve the current supply chain posture:
 
 - pin GitHub Actions to full SHAs
-- keep workflow permissions least-privilege
-- avoid long-lived publish tokens when GitHub OIDC trusted publishing can be used
-- keep the published npm tarball limited to runtime artifacts and public-facing support files
+- keep workflow permissions least privilege
+- avoid long lived publish tokens when GitHub OIDC trusted publishing can be used
+- keep the published npm tarball limited to runtime artifacts and public support files
 
 ## Reporting Bugs
 

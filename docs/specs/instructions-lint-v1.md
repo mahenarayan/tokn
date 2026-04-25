@@ -10,7 +10,7 @@ Teams need a deterministic way to catch:
 - invalid instruction file layout
 - stale or over-broad `applyTo` scopes
 - duplicate or conflicting rules across overlapping files
-- verbose wording that wastes always-on context
+- verbose wording that wastes always on context
 
 ## Goals
 
@@ -18,7 +18,7 @@ Teams need a deterministic way to catch:
 - support repository instruction presets through one deterministic lint engine
 - ship GitHub Copilot as the stable preset
 - support `AGENTS.md` as a second preset without forking the core engine
-- keep the product read-only and deterministic
+- keep the product deterministic and avoid file rewrites
 - support text, JSON, and markdown output
 - expose a stable SDK report shape for editor or CI tooling
 
@@ -111,9 +111,9 @@ Human-readable output should include:
 - add a dedicated instruction-lint subsystem under `src/instructions/`
 - keep `ContextReport` unchanged and introduce a separate instruction-lint report family
 - add preset-aware discovery and file classification
-- parse Copilot path-specific frontmatter and require `applyTo`
+- parse Copilot path specific frontmatter and require `applyTo`
 - treat nested `AGENTS.md` files as directory-scoped instruction files
-- honor `excludeAgent` for surface-specific evaluation
+- honor `excludeAgent` for evaluation by surface
 - resolve scoped matches against real repository files using preset-specific matching
 - add deterministic rule packs for:
   - file-path validity
@@ -130,26 +130,26 @@ Human-readable output should include:
 Profile budgets in v1:
 
 - `lite`
-  - repo-wide chars: 2500
-  - path-specific chars: 1500
-  - repo-wide estimated tokens: 600
-  - path-specific estimated tokens: 375
+  - repository chars: 2500
+  - path specific chars: 1500
+  - repository estimated tokens: 600
+  - path specific estimated tokens: 375
   - max applicable tokens per target: 900
   - statements per file: 20
   - words per statement: 50
 - `standard`
-  - repo-wide chars: 1500
-  - path-specific chars: 900
-  - repo-wide estimated tokens: 375
-  - path-specific estimated tokens: 225
+  - repository chars: 1500
+  - path specific chars: 900
+  - repository estimated tokens: 375
+  - path specific estimated tokens: 225
   - max applicable tokens per target: 600
   - statements per file: 12
   - words per statement: 30
 - `strict`
-  - repo-wide chars: 900
-  - path-specific chars: 600
-  - repo-wide estimated tokens: 225
-  - path-specific estimated tokens: 150
+  - repository chars: 900
+  - path specific chars: 600
+  - repository estimated tokens: 225
+  - path specific estimated tokens: 150
   - max applicable tokens per target: 350
   - statements per file: 8
   - words per statement: 20
@@ -159,7 +159,7 @@ Profile budgets in v1:
 - unsupported file paths should produce an error finding
 - `.instructions.md` files without valid frontmatter or `applyTo` should produce an error finding
 - `applyTo: "**"` should error when a repository-wide file exists
-- `excludeAgent` should suppress surface-specific findings when the file is inactive for the selected surface
+- `excludeAgent` should suppress findings for a surface when the file is inactive for that surface
 - nested `AGENTS.md` files should be treated as directory-scoped, not unsupported
 - no repository matches for `applyTo` should produce a warning, not a hard error
 - if no instruction files are found under a directory, return an empty passing report with a warning
@@ -170,7 +170,7 @@ Profile budgets in v1:
 ## Test Plan
 
 - unit tests for discovery, frontmatter parsing, scope resolution, duplicate detection, and conflict heuristics
-- fixture-backed tests for:
+- fixture based tests for:
   - valid repository
   - invalid filename
   - missing frontmatter
@@ -206,6 +206,6 @@ Profile budgets in v1:
 
 ## Related ADRs
 
-- [0004 Machine-Readable CLI Contract](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0004-machine-readable-cli-contract.md)
-- [0009 Multi-Format CLI Output](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0009-multi-format-cli-output.md)
+- [0004 Structured CLI Contract](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0004-machine-readable-cli-contract.md)
+- [0009 Multi Format CLI Output](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0009-multi-format-cli-output.md)
 - [0012 Separate Instruction Lint Report Family](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0012-separate-instruction-lint-report-family.md)

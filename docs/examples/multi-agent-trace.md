@@ -1,4 +1,4 @@
-# Multi-Agent Trace Inspection
+# Multi Agent Trace Inspection
 
 Use this when you have an exported agent trace and need to understand which agent or child step carried the most context.
 
@@ -22,7 +22,7 @@ What this demonstrates:
 
 Why it matters:
 
-In multi-agent systems, context pressure rarely comes from one flat prompt.
+In multi agent systems, context pressure rarely comes from one flat prompt.
 This workflow helps answer:
 
 - which agent carried the largest prompt
@@ -47,4 +47,4 @@ What this demonstrates:
 - Langfuse full trace import from the public trace endpoint shape
 - `AGENT` observations as agent boundaries
 - `GENERATION`, `TOOL`, and `RETRIEVER` observations mapped into normalized segments
-- conservative handling when generation token totals and external-context observations coexist
+- conservative handling when generation token totals and external context observations coexist

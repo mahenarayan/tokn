@@ -18,7 +18,7 @@ Describe the change at a behavior level.
 
 Explain how it stays aligned with:
 
-- read-only analysis
+- analysis that does not modify files
 - conservative correctness
 - context visibility for LLMs and agents
 

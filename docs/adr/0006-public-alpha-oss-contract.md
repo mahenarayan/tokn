@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-Tokn is moving from an internal engineering project toward public open-source usage.
+Tokn is moving from an internal engineering project toward public open source usage.
 That changes the bar for clarity and maintenance:
 
 - users need explicit project boundaries
@@ -17,10 +17,10 @@ That changes the bar for clarity and maintenance:
 
 Adopt a public alpha contract with these rules:
 
-- keep the product read-only in scope
-- treat JSON output and SDK types as the primary machine-facing contract
-- keep human-readable CLI output tested and reviewed, but intended first for people
-- require specs for non-trivial public-surface changes
+- keep the product focused on analysis, not file mutation
+- treat JSON output and SDK types as the primary contract for machines
+- keep CLI text output tested and reviewed, but intended first for people
+- require specs for substantial public surface changes
 - require package verification in CI in addition to test verification
 
 ## Consequences

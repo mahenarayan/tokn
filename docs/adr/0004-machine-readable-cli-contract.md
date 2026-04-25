@@ -1,4 +1,4 @@
-# ADR 0004: Machine-Readable CLI Contract
+# ADR 0004: Structured CLI Contract
 
 ## Status
 
@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-Text-only CLI output is useful for humans but weak for CI, editor integrations, automation, and downstream tooling.
+Text CLI output is useful for humans but weak for CI, editor integrations, automation, and downstream tooling.
 
 ## Decision
 

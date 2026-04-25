@@ -5,15 +5,15 @@ Suggestion Engine V1
 ## Problem
 
 Tokn can already explain what is present in context, but it still makes the engineer do the interpretation step manually.
-That limits day-one usefulness.
+That limits first adoption usefulness.
 
 The first suggestion engine should turn context reports into actionable diagnostics without mutating anything or pretending to optimize automatically.
 
 ## Goals
 
-- add deterministic, read-only suggestions to `ContextReport`
+- add deterministic suggestions to `ContextReport`
 - surface those suggestions in `inspect` and `agent-report`
-- make suggestions machine-consumable through JSON output
+- make suggestions easy to consume through JSON output
 - keep wording stable enough for tests and downstream tooling
 
 ## Non-Goals
@@ -21,7 +21,7 @@ The first suggestion engine should turn context reports into actionable diagnost
 - auto-remediation
 - runtime enforcement
 - probabilistic ranking or model-generated advice
-- provider-specific recommendation logic hidden in formatters
+- provider specific recommendation logic hidden in formatters
 - exhaustive prompt optimization strategy
 
 ## Inputs
@@ -79,7 +79,7 @@ For segment-heavy rules, compare against visible prompt composition rather than 
 ## Test Plan
 
 - add analyzer tests for positive and negative suggestion cases
-- add fixture-backed tests for a high-pressure payload
+- add fixture based tests for a high pressure payload
 - add CLI tests showing suggestions in `inspect`
 - add CLI tests showing per-agent suggestions in `agent-report`
 - add golden files for new suggestion-bearing text output
@@ -97,6 +97,6 @@ For segment-heavy rules, compare against visible prompt composition rather than 
 
 ## Related ADRs
 
-- [0001 Read-Only Analysis Boundary](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0001-read-only-analysis-boundary.md)
-- [0004 Machine-Readable CLI Contract](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0004-machine-readable-cli-contract.md)
+- [0001 File Mutation Boundary](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0001-read-only-analysis-boundary.md)
+- [0004 Structured CLI Contract](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0004-machine-readable-cli-contract.md)
 - [0006 Public Alpha OSS Contract](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0006-public-alpha-oss-contract.md)

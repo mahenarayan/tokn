@@ -2,21 +2,21 @@
 
 `instructions-lint` is the stable public Tokn command in public alpha.
 
-It is a read-only linter for repository instruction files. Today it supports the `copilot` preset for `.github/copilot-instructions.md` and `.github/instructions/*.instructions.md`, plus the `agents-md` preset for root or nested `AGENTS.md` files.
+It is a local linter for repository instruction files. Today it supports the `copilot` preset for `.github/copilot-instructions.md` and `.github/instructions/*.instructions.md`, plus the `agents-md` preset for root or nested `AGENTS.md` files.
 
 ## Why Lint First
 
 Instruction files are part of the context supply chain for coding assistants and coding agents. They are easy to review as prose and hard to reason about as repeated model input.
 
-`instructions-lint` gives teams a low-risk starting point for context engineering:
+`instructions-lint` gives teams a practical starting point for context engineering:
 
-- measure always-on instruction load before it becomes invisible context pressure
+- measure always on instruction load before it becomes invisible context pressure
 - find duplicated or conflicting guidance across scoped instruction files
 - catch stale path scopes before instructions silently stop applying
-- separate platform-specific limits from general context-budget pressure
+- separate limits that vary by platform from general context budget pressure
 - create baselines so teams can improve instruction quality over time without blocking every existing issue on day one
 
-Advanced prompt and trace diagnostics build on the same idea, but linting is the first place most teams can adopt this safely because it is offline, read-only, and CI-friendly.
+Advanced prompt and trace diagnostics build on the same idea, but linting is the first place most teams can adopt this safely because it runs locally, avoids file rewrites, and fits CI.
 
 ## Stable Contract
 
@@ -106,7 +106,7 @@ Example workflow step:
   run: npx @tokn-labs/tokn instructions-lint . --format github --fail-on-severity warning
 ```
 
-If you want machine-readable output instead, use `--format json` and archive the report as a workflow artifact.
+If you want structured output instead, use `--format json` and archive the report as a workflow artifact.
 
 ## Azure DevOps Integration
 
@@ -135,7 +135,7 @@ steps:
     displayName: Lint repository instructions
 ```
 
-Rollout-friendly Azure Pipelines example:
+Azure Pipelines rollout example:
 
 ```yaml
 steps:
@@ -163,7 +163,7 @@ steps:
       artifact: tokn-instructions-lint
 ```
 
-For locked-down enterprise agents, install `@tokn-labs/tokn` from an approved internal npm mirror and call the installed `tokn` binary. Tokn itself only reads local repository files during analysis.
+For restricted enterprise agents, install `@tokn-labs/tokn` from an approved internal npm mirror and call the installed `tokn` binary. Tokn itself only reads local repository files during analysis.
 
 ## Support Matrix
 
@@ -179,15 +179,15 @@ For locked-down enterprise agents, install `@tokn-labs/tokn` from an approved in
 
 | Surface | Status | Notes |
 | --- | --- | --- |
-| `code-review` | stable | applies the Copilot 4000-character limit |
-| `chat` | stable | skips the code-review-only file cap |
-| `coding-agent` | stable | respects `excludeAgent: "coding-agent"` on Copilot path-specific files |
+| `code-review` | stable | applies the Copilot 4000 character limit |
+| `chat` | stable | skips the code review only file cap |
+| `coding-agent` | stable | respects `excludeAgent: "coding-agent"` on Copilot path specific files |
 
 ### Output formats
 
 | Format | Status | Purpose |
 | --- | --- | --- |
-| `text` | stable | local use and terminal-first workflows |
+| `text` | stable | local use and terminal workflows |
 | `json` | stable | CI artifacts, editor tooling, and baselines |
 | `markdown` | stable | PR comments, issue comments, and human review |
 | `github` | stable | GitHub Actions annotations |
@@ -198,17 +198,17 @@ For locked-down enterprise agents, install `@tokn-labs/tokn` from an approved in
 | Rule ID | Default severity | Category | Applies to |
 | --- | --- | --- | --- |
 | `invalid-file-path` | error | compatibility | unsupported paths across all presets |
-| `malformed-frontmatter` | error | compatibility | Copilot path-specific files |
-| `missing-frontmatter` | error | compatibility | Copilot path-specific files |
-| `missing-applyto` | error | compatibility | Copilot path-specific files |
-| `invalid-exclude-agent` | error | compatibility | Copilot path-specific files |
-| `global-applyto-overlap` | error | compatibility | Copilot path-specific files |
-| `stale-applyto` | warning | compatibility | Copilot path-specific files |
+| `malformed-frontmatter` | error | compatibility | Copilot path specific files |
+| `missing-frontmatter` | error | compatibility | Copilot path specific files |
+| `missing-applyto` | error | compatibility | Copilot path specific files |
+| `invalid-exclude-agent` | error | compatibility | Copilot path specific files |
+| `global-applyto-overlap` | error | compatibility | Copilot path specific files |
+| `stale-applyto` | warning | compatibility | Copilot path specific files |
 | `file-char-limit` | error | compatibility | Copilot `code-review` surface only |
-| `repository-char-budget` | warning | economy | repository-scoped files |
-| `repository-token-budget` | warning | economy | repository-scoped files |
-| `path-specific-char-budget` | warning | economy | path-specific files |
-| `path-specific-token-budget` | warning | economy | path-specific files |
+| `repository-char-budget` | warning | economy | repository scoped files |
+| `repository-token-budget` | warning | economy | repository scoped files |
+| `path-specific-char-budget` | warning | economy | path specific files |
+| `path-specific-token-budget` | warning | economy | path specific files |
 | `statement-count-budget` | warning | economy | all supported presets |
 | `order-dependent-wording` | error | compatibility | all supported presets |
 | `statement-too-long` | warning | clarity | all supported presets |
@@ -216,14 +216,14 @@ For locked-down enterprise agents, install `@tokn-labs/tokn` from an approved in
 | `vague-instruction` | warning | clarity | all supported presets |
 | `paragraph-narrative` | warning | clarity | all supported presets |
 | `oversized-code-example` | warning | economy | all supported presets |
-| `repo-wide-scoped-topics` | warning | economy | repository-scoped files |
+| `repo-wide-scoped-topics` | warning | economy | repository scoped files |
 | `exact-duplicate-statement` | warning | economy | overlapping supported files |
 | `possible-conflict` | warning | economy | overlapping supported files |
 | `high-similarity-statement` | warning | economy | overlapping supported files |
-| `applicable-token-budget` | warning | economy | effective per-target instruction bundles |
+| `applicable-token-budget` | warning | economy | effective per target instruction bundles |
 
 ## Scope Notes
 
-- `instructions-lint` is intentionally read-only.
+- `instructions-lint` does not modify files.
 - Tokn does not rewrite instructions or generate fixes in the stable surface.
 - Advanced prompt and trace diagnostics remain experimental and are not part of this contract yet.

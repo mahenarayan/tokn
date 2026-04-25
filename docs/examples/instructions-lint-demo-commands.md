@@ -2,7 +2,7 @@
 
 Use this when you want a polished live demo flow for `instructions-lint` across both local fixtures and real public repositories.
 
-## One-Command Runner
+## One Command Runner
 
 Run the ready-made demo file from the repository root:
 
@@ -36,13 +36,13 @@ Use the local suite first:
 
 - baseline pass
 - invalid fixture with structured evidence
-- coding-agent surface with model-aware token share
-- markdown output for PR-style review
+- coding-agent surface with model aware token share
+- markdown output for PR style review
 
 Then switch to the public suite:
 
-- repo-wide instruction examples
-- path-specific instruction examples
+- repository level instruction examples
+- path specific instruction examples
 - multiple surfaces
 - both text and markdown output
 

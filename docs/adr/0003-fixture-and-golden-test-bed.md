@@ -20,7 +20,7 @@ Unit tests alone do not protect those surfaces well enough.
 Use a layered test bed:
 
 - analyzer tests for focused logic
-- fixture-backed tests for realistic payload shapes
+- fixture based tests for realistic payload shapes
 - CLI integration tests for command paths
 - golden tests for stable text output
 

@@ -5,21 +5,21 @@ Example Gallery V1
 ## Problem
 
 Tokn now has enough surface area to be useful, but the repo still expects a new user to infer adoption paths from commands and fixtures.
-That is too much work for a public-alpha OSS tool.
+That is too much work for a public alpha OSS tool.
 
 To get actual field usage, the repo needs a small example gallery that shows realistic workflows engineers can copy, run, and adapt:
 
 - provider payload debugging
 - prompt growth analysis
-- dominant-segment diagnosis
-- multi-agent trace inspection
+- dominant segment diagnosis
+- multi agent trace inspection
 - CI gating
 
 ## Goals
 
 - add an example gallery under `docs/examples/`
 - keep every example executable from the repo root
-- tie each example to a checked-in fixture and a real CLI command
+- tie each example to a checked in fixture and a real CLI command
 - cover at least five realistic adoption paths
 - make the gallery discoverable from `README.md` and contributor guidance
 
@@ -60,14 +60,14 @@ Add:
 - provider payload example
 - prompt budget regression example
 - oversized tool schema example
-- retrieval-heavy request example
-- multi-agent trace example
+- retrieval heavy request example
+- multi agent trace example
 - CI gate example
 
 ## Internal Changes
 
-- add `docs/examples/` as a first-class documentation area
-- keep examples short, copy-pastable, and fixture-backed
+- add `docs/examples/` as a core documentation area
+- keep examples short, easy to copy, and backed by fixtures
 - prefer explaining the investigative question for each example over restating CLI flags
 - link the gallery from `README.md`
 - mention the gallery in `INSTRUCTIONS.md` so future docs changes preserve the pattern
@@ -105,5 +105,5 @@ Add:
 
 - [0003 Fixture And Golden Test Bed](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0003-fixture-and-golden-test-bed.md)
 - [0006 Public Alpha OSS Contract](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0006-public-alpha-oss-contract.md)
-- [0008 Threshold-Based Check Command](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0008-threshold-based-check-command.md)
-- [0009 Multi-Format CLI Output](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0009-multi-format-cli-output.md)
+- [0008 Threshold Based Check Command](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0008-threshold-based-check-command.md)
+- [0009 Multi Format CLI Output](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0009-multi-format-cli-output.md)

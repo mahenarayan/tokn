@@ -1,4 +1,4 @@
-# ADR 0008: Threshold-Based Check Command
+# ADR 0008: Threshold Based Check Command
 
 ## Status
 
@@ -6,12 +6,12 @@ Accepted
 
 ## Context
 
-Tokn needs a CI-friendly surface that turns report data into a pass/fail outcome.
+Tokn needs a CI surface that turns report data into a pass/fail outcome.
 The key design question is where this logic belongs.
 
 ## Decision
 
-Implement `tokn check` as a dedicated threshold-evaluation module layered on top of `ContextReport`.
+Implement `tokn check` as a dedicated threshold evaluation module layered on top of `ContextReport`.
 
 The analyzer remains responsible for normalization and report construction.
 The check module consumes those reports and evaluates deterministic thresholds.

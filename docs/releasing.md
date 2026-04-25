@@ -9,11 +9,11 @@ Before the first public launch:
 
 1. Publish the npm package `@tokn-labs/tokn` and verify the intended maintainers.
 2. Configure npm trusted publishing for this repository and the `release.yml` workflow.
-3. Require npm 2FA for maintainer accounts and disable token-based publishing if possible.
+3. Require npm 2FA for maintainer accounts and disable token based publishing if possible.
 4. Make the repository public so provenance, scorecards, and code scanning are visible.
 5. Enable branch protection or rulesets on `main` and require the CI, Dependency Review, and CodeQL workflows.
 
-Track the one-time launch work in [docs/public-launch-checklist.md](https://github.com/mahenarayan/tokn/blob/main/docs/public-launch-checklist.md) or from the issue template at [.github/ISSUE_TEMPLATE/public-launch-checklist.md](https://github.com/mahenarayan/tokn/blob/main/.github/ISSUE_TEMPLATE/public-launch-checklist.md).
+Track the one time launch work in [docs/public-launch-checklist.md](https://github.com/mahenarayan/tokn/blob/main/docs/public-launch-checklist.md) or from the issue template at [.github/ISSUE_TEMPLATE/public-launch-checklist.md](https://github.com/mahenarayan/tokn/blob/main/.github/ISSUE_TEMPLATE/public-launch-checklist.md).
 
 ## Release Workflow
 
@@ -42,16 +42,16 @@ npm run smoke
 npm run pack:check
 ```
 
-## Supply-Chain Posture
+## Supply Chain Posture
 
 The public repository baseline is:
 
 - GitHub Actions pinned to full commit SHAs
-- least-privilege workflow permissions
+- least privilege workflow permissions
 - dependency review on pull requests
 - CodeQL scanning on pull requests, pushes, and a schedule
 - OSSF Scorecards on the default branch and on a schedule
-- npm trusted publishing instead of long-lived publish tokens
+- npm trusted publishing instead of long lived publish tokens
 - a lean published tarball that contains runtime artifacts plus public support metadata only
 
 ## Notes

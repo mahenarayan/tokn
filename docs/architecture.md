@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Tokn is a read-only analysis system for LLM context visibility and Copilot instruction quality.
+Tokn analyzes LLM context visibility and instruction quality without modifying files.
 It ingests heterogeneous payloads and traces, normalizes them into a single internal model for prompt analysis, computes token and budget metadata, and exposes the result through a CLI and SDK. It also includes a dedicated instruction-lint subsystem for GitHub Copilot instruction files.
 
 The architecture should optimize for:
@@ -11,7 +11,7 @@ The architecture should optimize for:
 - conservative correctness
 - adapter extensibility
 - deterministic output
-- test-bed-first change safety
+- change safety through fixtures and tests
 
 ## System Overview
 
@@ -52,7 +52,7 @@ flowchart LR
   Changes here are architectural, not incidental.
 
 - `src/models.ts`
-  Local model registry for context-window and reserved-output defaults.
+  Local model registry for context window and reserved output defaults.
 
 - `src/tokenizer.ts`
   Conservative token estimation helpers.
@@ -68,7 +68,7 @@ flowchart LR
 
 - `src/test/`
   Regression safety net.
-  Tests are a first-class part of the architecture because output and adapter behavior are core product surface.
+  Tests are a core part of the architecture because output and adapter behavior are product surface.
 
 ## Core Internal Model
 
@@ -78,7 +78,7 @@ The prompt-analysis architecture is centered on two types:
 - `ContextReport`
 
 `ContextSegment` is the atomic unit of prompt occupancy.
-Every adapter should map provider-specific structures into segment types rather than inventing new ad hoc render-time behavior.
+Every adapter should map provider specific structures into segment types rather than inventing new ad hoc render behavior.
 
 `ContextReport` is the normalized result:
 
@@ -106,19 +106,19 @@ Instruction linting uses a separate report family because the source objects are
 
 Current architecture supports:
 
-- OpenAI-style message payloads
-- OpenAI Responses-style payloads
+- OpenAI style message payloads
+- OpenAI Responses style payloads
 - Anthropic structured message payloads
-- transcript-style offline conversations
+- transcript style offline conversations
 - handcrafted `agents[]` snapshots
-- OTLP/OpenInference-shaped trace exports
+- OTLP/OpenInference shaped trace exports
 - Langfuse full trace payloads
 
 All of these must converge into the same internal segment/report model.
 
 ## Architecture Rules
 
-- Keep the product read-only.
+- Keep the product from modifying user files.
 - Keep analyzer semantics in the analyzer layer, never in formatters.
 - Prefer adding adapters over branching formatter or CLI behavior by provider.
 - Prefer conservative estimates over false precision.
@@ -153,7 +153,7 @@ New work should usually fit one of these extension points:
 - add a new instruction-lint rule or scope-matching improvement in `src/instructions/`
 - add a new presentation path that consumes existing report objects
 
-Avoid adding provider-specific behavior directly to:
+Avoid adding provider specific behavior directly to:
 
 - `src/cli.ts`
 - `src/format.ts`

@@ -7,7 +7,7 @@ Accepted
 ## Context
 
 Provider payloads and trace formats differ significantly.
-Without a shared internal model, the codebase would accumulate provider-specific branching in the CLI and formatter layers.
+Without a shared internal model, the codebase would accumulate provider specific branching in the CLI and formatter layers.
 
 ## Decision
 

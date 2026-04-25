@@ -6,13 +6,13 @@ Accepted
 
 ## Context
 
-The first traction-MVP feature is a read-only suggestion engine.
+The first traction MVP feature is a suggestion engine that does not modify input.
 There are two obvious implementation shapes:
 
 - a separate analysis endpoint
 - suggestions embedded in the existing normalized report
 
-Tokn already treats `ContextReport` as the core machine-facing contract.
+Tokn already treats `ContextReport` as the core contract for machines.
 
 ## Decision
 

@@ -17,7 +17,7 @@ What this demonstrates:
 
 - `tool_schema` segments are measured independently from user and assistant text
 - suggestions call out oversized tool declarations deterministically
-- `check` can turn that diagnosis into a CI-friendly failure
+- `check` can turn that diagnosis into a CI failure
 
 Why it matters:
 

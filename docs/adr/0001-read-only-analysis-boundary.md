@@ -1,4 +1,4 @@
-# ADR 0001: Read-Only Analysis Boundary
+# ADR 0001: File Mutation Boundary
 
 ## Status
 
@@ -11,7 +11,7 @@ It would be easy for the project to drift into runtime control, enforcement, or 
 
 ## Decision
 
-Keep Tokn read-only by default.
+Keep Tokn focused on analysis by default.
 
 It may inspect, summarize, estimate, and recommend.
 It should not enforce policies, mutate upstream conversations, or act as a mandatory gateway unless that scope is explicitly changed later.

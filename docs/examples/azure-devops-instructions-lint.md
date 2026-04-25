@@ -2,7 +2,7 @@
 
 This example shows how to start using Tokn in Azure DevOps Services without adding a custom extension.
 
-Tokn is read-only and offline during analysis. The pipeline needs network access only to install the package unless your organization mirrors `@tokn-labs/tokn` into an internal npm feed.
+Tokn does not modify files and runs offline during analysis. The pipeline needs network access only to install the package unless your organization mirrors `@tokn-labs/tokn` into an internal npm feed.
 
 ## Minimal Gate
 
@@ -110,11 +110,11 @@ The YAML uses standard Azure Pipelines pieces:
 Start with:
 
 - `profile: "standard"`
-- `surface: "coding-agent"` if agentic coding is the main concern
+- `surface: "coding-agent"` if coding agents are the main concern
 - `failOnSeverity: "warning"` only after the baseline is accepted
 
 Tighten later by:
 
 - removing suppressions as owners clean up legacy files
-- moving from `standard` to `strict` for high-signal instruction sets
-- adding `--model` when you want context-window share reporting in the JSON artifact
+- moving from `standard` to `strict` for stronger instruction sets
+- adding `--model` when you want context window share reporting in the JSON artifact

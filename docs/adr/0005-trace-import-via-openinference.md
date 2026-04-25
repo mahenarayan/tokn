@@ -16,7 +16,7 @@ Support OTLP-style trace envelopes with OpenInference-style attributes as the fi
 This importer should:
 
 - reconstruct agent hierarchy
-- extract prompt-bearing spans
+- extract prompt bearing spans
 - map retriever and tool spans into context segments
 - stay conservative when exact token totals and derived external context coexist
 

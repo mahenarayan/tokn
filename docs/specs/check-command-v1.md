@@ -4,13 +4,13 @@ Check Command V1
 
 ## Problem
 
-Tokn can inspect and explain context, but engineers still need a CI-friendly way to turn that analysis into a gate.
+Tokn can inspect and explain context, but engineers still need a CI path to turn that analysis into a gate.
 Without that, Tokn remains diagnostic but not operational.
 
 ## Goals
 
 - add a `check` command for threshold-based validation
-- keep the command read-only and deterministic
+- keep the command deterministic and avoid file rewrites
 - support both text and JSON output
 - provide non-zero exit codes on threshold violations
 - allow an optional baseline file for diff context
@@ -96,7 +96,7 @@ Exit behavior:
 - add CLI tests for pass/fail exit codes
 - add CLI tests for JSON output
 - add CLI tests for baseline summaries
-- add failure-path tests for unknown model and invalid threshold configuration
+- add failure path tests for unknown model and invalid threshold configuration
 - add golden files for passing and failing text output
 - run:
   - `npm run check`
@@ -105,15 +105,15 @@ Exit behavior:
 ## Acceptance Criteria
 
 - `tokn check` can fail on total tokens, usage percent, segment totals, and budget risk
-- text output is deterministic and golden-tested
-- JSON output is machine-consumable
+- text output is deterministic and covered by golden tests
+- JSON output is easy for scripts and CI to consume
 - threshold violations return exit code `2`
 - invalid invocation returns exit code `1`
 - baseline input enriches output with diff context
 
 ## Related ADRs
 
-- [0001 Read-Only Analysis Boundary](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0001-read-only-analysis-boundary.md)
-- [0004 Machine-Readable CLI Contract](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0004-machine-readable-cli-contract.md)
+- [0001 File Mutation Boundary](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0001-read-only-analysis-boundary.md)
+- [0004 Structured CLI Contract](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0004-machine-readable-cli-contract.md)
 - [0006 Public Alpha OSS Contract](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0006-public-alpha-oss-contract.md)
 - [0007 Suggestions Embedded In Context Reports](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0007-suggestions-in-context-report.md)

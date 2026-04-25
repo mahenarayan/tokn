@@ -1,4 +1,4 @@
-# ADR 0013: Lint-First Public Product Boundary
+# ADR 0013: Lint Focused Public Product Boundary
 
 ## Status
 
@@ -8,8 +8,8 @@ Accepted
 
 Tokn now contains two different kinds of value:
 
-- `instructions-lint`, which is deterministic, CI-friendly, repository-scoped, and easy to explain to enterprise engineering teams
-- broader prompt and trace diagnostics, which are useful but adapter-heavy, faster-moving, and less cohesive as a stable public promise
+- `instructions-lint`, which is deterministic, works in CI, is scoped to repositories, and is easy to explain to enterprise engineering teams
+- broader prompt and trace diagnostics, which are useful but adapter heavy, faster moving, and less cohesive as a stable public promise
 
 For public OSS adoption and enterprise demos, combining both under one undifferentiated product surface would create avoidable problems:
 
@@ -22,7 +22,7 @@ Splitting into separate repositories immediately would also be premature because
 
 ## Decision
 
-Keep one repository, but adopt a lint-first product boundary:
+Keep one repository, but adopt a lint focused product boundary:
 
 - `instructions-lint` is the stable primary public surface for Tokn
 - instruction lint report types and lint formatters are part of that stable surface
@@ -39,6 +39,6 @@ The expected next clean split would be:
 ## Consequences
 
 - README, CLI help, contribution guidance, and release docs must distinguish stable and experimental surfaces explicitly
-- supply-chain hardening can stay focused on a small public contract instead of an everything-tool story
+- supply chain hardening can stay focused on a small public contract instead of an everything tool story
 - diagnostics work can continue without expanding the enterprise support promise casually
-- future package extraction becomes a packaging decision, not a product-repositioning crisis
+- future package extraction becomes a packaging decision, not a product repositioning crisis

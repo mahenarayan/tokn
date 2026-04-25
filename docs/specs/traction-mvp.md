@@ -5,7 +5,7 @@ Traction MVP
 ## Problem
 
 Tokn has a credible technical core, but that alone will not create OSS traction.
-To get real usage in the field, Tokn needs a small set of capabilities that solve an obvious day-one problem for engineers:
+To get real usage in the field, Tokn needs a small set of capabilities that solve an obvious first adoption problem for engineers:
 
 - explain why context usage is bad
 - fail fast in CI when context regresses
@@ -18,8 +18,8 @@ Without that, Tokn risks becoming an interesting analyzer that engineers evaluat
 
 - make Tokn immediately useful for debugging one failing prompt or agent run
 - make Tokn useful in CI and code review, not only on a laptop
-- make Tokn work on a few real-world exported inputs that people already have
-- keep the scope read-only and local-first
+- make Tokn work on a few production exported inputs that people already have
+- keep the scope local and avoid file rewrites
 - defer npm publishing and release automation until after the MVP proves value
 
 ## Non-Goals
@@ -37,23 +37,23 @@ Without that, Tokn risks becoming an interesting analyzer that engineers evaluat
 MVP work should support these classes of inputs:
 
 - current supported payloads and traces
-- at least two additional real-world ecosystem export shapes beyond the current fixtures
+- at least two additional production ecosystem export shapes beyond the current fixtures
 - baseline and candidate reports for CI regression checks
 
 Candidate ecosystems should be chosen by practical adoption value, for example:
 
 - Langfuse exports
 - OpenInference/OpenTelemetry traces emitted by agent frameworks
-- common OpenAI-compatible runtime payloads and request logs
+- common OpenAI compatible runtime payloads and request logs
 - editor or runtime exports if they can be verified with real fixtures
 
 Deferred for now:
 
-- LiteLLM-specific adapter work is deferred as of March 31, 2026 following the March 24, 2026 supply-chain incident, and should not be treated as the next adapter milestone.
+- LiteLLM specific adapter work is deferred as of March 31, 2026 following the March 24, 2026 supply chain incident, and should not be treated as the next adapter milestone.
 
 ## Outputs
 
-The MVP should add these user-facing outputs:
+The MVP should add these user outputs:
 
 - suggestions embedded in `inspect` and `agent-report`
 - a new `check` command with machine-friendly exit behavior
@@ -64,7 +64,7 @@ The MVP should add these user-facing outputs:
 
 ### 1. Suggestion Engine
 
-Add deterministic, read-only recommendations based on:
+Add deterministic recommendations based on:
 
 - tool schema size
 - assistant history growth
@@ -127,7 +127,7 @@ Add practical examples and redacted sample inputs for:
 - prompt budget regression
 - oversized tool schema
 - retrieval-heavy request
-- failing multi-agent trace
+- failing multi agent trace
 - CI gate usage
 
 ## Edge Cases And Failure Behavior
@@ -141,11 +141,11 @@ Add practical examples and redacted sample inputs for:
 ## Test Plan
 
 - add analyzer tests for suggestion rules
-- add fixture-backed tests for real export adapters
+- add fixture based tests for real export adapters
 - add CLI tests for `check`
 - add CLI tests for markdown output
 - add golden files for any new text or markdown reports
-- add failure-path tests for unknown model and threshold handling
+- add failure path tests for unknown model and threshold handling
 - run:
   - `npm run check`
   - `npm run pack:check`
@@ -154,14 +154,14 @@ Add practical examples and redacted sample inputs for:
 
 - `inspect` and `agent-report` can surface actionable suggestions on high-pressure fixtures
 - `tokn check` can fail CI on token, usage, and risk thresholds
-- Tokn supports at least two additional real-world export shapes with fixture-backed coverage
-- markdown reports are usable in GitHub-native workflows
+- Tokn supports at least two additional real world export shapes with fixture based coverage
+- markdown reports are usable in GitHub workflows
 - docs show at least three realistic adoption paths
 - npm publishing remains deferred until these behaviors exist and are validated
 
 ## Related ADRs
 
-- [0001 Read-Only Analysis Boundary](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0001-read-only-analysis-boundary.md)
+- [0001 File Mutation Boundary](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0001-read-only-analysis-boundary.md)
 - [0003 Fixture And Golden Test Bed](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0003-fixture-and-golden-test-bed.md)
-- [0004 Machine-Readable CLI Contract](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0004-machine-readable-cli-contract.md)
+- [0004 Structured CLI Contract](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0004-machine-readable-cli-contract.md)
 - [0006 Public Alpha OSS Contract](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0006-public-alpha-oss-contract.md)

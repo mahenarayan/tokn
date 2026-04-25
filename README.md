@@ -7,9 +7,9 @@
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/mahenarayan/tokn/badge)](https://scorecard.dev/viewer/?uri=github.com/mahenarayan/tokn)
 [![Status: public alpha](https://img.shields.io/badge/status-public%20alpha-0a7ea4)](https://github.com/mahenarayan/tokn)
 
-Read-only instruction linting and governance for repository instruction files.
+Instruction linting and governance for repository instruction files.
 
-Tokn is a TypeScript CLI + SDK centered on `instructions-lint`: a read-only, preset-based linter for repository instruction files such as `.github/copilot-instructions.md`, `.github/instructions/*.instructions.md`, and `AGENTS.md`. It helps teams catch duplicated guidance, conflicting rules, vague wording, stale scope patterns, surface-specific limits, and instruction-context waste before those files spread across repositories and CI. Once installed, the core CLI runs on local files and is offline-capable.
+Tokn is a TypeScript CLI + SDK centered on `instructions-lint`: a local linter for repository instruction files such as `.github/copilot-instructions.md`, `.github/instructions/*.instructions.md`, and `AGENTS.md`. It helps teams catch duplicated guidance, conflicting rules, vague wording, stale scope patterns, limits that vary by surface, and wasted instruction context before those files spread across repositories and CI. Once installed, the core CLI runs on local files without network access during analysis.
 The npm package is published as `@tokn-labs/tokn`, while the installed CLI command remains `tokn`.
 
 Tokn is also working on advanced diagnostics for prompts, traces, and context composition through `inspect`, `diff`, `budget`, `agent-report`, and `check`. That diagnostics surface is experimental today and is not part of the primary public contract.
@@ -43,11 +43,11 @@ tokn instructions-lint ./fixtures/instructions/valid-repo
 ## What Tokn Does
 
 - discovers repository instruction files using supported presets
-- lints overlap, duplication, vague wording, stale scope patterns, and surface-specific limits
-- estimates instruction-context pressure with compactness and token-budget checks
+- lints overlap, duplication, vague wording, stale scope patterns, and limits that vary by surface
+- estimates instruction context pressure with compactness and token budget checks
 - emits deterministic text, JSON, Markdown, GitHub Actions, and Azure Pipelines output for CI, PR comments, editor tooling, and demos
 - runs locally on repository files without requiring network access during analysis
-- stays read-only so it can fit conservative enterprise workflows
+- does not modify files, so it can fit conservative enterprise workflows
 
 ## What Instruction Linting Means
 
@@ -73,7 +73,7 @@ Tokn is in public alpha.
 - stable preset: `copilot`
 - supported preset: `agents-md`
 - experimental diagnostics surface: `inspect`, `diff`, `budget`, `agent-report`, and `check`
-- read-only only
+- file analysis only; Tokn does not rewrite instruction files
 - intended for repository governance and engineering diagnostics, not runtime enforcement
 
 ## Stable Surface
@@ -122,14 +122,14 @@ These commands remain useful, but they are not the primary enterprise promise fo
 - `agent-report`
 - `check`
 
-They normalize OpenAI-style payloads, OpenAI-compatible request logs, OpenAI Responses-style payloads, Anthropic messages, transcripts, agent snapshots, OpenInference exports, and Langfuse full traces into a common context report. This diagnostics surface may move into a separate package once usage justifies a cleaner boundary.
+They normalize OpenAI style payloads, OpenAI compatible request logs, OpenAI Responses style payloads, Anthropic messages, transcripts, agent snapshots, OpenInference exports, and Langfuse full traces into a common context report. This diagnostics surface may move into a separate package once usage justifies a cleaner boundary.
 
 ## Current Limits
 
-- `instructions-lint` is preset-based today with `copilot` and `agents-md`
-- model context budgets are local registry data, so model-window reporting stays conservative
+- `instructions-lint` uses explicit presets today with `copilot` and `agents-md`
+- model context budgets are local registry data, so model context reporting stays conservative
 - prompt and trace diagnostics are still experimental and broader in scope than the stable lint contract
-- v1 is intentionally read-only
+- v1 intentionally avoids file rewrites
 
 ## Commands
 
@@ -154,13 +154,13 @@ tokn check <file> [--model <id>] [--max-usage-percent <n>] [--max-total-tokens <
 The public release posture is intentionally conservative:
 
 - GitHub Actions are pinned to full commit SHAs
-- CI uses least-privilege workflow permissions
+- CI uses least privilege workflow permissions
 - pull requests get dependency review and code scanning
 - public publishing is configured for npm trusted publishing and provenance
 - package verification stays part of the default verification loop
 
 See [docs/releasing.md](https://github.com/mahenarayan/tokn/blob/main/docs/releasing.md) for the release workflow and required repository setup.
-See [docs/public-launch-checklist.md](https://github.com/mahenarayan/tokn/blob/main/docs/public-launch-checklist.md) for the one-time public OSS launch checklist.
+See [docs/public-launch-checklist.md](https://github.com/mahenarayan/tokn/blob/main/docs/public-launch-checklist.md) for the one time public OSS launch checklist.
 The npm package itself is intentionally lean: runtime artifacts and public support documents ship, while compiled tests and internal ADR/spec docs stay in the repository only.
 
 ## Support And Governance

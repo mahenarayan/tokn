@@ -25,8 +25,8 @@ Experimental diagnostics examples:
 - [Provider Payload Debugging](https://github.com/mahenarayan/tokn/blob/main/docs/examples/provider-payload-debugging.md)
 - [Prompt Budget Regression](https://github.com/mahenarayan/tokn/blob/main/docs/examples/prompt-budget-regression.md)
 - [Oversized Tool Schema](https://github.com/mahenarayan/tokn/blob/main/docs/examples/oversized-tool-schema.md)
-- [Retrieval-Heavy Request](https://github.com/mahenarayan/tokn/blob/main/docs/examples/retrieval-heavy-request.md)
-- [Multi-Agent Trace Inspection](https://github.com/mahenarayan/tokn/blob/main/docs/examples/multi-agent-trace.md)
+- [Retrieval Heavy Request](https://github.com/mahenarayan/tokn/blob/main/docs/examples/retrieval-heavy-request.md)
+- [Multi Agent Trace Inspection](https://github.com/mahenarayan/tokn/blob/main/docs/examples/multi-agent-trace.md)
 
 ## How To Use The Gallery
 

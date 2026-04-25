@@ -16,16 +16,16 @@ Text output works locally but is awkward to paste into those systems.
 
 ## Goals
 
-- add shareable markdown output for the main report-style commands
+- add shareable markdown output for the main report commands
 - preserve the existing text output as the default
 - keep `--json` backward compatible
-- make markdown output deterministic and golden-tested
+- make markdown output deterministic and covered by golden tests
 
 ## Non-Goals
 
 - HTML output
 - rich styling beyond plain markdown
-- provider-specific markdown layout
+- provider specific markdown layout
 - changing the analyzer or JSON report semantics
 
 ## Inputs
@@ -60,7 +60,7 @@ Markdown should use simple structures that render well on GitHub:
 
 ## Internal Changes
 
-- add CLI output-mode parsing for `text`, `json`, and `markdown`
+- add CLI output mode parsing for `text`, `json`, and `markdown`
 - keep formatting logic in `src/format.ts`
 - do not duplicate analyzer logic in markdown formatters
 - reuse existing normalized report objects
@@ -84,12 +84,12 @@ Markdown should use simple structures that render well on GitHub:
 ## Acceptance Criteria
 
 - all four main report commands support `--format markdown`
-- markdown output is deterministic and golden-tested
+- markdown output is deterministic and covered by golden tests
 - `--json` remains backward compatible
-- conflicting output-mode flags fail clearly
+- conflicting output mode flags fail clearly
 
 ## Related ADRs
 
-- [0004 Machine-Readable CLI Contract](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0004-machine-readable-cli-contract.md)
+- [0004 Structured CLI Contract](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0004-machine-readable-cli-contract.md)
 - [0006 Public Alpha OSS Contract](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0006-public-alpha-oss-contract.md)
-- [0008 Threshold-Based Check Command](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0008-threshold-based-check-command.md)
+- [0008 Threshold Based Check Command](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0008-threshold-based-check-command.md)

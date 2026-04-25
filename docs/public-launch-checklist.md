@@ -1,6 +1,6 @@
 # Public Launch Checklist
 
-This checklist tracks the one-time steps to move Tokn from a private development repository to a public OSS repository with a mature release posture.
+This checklist tracks the one time steps to move Tokn from a private development repository to a public OSS repository with a mature release posture.
 
 Use [.github/ISSUE_TEMPLATE/public-launch-checklist.md](https://github.com/mahenarayan/tokn/blob/main/.github/ISSUE_TEMPLATE/public-launch-checklist.md) to track the launch in GitHub.
 Use [.github/ISSUE_TEMPLATE/release-checklist.md](https://github.com/mahenarayan/tokn/blob/main/.github/ISSUE_TEMPLATE/release-checklist.md) for normal per-release work after the launch.
@@ -25,7 +25,7 @@ Use [.github/ISSUE_TEMPLATE/release-checklist.md](https://github.com/mahenarayan
 - [ ] verify dependency review runs on pull requests
 - [ ] keep GitHub Actions pinned to full commit SHAs
 - [ ] confirm the npm trusted publisher points to `mahenarayan/tokn` and `release.yml`
-- [ ] require npm 2FA for maintainers and disallow token-based publishing
+- [ ] require npm 2FA for maintainers and disallow token based publishing
 - [ ] verify at least one backup maintainer has npm publish access if desired
 
 ## Package And Docs

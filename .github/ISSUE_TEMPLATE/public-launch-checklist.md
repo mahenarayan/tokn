@@ -1,6 +1,6 @@
 ---
 name: Public launch checklist
-about: Track the one-time public OSS launch work for Tokn
+about: Track the one time public OSS launch work for Tokn
 title: "[Launch] Public OSS readiness"
 labels: launch
 assignees: ""
@@ -25,7 +25,7 @@ assignees: ""
 - [ ] npm package `@tokn-labs/tokn` verified
 - [ ] npm trusted publishing verified for `mahenarayan/tokn` and `release.yml`
 - [ ] npm maintainer access reviewed
-- [ ] npm 2FA enforced and token-based publishing disabled
+- [ ] npm 2FA enforced and token based publishing disabled
 
 ## First Public Validation
 
@@ -37,8 +37,8 @@ assignees: ""
 - [ ] npm provenance visible on the package page
 - [ ] CodeQL and Scorecards confirmed running after the repository became public
 
-## Follow-Up
+## Follow Up
 
 - [ ] README badges and links verified on the public repository
 - [ ] launch notes or demo checklist prepared
-- [ ] follow-up issues filed for anything intentionally deferred
+- [ ] follow up issues filed for anything intentionally deferred

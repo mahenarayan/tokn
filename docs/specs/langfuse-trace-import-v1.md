@@ -12,8 +12,8 @@ Without direct Langfuse support, engineers still need to hand-convert Langfuse t
 - support Langfuse trace payloads returned by `GET /api/public/traces/{traceId}`
 - analyze Langfuse traces through both `inspect` and `agent-report`
 - preserve parent and child relationships when Langfuse observations include `AGENT` observations
-- extract prompt-bearing context from Langfuse `GENERATION`, `TOOL`, and `RETRIEVER` observations
-- stay conservative when exact generation token totals and separate external-context observations coexist
+- extract prompt bearing context from Langfuse `GENERATION`, `TOOL`, and `RETRIEVER` observations
+- stay conservative when exact generation token totals and separate external context observations coexist
 
 ## Non-Goals
 
@@ -21,7 +21,7 @@ Without direct Langfuse support, engineers still need to hand-convert Langfuse t
 - supporting every Langfuse list or export endpoint in v1
 - mutating Langfuse traces or posting annotations back
 - reconstructing exact provider serialization from Langfuse payloads
-- interpreting arbitrary `SPAN` or `EVENT` observations as prompt-bearing unless the type is explicit
+- interpreting arbitrary `SPAN` or `EVENT` observations as prompt bearing unless the type is explicit
 
 ## Inputs
 
@@ -98,7 +98,7 @@ Expected behavior:
 
 - add a Langfuse trace fixture under `fixtures/`
 - add analyzer tests for direct Langfuse trace analysis
-- add fixture-backed tests for `inspect` aggregate analysis and `agent-report`
+- add fixture based tests for `inspect` aggregate analysis and `agent-report`
 - add CLI tests proving:
   - `inspect` accepts the Langfuse fixture
   - `agent-report` accepts the Langfuse fixture
@@ -112,12 +112,12 @@ Expected behavior:
 - Tokn supports Langfuse full trace payloads through `agent-report`
 - parent-child agent relationships are preserved when `AGENT` observations are present
 - `GENERATION` observations contribute prompt segments and model metadata
-- `TOOL` and `RETRIEVER` observations contribute external-context segments
+- `TOOL` and `RETRIEVER` observations contribute external context segments
 - exact generation token totals degrade to conservative totals when external context is also present
 
 ## Related ADRs
 
-- [0001 Read-Only Analysis Boundary](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0001-read-only-analysis-boundary.md)
+- [0001 File Mutation Boundary](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0001-read-only-analysis-boundary.md)
 - [0003 Fixture And Golden Test Bed](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0003-fixture-and-golden-test-bed.md)
 - [0005 Trace Import Via OpenInference](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0005-trace-import-via-openinference.md)
 - [0006 Public Alpha OSS Contract](https://github.com/mahenarayan/tokn/blob/main/docs/adr/0006-public-alpha-oss-contract.md)

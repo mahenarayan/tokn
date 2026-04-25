@@ -1,4 +1,4 @@
-# ADR 0009: Multi-Format CLI Output
+# ADR 0009: Multi Format CLI Output
 
 ## Status
 
@@ -9,14 +9,14 @@ Accepted
 Tokn now has three output needs:
 
 - human terminal output
-- machine-readable JSON
-- shareable markdown for GitHub-native workflows
+- structured JSON
+- shareable markdown for GitHub workflows
 
 The existing `--json` flag covers only one alternative output mode.
 
 ## Decision
 
-Add `--format <text|json|markdown>` as the primary output-mode switch while keeping `--json` as a backward-compatible alias for `--format json`.
+Add `--format <text|json|markdown>` as the primary output mode switch while keeping `--json` as a compatibility alias for `--format json`.
 
 Rules:
 
@@ -33,6 +33,6 @@ Markdown is added first for:
 
 ## Consequences
 
-- CLI output becomes more collaboration-friendly
-- the CLI contract grows and should remain golden-tested
-- future output modes can extend the same `--format` surface rather than adding more one-off flags
+- CLI output becomes easier to use in collaboration
+- the CLI contract grows and should remain covered by golden tests
+- future output modes can extend the same `--format` surface rather than adding separate flags

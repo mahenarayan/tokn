@@ -14,4 +14,4 @@ Include:
 - the relevant preset, surface, or model flag
 - a minimized input fixture when the issue depends on repository content
 
-Response is best effort. Security and release-blocking issues take priority.
+Response is best effort. Security and release blocking issues take priority.

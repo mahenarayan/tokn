@@ -1,6 +1,6 @@
 ## Summary
 
-Describe the change and the user-facing impact.
+Describe the change and the user impact.
 
 ## Verification
 
@@ -11,4 +11,4 @@ Describe the change and the user-facing impact.
 
 - [ ] updated README if public usage changed
 - [ ] updated spec or ADR if architecture or contract changed
-- [ ] updated changelog if this is release-worthy
+- [ ] updated changelog if this is release relevant

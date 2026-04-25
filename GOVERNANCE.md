@@ -1,6 +1,6 @@
 # Governance
 
-Tokn is maintained as a small, lint-first open source project.
+Tokn is maintained as a small, lint focused open source project.
 The public contract is intentionally narrow so the package stays readable, stable, and secure.
 
 ## Maintainer Model
@@ -25,7 +25,7 @@ Default rule:
 Stronger bar:
 
 - changes to the stable CLI or SDK contract require explicit documentation
-- long-lived architectural decisions require an ADR under `docs/adr/`
+- lasting architectural decisions require an ADR under `docs/adr/`
 - changes that broaden the stable public surface should be discussed before implementation
 
 ## Stable Vs Experimental
@@ -55,4 +55,4 @@ Only maintainers should:
 - modify GitHub Actions release workflows
 - change repository security posture or rulesets
 
-Public releases should preserve the documented supply-chain posture in [docs/releasing.md](https://github.com/mahenarayan/tokn/blob/main/docs/releasing.md).
+Public releases should preserve the documented supply chain posture in [docs/releasing.md](https://github.com/mahenarayan/tokn/blob/main/docs/releasing.md).
