@@ -31,9 +31,24 @@ jobs:
 
       - name: Verify release tag matches package version
         run: |
+          name="$(node -e "process.stdout.write(JSON.parse(require('node:fs').readFileSync('package.json', 'utf8')).name)")"
           version="$(node -e "process.stdout.write(JSON.parse(require('node:fs').readFileSync('package.json', 'utf8')).version)")"
           if [[ "$GITHUB_REF_NAME" != "v$version" ]]; then
             echo "Release tag $GITHUB_REF_NAME does not match package version v$version" >&2
+            exit 1
+          fi
+          printf 'name=%s\nversion=%s\n' "$name" "$version" >> "$GITHUB_ENV"
+
+      - name: Verify npm version is unpublished
+        run: |
+          if npm view "$name@$version" version >/tmp/npm-version.txt 2>/tmp/npm-view.err; then
+            echo "$name@$version is already published on npm." >&2
+            cat /tmp/npm-version.txt >&2
+            exit 1
+          fi
+
+          if ! grep -q 'E404' /tmp/npm-view.err; then
+            cat /tmp/npm-view.err >&2
             exit 1
           fi
 
@@ -66,4 +81,4 @@ jobs:
           subject-path: ${{ steps.pack.outputs.tgz }}
 
       - name: Publish to npm
-        run: npm publish "${{ steps.pack.outputs.tgz }}" --access public --provenance
+        run: npm publish "${{ steps.pack.outputs.tgz }}" --access public
