@@ -11,14 +11,17 @@ on:
 permissions:
   actions: read
   contents: read
-  id-token: write
-  security-events: write
 
 jobs:
   scorecard:
     if: ${{ github.event.repository.private == false }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+      security-events: write
 
     steps:
       - name: Check out repository
