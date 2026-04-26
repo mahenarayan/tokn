@@ -13,12 +13,12 @@ Before the first public launch:
 4. Make the repository public so provenance, scorecards, and code scanning are visible.
 5. Enable branch protection or rulesets on `main` and require the CI, Dependency Review, and CodeQL workflows.
 
-Track the one time launch work in [docs/public-launch-checklist.md](https://github.com/mahenarayan/tokn/blob/main/docs/public-launch-checklist.md) or from the issue template at [.github/ISSUE_TEMPLATE/public-launch-checklist.md](https://github.com/mahenarayan/tokn/blob/main/.github/ISSUE_TEMPLATE/public-launch-checklist.md).
+Track one-time launch work in the private maintainer planning repository.
 
 ## Release Workflow
 
 The repository ships a GitHub Actions publish workflow at [release.yml](https://github.com/mahenarayan/tokn/blob/main/.github/workflows/release.yml).
-Use the GitHub issue template at [.github/ISSUE_TEMPLATE/release-checklist.md](https://github.com/mahenarayan/tokn/blob/main/.github/ISSUE_TEMPLATE/release-checklist.md) to track each public release after launch.
+Use the private maintainer planning repository to track each public release after launch.
 
 That workflow:
 

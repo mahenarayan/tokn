@@ -2,10 +2,12 @@
 
 ## Purpose
 
-This directory stores implementation specs for substantial changes in Tokn.
+This directory stores active implementation specs for substantial changes in Tokn.
 
 Specs describe intended behavior before or alongside implementation.
 They are the working design documents for feature work, adapter changes, contract changes, and major analysis behavior changes.
+
+Completed specs that no longer guide current work should be removed or archived privately instead of kept as public repo clutter.
 
 ## When To Add A Spec
 

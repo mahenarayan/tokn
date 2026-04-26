@@ -49,6 +49,7 @@ npm run pack:check
 
 For architecture or public contract changes:
 
+- update public docs when external behavior changes
 - add or update a spec under `docs/specs/`
 - add or update an ADR under `docs/adr/` when the decision is lasting
 
