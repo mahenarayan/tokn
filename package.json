@@ -33,6 +33,7 @@
     "check": "npm run build && npm test",
     "dev": "npm run build && node dist/cli.js instructions-lint fixtures/instructions/valid-repo",
     "pack:check": "npm run build && node ./scripts/check-pack.mjs",
+    "security:audit": "npm audit --audit-level=moderate",
     "smoke": "npm run build && node dist/cli.js inspect fixtures/openai-request.json && node dist/cli.js diff fixtures/turn-1.json fixtures/turn-2.json && node dist/cli.js budget fixtures/anthropic-request.json --model claude-3-5-sonnet-latest && node dist/cli.js agent-report fixtures/agent-snapshot.json && node dist/cli.js check fixtures/anthropic-request.json --model claude-3-5-sonnet-latest --max-total-tokens 100 --max-usage-percent 1 --fail-on-risk high && node dist/cli.js instructions-lint fixtures/instructions/valid-repo",
     "pretest": "npm run build",
     "test": "node --test dist/test/**/*.test.js",

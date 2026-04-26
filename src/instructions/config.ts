@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import { isObject, safeJsonParse } from "../helpers.js";
+import { isObject, readText, safeJsonParse } from "../helpers.js";
 import { isInstructionRuleId } from "./rules.js";
 import type {
   InstructionLintConfigSection,
@@ -20,6 +20,7 @@ const PROFILES = new Set<InstructionLintProfile>(["lite", "standard", "strict"])
 const SEVERITIES = new Set<InstructionLintSeverity>(["warning", "error"]);
 const SURFACES = new Set<InstructionLintSurface>(["code-review", "chat", "coding-agent"]);
 const PRESETS = new Set<InstructionLintPresetSelector>(["auto", "copilot", "agents-md"]);
+const MAX_CONFIG_FILE_BYTES = 1024 * 1024;
 
 export interface NormalizedInstructionSuppression {
   paths: string[];
@@ -81,7 +82,7 @@ export function discoverInstructionLintConfigPath(baseDirectory: string): string
 
 export function loadInstructionLintConfig(configPath: string): ResolvedInstructionLintConfig {
   const absolutePath = path.resolve(configPath);
-  const rawText = fs.readFileSync(absolutePath, "utf8");
+  const rawText = readText(absolutePath, { maxBytes: MAX_CONFIG_FILE_BYTES });
   const raw = safeJsonParse(rawText);
   const section = resolveSection(raw);
   const configDirectory = path.dirname(absolutePath);

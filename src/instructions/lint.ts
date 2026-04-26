@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
+import { readText } from "../helpers.js";
 import { getModelLimit } from "../models.js";
 import { estimateTextTokens } from "../tokenizer.js";
 import {
@@ -136,6 +137,8 @@ const DEFAULT_PROFILE: InstructionLintProfile = "standard";
 const DEFAULT_FAIL_ON_SEVERITY: InstructionLintSeverity = "error";
 const DEFAULT_SURFACE: InstructionLintSurface = "code-review";
 const DEFAULT_PRESET: InstructionLintPresetSelector = "auto";
+const MAX_INSTRUCTION_FILE_BYTES = 1024 * 1024;
+const MAX_BASELINE_FILE_BYTES = 10 * 1024 * 1024;
 
 const PROFILE_BUDGETS: Record<InstructionLintProfile, InstructionBudgets> = {
   lite: {
@@ -1522,7 +1525,7 @@ function loadBaselineFindingSignatures(baselinePath: string): Set<string> {
     throw new Error(`Baseline path does not exist: ${baselinePath}`);
   }
 
-  const raw = JSON.parse(fs.readFileSync(absolutePath, "utf8")) as unknown;
+  const raw = JSON.parse(readText(absolutePath, { maxBytes: MAX_BASELINE_FILE_BYTES })) as unknown;
   if (!raw || typeof raw !== "object" || !("findings" in raw) || !Array.isArray(raw.findings)) {
     throw new Error("Instruction lint baseline must be a JSON report with a findings array.");
   }
@@ -1681,7 +1684,7 @@ export function lintInstructions(
 
   const internalReports: InternalFileReport[] = [];
   for (const candidate of candidates.sort((left, right) => left.file.localeCompare(right.file))) {
-    const rawText = fs.readFileSync(candidate.absolutePath, "utf8");
+    const rawText = readText(candidate.absolutePath, { maxBytes: MAX_INSTRUCTION_FILE_BYTES });
     const frontmatter =
       candidate.preset === "copilot" && candidate.kind === "path-specific"
       ? parseFrontmatter(rawText)

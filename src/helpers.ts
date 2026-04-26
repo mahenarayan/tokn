@@ -1,6 +1,21 @@
 import fs from "node:fs";
 
-export function readText(filePath: string): string {
+export const DEFAULT_MAX_TEXT_FILE_BYTES = 10 * 1024 * 1024;
+
+export function readText(
+  filePath: string,
+  options: { maxBytes?: number } = {}
+): string {
+  const maxBytes = options.maxBytes ?? DEFAULT_MAX_TEXT_FILE_BYTES;
+  const stat = fs.statSync(filePath);
+  if (!stat.isFile()) {
+    throw new Error(`Input path is not a file: ${filePath}`);
+  }
+  if (stat.size > maxBytes) {
+    throw new Error(
+      `Refusing to read ${filePath}: ${stat.size} bytes exceeds the ${maxBytes} byte safety limit.`
+    );
+  }
   return fs.readFileSync(filePath, "utf8");
 }
 
