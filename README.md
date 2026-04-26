@@ -186,6 +186,12 @@ npm run pack:check
 npm run smoke
 ```
 
+Maintainer and agent context:
+
+- [docs/architecture.md](https://github.com/mahenarayan/tokn/blob/main/docs/architecture.md)
+- [docs/spec-driven-development.md](https://github.com/mahenarayan/tokn/blob/main/docs/spec-driven-development.md)
+- [docs/adr/README.md](https://github.com/mahenarayan/tokn/blob/main/docs/adr/README.md)
+
 ## Why Tokn
 
 Tokn is named for the token, the smallest unit a model actually consumes. The missing `e` reflects the project's bias toward compression, signal, and instruction sets that stay small enough to remain useful.

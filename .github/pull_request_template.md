@@ -17,5 +17,5 @@ Describe the change and the user impact.
 ## Docs
 
 - [ ] updated README if public usage changed
-- [ ] updated private maintainer planning if architecture or contract changed
+- [ ] updated spec or ADR if architecture or contract changed
 - [ ] updated changelog if this is release relevant

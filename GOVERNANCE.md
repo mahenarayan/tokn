@@ -25,7 +25,7 @@ Default rule:
 Stronger bar:
 
 - changes to the stable CLI or SDK contract require explicit documentation
-- long-lived architectural decisions require a maintainer decision record
+- long-lived architectural decisions require an ADR under `docs/adr/`
 - changes that broaden the stable public surface should be discussed before implementation
 
 ## Stable Vs Experimental

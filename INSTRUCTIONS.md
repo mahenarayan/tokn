@@ -29,6 +29,10 @@ Do not expand the scope casually into hosted observability, policy enforcement, 
 - `fixtures/instructions/`: sample Copilot instruction repositories for lint coverage
 - `fixtures/golden/`: exact expected CLI outputs
 - `docs/architecture.md`: high-level architecture and boundaries
+- `docs/spec-driven-development.md`: workflow for substantial feature and contract changes
+- `docs/specs/`: active or new implementation specs for substantial work
+- `docs/templates/`: spec and ADR templates
+- `docs/adr/`: architecture decision records that should remain useful to future maintainers and AI agents
 - `docs/examples/`: executable example workflows tied to checked-in fixtures
 - `.github/workflows/ci.yml`: CI workflow for `main` and pull requests
 - `CONTRIBUTING.md`: contributor workflow and expectations
@@ -87,7 +91,9 @@ Preferred day-to-day loop:
 - Do not assume provider payload shapes from memory when official docs or real fixtures can be checked.
 - For provider-adapter work, prefer an official-shape fixture over an invented object.
 - For example-driven docs, prefer existing fixtures and runnable commands over pasted output screenshots or invented transcripts.
-- For major changes, update the private maintainer planning repo when the change needs a spec, decision record, or migration note.
+- For substantial behavior, architecture, or contract changes, add or update a spec under `docs/specs/`.
+- For major lasting decisions, add or update an ADR under `docs/adr/`.
+- Do not keep stale completed specs, launch planning, or roadmap drafts in the public repo; archive those privately when they stop guiding current work.
 - Treat public documentation as product surface once published.
 - Do not make undocumented breaking changes to JSON output, exports, or command behavior.
 
@@ -109,9 +115,10 @@ npm run pack:check
 
 For any non-trivial feature or architecture change:
 
-1. update private maintainer planning if the behavior or contract needs a written decision
-2. implement against fixtures and tests
-3. verify with `npm run check`
+1. write or update the relevant spec
+2. record the decision if it changes architecture or contract
+3. implement against fixtures and tests
+4. verify with `npm run check`
 
 If you change formatting or command output:
 
