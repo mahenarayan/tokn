@@ -343,6 +343,59 @@ test("cli prints help with success", () => {
 
   assert.equal(result.status, 0);
   assert.match(result.stdout, /Usage:/);
+  assert.match(result.stdout, /tokn <command> --help/);
+  assert.match(result.stdout, /Examples:/);
+});
+
+test("cli prints subcommand help with examples", () => {
+  const cases = [
+    {
+      command: "instructions-lint",
+      example: "tokn instructions-lint ."
+    },
+    {
+      command: "inspect",
+      example: "tokn inspect ./fixtures/openai-request.json"
+    },
+    {
+      command: "diff",
+      example: "tokn diff ./fixtures/turn-1.json ./fixtures/turn-2.json"
+    },
+    {
+      command: "budget",
+      example: "tokn budget ./fixtures/anthropic-request.json --model claude-3-5-sonnet-latest"
+    },
+    {
+      command: "agent-report",
+      example: "tokn agent-report ./fixtures/agent-snapshot.json"
+    },
+    {
+      command: "check",
+      example: "tokn check ./fixtures/anthropic-request.json --model claude-3-5-sonnet-latest --max-total-tokens 100"
+    }
+  ];
+
+  for (const { command, example } of cases) {
+    const result = runCliProcess([command, "--help"]);
+    assert.equal(result.status, 0, `${command}: ${result.stderr}`);
+    assert.match(result.stdout, /Usage:/, command);
+    assert.match(result.stdout, /Options:/, command);
+    assert.match(result.stdout, /Examples:/, command);
+    assert.ok(result.stdout.includes(example), command);
+  }
+});
+
+test("cli supports help command and short help for subcommands", () => {
+  const helpCommand = runCliProcess(["help", "instructions-lint"]);
+  const shortFlag = runCliProcess(["instructions-lint", "-h"]);
+
+  assert.equal(helpCommand.status, 0, helpCommand.stderr);
+  assert.match(helpCommand.stdout, /Tokn instructions-lint/);
+  assert.match(helpCommand.stdout, /Examples:/);
+
+  assert.equal(shortFlag.status, 0, shortFlag.stderr);
+  assert.match(shortFlag.stdout, /Tokn instructions-lint/);
+  assert.match(shortFlag.stdout, /Examples:/);
 });
 
 test("cli check passes when thresholds are satisfied", () => {
@@ -504,10 +557,10 @@ test("cli instructions-lint passes on a valid repository fixture", () => {
   const result = runCliProcess(["instructions-lint", "fixtures/instructions/valid-repo"]);
 
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /Status: pass/);
+  assert.match(result.stdout, /Tokn Instructions Lint: pass/);
   assert.match(result.stdout, /Preset: auto/);
   assert.match(result.stdout, /Detected presets: copilot/);
-  assert.match(result.stdout, /Files: 2/);
+  assert.match(result.stdout, /Files: 2 total, 2 applicable/);
   assert.match(result.stdout, /Findings:\n- none/);
 });
 
@@ -515,7 +568,7 @@ test("cli instructions-lint fails with exit code 2 on invalid repository fixture
   const result = runCliProcess(["instructions-lint", "fixtures/instructions/invalid-repo"]);
 
   assert.equal(result.status, 2, result.stderr);
-  assert.match(result.stdout, /Status: fail/);
+  assert.match(result.stdout, /Tokn Instructions Lint: fail/);
   assert.match(result.stdout, /global-applyto-overlap/);
   assert.match(result.stdout, /invalid-file-path/);
 });
@@ -663,9 +716,10 @@ test("cli instructions-lint renders structured evidence in text output", () => {
   assert.equal(result.status, 2, result.stderr);
   const output = result.stdout.trim();
 
-  assert.match(output, /evidence: related=\.github\/instructions\/all\.instructions\.md:6/);
+  assert.match(output, /Evidence: related=\.github\/instructions\/all\.instructions\.md:6/);
   assert.match(output, /patterns=\*\*\/\*\.rs/);
   assert.match(output, /matched=0/);
+  assert.match(output, /Fix: /);
 });
 
 test("cli instructions-lint supports --format github", () => {
@@ -703,7 +757,7 @@ test("cli instructions-lint supports single-file lint", () => {
   ]);
 
   assert.match(output, /typescript.instructions.md/);
-  assert.match(output, /matches=2/);
+  assert.match(output, /2 matched files/);
 });
 
 test("cli instructions-lint supports preset-aware AGENTS.md linting", () => {

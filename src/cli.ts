@@ -36,6 +36,14 @@ interface ParsedArgs {
   positionals: string[];
 }
 
+interface CommandHelp {
+  summary: string;
+  usage: string;
+  options: string[];
+  examples: string[];
+  notes?: string[];
+}
+
 const VALUE_FLAGS = new Set([
   "--model",
   "--max-usage-percent",
@@ -61,6 +69,7 @@ const OUTPUT_FORMATS = new Set(["text", "json", "markdown", "github", "azure"]);
 type OutputMode = "text" | "json" | "markdown" | "github" | "azure";
 
 const OUTPUT_FLAGS = new Set(["--format", "--json"]);
+const HELP_FLAGS = new Set(["--help", "-h"]);
 const INSPECT_FLAGS = OUTPUT_FLAGS;
 const DIFF_FLAGS = OUTPUT_FLAGS;
 const BUDGET_FLAGS = new Set([...OUTPUT_FLAGS, "--model"]);
@@ -86,6 +95,115 @@ const INSTRUCTIONS_LINT_FLAGS = new Set([
   "--fail-on-severity"
 ]);
 
+const COMMAND_HELP: Record<string, CommandHelp> = {
+  "instructions-lint": {
+    summary: "Lint repository instruction files for duplicated, conflicting, vague, stale, or oversized guidance.",
+    usage:
+      "tokn instructions-lint <path> [--config <file>] [--baseline <file>] [--ignore <glob>] [--preset <auto|copilot|agents-md>] [--profile <lite|standard|strict>] [--surface <code-review|chat|coding-agent>] [--model <id>] [--fail-on-severity <warning|error>] [--format <text|json|markdown|github|azure>]",
+    options: [
+      "--config <file>                 Read instructions-lint config from a JSON file.",
+      "--baseline <file>               Suppress findings already present in a previous JSON report.",
+      "--ignore <glob>                 Ignore instruction or target files; repeat for multiple globs.",
+      "--preset <auto|copilot|agents-md>",
+      "--profile <lite|standard|strict>",
+      "--surface <code-review|chat|coding-agent>",
+      "--model <id>                    Include model-aware context budget fields when available.",
+      "--fail-on-severity <warning|error>",
+      "--format <text|json|markdown|github|azure>",
+      "--json                          Alias for --format json."
+    ],
+    examples: [
+      "tokn instructions-lint .",
+      "tokn instructions-lint . --config ./tokn.config.json",
+      "tokn instructions-lint . --baseline ./.tokn/instructions-baseline.json",
+      "tokn instructions-lint . --surface coding-agent --preset agents-md",
+      "tokn instructions-lint . --format github --fail-on-severity warning"
+    ],
+    notes: [
+      "This is the stable public Tokn command in public alpha.",
+      "The command is read-only and does not modify instruction files."
+    ]
+  },
+  inspect: {
+    summary: "Inspect a saved LLM request, transcript, or supported trace payload and rank prompt/context segments.",
+    usage: "tokn inspect <file> [--format <text|json|markdown>]",
+    options: [
+      "--format <text|json|markdown>",
+      "--json                          Alias for --format json."
+    ],
+    examples: [
+      "tokn inspect ./fixtures/openai-request.json",
+      "tokn inspect ./fixtures/anthropic-request.json --format markdown",
+      "tokn inspect ./fixtures/openai-compatible-chat-log.json --json"
+    ],
+    notes: ["Experimental diagnostic command."]
+  },
+  diff: {
+    summary: "Compare two supported payloads and show which context segments grew or shrank.",
+    usage: "tokn diff <before> <after> [--format <text|json|markdown>]",
+    options: [
+      "--format <text|json|markdown>",
+      "--json                          Alias for --format json."
+    ],
+    examples: [
+      "tokn diff ./fixtures/turn-1.json ./fixtures/turn-2.json",
+      "tokn diff ./before.json ./after.json --format markdown",
+      "tokn diff ./before.json ./after.json --json"
+    ],
+    notes: ["Experimental diagnostic command."]
+  },
+  budget: {
+    summary: "Calculate model context headroom for a supported payload or stored Tokn ContextReport.",
+    usage: "tokn budget <file> [--model <id>] [--format <text|json|markdown>]",
+    options: [
+      "--model <id>                    Override the model when the input is a raw payload.",
+      "--format <text|json|markdown>",
+      "--json                          Alias for --format json."
+    ],
+    examples: [
+      "tokn budget ./fixtures/anthropic-request.json --model claude-3-5-sonnet-latest",
+      "tokn budget ./fixtures/openai-request.json --model gpt-4o --format markdown",
+      "tokn budget ./context-report.json --json"
+    ],
+    notes: ["Experimental diagnostic command."]
+  },
+  "agent-report": {
+    summary: "Summarize context pressure across imported multi-agent snapshots or trace exports.",
+    usage: "tokn agent-report <file> [--format <text|json|markdown>]",
+    options: [
+      "--format <text|json|markdown>",
+      "--json                          Alias for --format json."
+    ],
+    examples: [
+      "tokn agent-report ./fixtures/agent-snapshot.json",
+      "tokn agent-report ./fixtures/langfuse-trace.json --format markdown",
+      "tokn agent-report ./fixtures/openinference-trace.json --json"
+    ],
+    notes: ["Experimental diagnostic command."]
+  },
+  check: {
+    summary: "Evaluate a context report against explicit token, usage, segment, or risk thresholds.",
+    usage:
+      "tokn check <file> [--model <id>] [--max-usage-percent <n>] [--max-total-tokens <n>] [--max-segment-tokens <type=n>] [--fail-on-risk <low|medium|high>] [--baseline <file>] [--format <text|json|markdown>]",
+    options: [
+      "--model <id>                    Override the model when the input is a raw payload.",
+      "--max-usage-percent <n>         Fail when usage percent exceeds the threshold.",
+      "--max-total-tokens <n>          Fail when total input tokens exceed the threshold.",
+      "--max-segment-tokens <type=n>   Fail when a segment type exceeds the threshold; repeat as needed.",
+      "--fail-on-risk <low|medium|high>",
+      "--baseline <file>               Include a delta against another supported payload or ContextReport.",
+      "--format <text|json|markdown>",
+      "--json                          Alias for --format json."
+    ],
+    examples: [
+      "tokn check ./fixtures/anthropic-request.json --model claude-3-5-sonnet-latest --max-total-tokens 100",
+      "tokn check ./fixtures/suggestions-high-pressure.json --max-segment-tokens tool_schema=300 --fail-on-risk medium",
+      "tokn check ./after.json --baseline ./before.json --max-usage-percent 80 --format markdown"
+    ],
+    notes: ["Experimental diagnostic command."]
+  }
+};
+
 function loadJson(filePath: string): unknown {
   return safeJsonParse(readText(filePath));
 }
@@ -94,24 +212,58 @@ function printUsage(): void {
   console.log(`Tokn
 
 Usage:
-  Stable public command:
-    tokn instructions-lint <path> [--config <file>] [--baseline <file>] [--ignore <glob>] [--preset <auto|copilot|agents-md>] [--profile <lite|standard|strict>] [--surface <code-review|chat|coding-agent>] [--model <id>] [--fail-on-severity <warning|error>] [--format <text|json|markdown|github|azure>]
+  tokn <command> [options]
+  tokn <command> --help
+  tokn help <command>
 
-  Experimental diagnostics:
-    tokn inspect <file> [--json]
-    tokn inspect <file> [--format <text|json|markdown>]
-    tokn diff <before> <after> [--json]
-    tokn diff <before> <after> [--format <text|json|markdown>]
-    tokn budget <file> [--model <id>] [--json]
-    tokn budget <file> [--model <id>] [--format <text|json|markdown>]
-    tokn agent-report <file> [--json]
-    tokn agent-report <file> [--format <text|json|markdown>]
-    tokn check <file> [--model <id>] [--max-usage-percent <n>] [--max-total-tokens <n>] [--max-segment-tokens <type=n>] [--fail-on-risk <low|medium|high>] [--baseline <file>] [--json]
-    tokn check <file> [--model <id>] [--max-usage-percent <n>] [--max-total-tokens <n>] [--max-segment-tokens <type=n>] [--fail-on-risk <low|medium|high>] [--baseline <file>] [--format <text|json|markdown>]
+Stable public command:
+  instructions-lint  Lint repository instruction files for AI-assisted development.
+
+Experimental diagnostics:
+  inspect            Inspect prompt/context composition from a saved payload.
+  diff               Compare context growth between two payloads.
+  budget             Report model context headroom.
+  agent-report       Summarize context pressure across agent snapshots or traces.
+  check              Evaluate token/risk thresholds for CI.
+
+Examples:
+  tokn instructions-lint .
+  tokn instructions-lint . --format github --fail-on-severity warning
+  tokn inspect ./fixtures/openai-request.json --format markdown
+  tokn diff ./fixtures/turn-1.json ./fixtures/turn-2.json
+  tokn budget ./fixtures/anthropic-request.json --model claude-3-5-sonnet-latest
+  tokn agent-report ./fixtures/agent-snapshot.json
+  tokn check ./fixtures/anthropic-request.json --max-total-tokens 100
 
 Notes:
   instructions-lint is the primary supported enterprise surface in public alpha.
-  inspect, diff, budget, agent-report, and check remain available as experimental diagnostics.`);
+  inspect, diff, budget, agent-report, and check remain available as experimental diagnostics.
+  Run "tokn <command> --help" for command-specific options and examples.`);
+}
+
+function printCommandUsage(command: string): boolean {
+  const help = COMMAND_HELP[command];
+  if (!help) {
+    return false;
+  }
+
+  console.log(`Tokn ${command}
+
+${help.summary}
+
+Usage:
+  ${help.usage}
+
+Options:
+${help.options.map((option) => `  ${option}`).join("\n")}
+
+Examples:
+${help.examples.map((example) => `  ${example}`).join("\n")}${
+    help.notes && help.notes.length > 0
+      ? `\n\nNotes:\n${help.notes.map((note) => `  ${note}`).join("\n")}`
+      : ""
+  }`);
+  return true;
 }
 
 function parseArgs(args: string[]): ParsedArgs {
@@ -152,10 +304,19 @@ function parseArgs(args: string[]): ParsedArgs {
       continue;
     }
 
+    if (token === "-h") {
+      flags.add(token);
+      continue;
+    }
+
     positionals.push(token);
   }
 
   return { flags, values, positionals };
+}
+
+function hasHelpFlag(parsed: ParsedArgs): boolean {
+  return [...HELP_FLAGS].some((flag) => parsed.flags.has(flag));
 }
 
 function getLastValue(parsed: ParsedArgs, flag: string): string | undefined {
@@ -402,14 +563,39 @@ async function main(): Promise<void> {
     return;
   }
 
-  if (command === "help" || command === "--help" || command === "-h") {
+  if (command === "--help" || command === "-h") {
     printUsage();
     process.exitCode = 0;
     return;
   }
 
   try {
+    if (command === "help") {
+      const [requestedCommand, ...extraArgs] = args;
+      if (!requestedCommand) {
+        printUsage();
+        process.exitCode = 0;
+        return;
+      }
+      if (extraArgs.length > 0) {
+        throw new Error(`help received unexpected extra argument: ${extraArgs[0]}.`);
+      }
+      if (!printCommandUsage(requestedCommand)) {
+        throw new Error(`Unknown command: ${requestedCommand}.`);
+      }
+      process.exitCode = 0;
+      return;
+    }
+
     const parsed = parseArgs(args);
+    if (hasHelpFlag(parsed)) {
+      if (!printCommandUsage(command)) {
+        throw new Error(`Unknown command: ${command}.`);
+      }
+      process.exitCode = 0;
+      return;
+    }
+
     const outputMode = resolveOutputMode(parsed);
 
     switch (command) {

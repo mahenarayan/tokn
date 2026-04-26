@@ -41,6 +41,70 @@ function formatInstructionPreset(preset?: InstructionLintPreset): string {
   }
 }
 
+function pluralize(count: number, noun: string): string {
+  return `${count} ${noun}${count === 1 ? "" : "s"}`;
+}
+
+function formatInstructionDetectedPresets(report: InstructionLintReport): string {
+  return report.detectedPresets.length > 0 ? report.detectedPresets.join(", ") : "none";
+}
+
+function hasInstructionContextBudget(report: InstructionLintReport): boolean {
+  return Boolean(report.model) ||
+    report.contextWindow !== undefined ||
+    (report.maxApplicableContextPercent !== undefined && !Number.isNaN(report.maxApplicableContextPercent));
+}
+
+function formatInstructionMaxApplicableLoad(report: InstructionLintReport): string {
+  const tokens = `${report.stats.maxApplicableTokens} tokens`;
+  return report.stats.maxApplicableTargetFile
+    ? `${tokens} on ${report.stats.maxApplicableTargetFile}`
+    : tokens;
+}
+
+function formatInstructionFileScope(file: InstructionLintReport["files"][number]): string {
+  const scopeParts: string[] = [];
+  if (file.applyTo && file.applyTo.length > 0) {
+    scopeParts.push(`applyTo=${file.applyTo.join(",")}`);
+  }
+  if (file.scopePath) {
+    scopeParts.push(`scope=${file.scopePath}`);
+  }
+  if (file.excludeAgents && file.excludeAgents.length > 0) {
+    scopeParts.push(`excludeAgent=${file.excludeAgents.join(",")}`);
+  }
+  return scopeParts.length > 0 ? scopeParts.join("; ") : "-";
+}
+
+function formatInstructionFileStatus(file: InstructionLintReport["files"][number]): string {
+  if (file.kind === "unsupported") {
+    return "not loaded";
+  }
+  return file.appliesToSurface ? "active" : "inactive for surface";
+}
+
+function formatInstructionFileText(file: InstructionLintReport["files"][number]): string {
+  const details = [formatInstructionFileKind(file.kind)];
+  const preset = formatInstructionPreset(file.preset);
+  if (preset !== "unknown") {
+    details.push(preset);
+  }
+  details.push(formatInstructionFileStatus(file));
+  details.push(`${file.estimatedTokens} tokens`);
+  details.push(pluralize(file.statementCount, "statement"));
+  if (file.matchedFileCount !== undefined) {
+    details.push(`${pluralize(file.matchedFileCount, "matched file")}`);
+  }
+  details.push(pluralize(file.findings.length, "finding"));
+
+  const scope = formatInstructionFileScope(file);
+  if (scope !== "-") {
+    details.push(scope);
+  }
+
+  return `- ${file.file}: ${details.join(", ")}`;
+}
+
 function formatInstructionFindingEvidenceParts(evidence: InstructionFindingEvidence): string[] {
   const parts: string[] = [];
 
@@ -88,30 +152,32 @@ function formatInstructionFindingEvidenceParts(evidence: InstructionFindingEvide
 }
 
 function appendInstructionFindingText(lines: string[], finding: InstructionFinding): void {
-  lines.push(
-    `- [${finding.severity}] ${finding.file}:${finding.line} ${finding.ruleId}: ${finding.message}`
-  );
-  if (!finding.evidence) {
-    return;
+  lines.push(`- [${finding.severity}] ${finding.ruleId} at ${finding.file}:${finding.line}`);
+  lines.push(`  Problem: ${finding.message}`);
+  if (finding.suggestion) {
+    lines.push(`  Fix: ${finding.suggestion}`);
   }
 
-  const evidenceParts = formatInstructionFindingEvidenceParts(finding.evidence);
-  if (evidenceParts.length > 0) {
-    lines.push(`  evidence: ${evidenceParts.join(" | ")}`);
+  if (finding.evidence) {
+    const evidenceParts = formatInstructionFindingEvidenceParts(finding.evidence);
+    if (evidenceParts.length > 0) {
+      lines.push(`  Evidence: ${evidenceParts.join(" | ")}`);
+    }
   }
 }
 
 function appendInstructionFindingMarkdown(lines: string[], finding: InstructionFinding): void {
-  lines.push(
-    `- **${finding.severity}** \`${finding.file}:${finding.line}\` \`${finding.ruleId}\`: ${finding.message}`
-  );
-  if (!finding.evidence) {
-    return;
+  lines.push(`- **${finding.severity}** \`${finding.ruleId}\` at \`${finding.file}:${finding.line}\``);
+  lines.push(`  Problem: ${finding.message}`);
+  if (finding.suggestion) {
+    lines.push(`  Fix: ${finding.suggestion}`);
   }
 
-  const evidenceParts = formatInstructionFindingEvidenceParts(finding.evidence);
-  if (evidenceParts.length > 0) {
-    lines.push(`  Evidence: ${evidenceParts.map((part) => `\`${part}\``).join(" ")}`);
+  if (finding.evidence) {
+    const evidenceParts = formatInstructionFindingEvidenceParts(finding.evidence);
+    if (evidenceParts.length > 0) {
+      lines.push(`  Evidence: ${evidenceParts.map((part) => `\`${part}\``).join(" ")}`);
+    }
   }
 }
 
@@ -150,7 +216,7 @@ function appendInstructionLintControlLines(lines: string[], report: InstructionL
     return;
   }
 
-  lines.push(...controlLines);
+  lines.push("", "Rollout Controls:", ...controlLines.map((line) => `- ${line}`));
 }
 
 function appendInstructionLintControlMarkdown(lines: string[], report: InstructionLintReport): void {
@@ -502,44 +568,42 @@ export function formatCheckReportMarkdown(result: CheckResult): string {
 
 export function formatInstructionLintReport(report: InstructionLintReport): string {
   const lines = [
-    `Status: ${report.passed ? "pass" : "fail"}`,
-    `Preset: ${report.preset}`,
-    `Detected presets: ${report.detectedPresets.length > 0 ? report.detectedPresets.join(", ") : "none"}`,
-    `Profile: ${report.profile}`,
-    `Surface: ${report.surface}`,
-    `Model: ${report.model ?? "unknown"}`,
-    `Context window: ${report.contextWindow ?? "unknown"}`,
-    `Max applicable context share: ${formatPercent(report.maxApplicableContextPercent)}`,
-    `Fail on severity: ${report.failOnSeverity}`,
-    `Files: ${report.stats.totalFiles}`,
-    `Applicable files: ${report.stats.applicableFiles}`,
-    `Statements: ${report.stats.totalStatements}`,
-    `Applicable statements: ${report.stats.applicableStatements}`,
-    `Chars: ${report.stats.totalChars}`,
-    `Estimated tokens: ${report.stats.totalEstimatedTokens} total | ${report.stats.applicableEstimatedTokens} applicable`,
-    `Matched scope files: ${report.stats.totalMatchedFiles}`,
-    `Max applicable tokens: ${report.stats.maxApplicableTokens}${report.stats.maxApplicableTargetFile ? ` (${report.stats.maxApplicableTargetFile})` : ""}`,
-    `Findings: ${report.findings.length} (${report.stats.errorCount} errors, ${report.stats.warningCount} warnings)`
+    `Tokn Instructions Lint: ${report.passed ? "pass" : "fail"}`,
+    "",
+    "Scope:",
+    `- Preset: ${report.preset}`,
+    `- Detected presets: ${formatInstructionDetectedPresets(report)}`,
+    `- Profile: ${report.profile}`,
+    `- Surface: ${report.surface}`,
+    `- Fail threshold: ${report.failOnSeverity}`,
+    "",
+    "Summary:",
+    `- Files: ${report.stats.totalFiles} total, ${report.stats.applicableFiles} applicable`,
+    `- Statements: ${report.stats.totalStatements} total, ${report.stats.applicableStatements} applicable`,
+    `- Size: ${report.stats.totalChars} chars, ${report.stats.totalEstimatedTokens} estimated tokens (${report.stats.applicableEstimatedTokens} applicable)`,
+    `- Matched target files: ${report.stats.totalMatchedFiles}`,
+    `- Largest applicable load: ${formatInstructionMaxApplicableLoad(report)}`,
+    `- Findings: ${report.findings.length} total, ${report.stats.errorCount} errors, ${report.stats.warningCount} warnings`
   ];
 
+  if (hasInstructionContextBudget(report)) {
+    lines.push(
+      "",
+      "Context Budget:",
+      `- Model: ${report.model ?? "unknown"}`,
+      `- Context window: ${report.contextWindow ?? "unknown"}`,
+      `- Max applicable context share: ${formatPercent(report.maxApplicableContextPercent)}`
+    );
+  }
+
   appendInstructionLintControlLines(lines, report);
-  lines.push("", "Files:");
+  lines.push("", "Instruction Files:");
 
   if (report.files.length === 0) {
     lines.push("- none");
   } else {
     for (const file of report.files) {
-      const preset = ` | preset=${formatInstructionPreset(file.preset)}`;
-      const applyTo = file.applyTo && file.applyTo.length > 0 ? ` | applyTo=${file.applyTo.join(",")}` : "";
-      const scope = file.scopePath ? ` | scope=${file.scopePath}` : "";
-      const excludeAgents =
-        file.excludeAgents && file.excludeAgents.length > 0
-          ? ` | excludeAgent=${file.excludeAgents.join(",")}`
-          : "";
-      const matched = file.matchedFileCount !== undefined ? ` | matches=${file.matchedFileCount}` : "";
-      lines.push(
-        `- ${file.file}: ${formatInstructionFileKind(file.kind)}${preset} | active=${file.appliesToSurface ? "yes" : "no"} | chars=${file.chars} | tokens=${file.estimatedTokens} | statements=${file.statementCount}${matched} | findings=${file.findings.length}${applyTo}${scope}${excludeAgents}`
-      );
+      lines.push(formatInstructionFileText(file));
     }
   }
 
@@ -630,49 +694,53 @@ export function formatInstructionLintReportMarkdown(report: InstructionLintRepor
   const lines = [
     "# Tokn Instructions Lint Report",
     "",
-    "## Summary",
-    `- Status: ${report.passed ? "pass" : "fail"}`,
+    `Status: **${report.passed ? "pass" : "fail"}**`,
+    "",
+    "## Scope",
     `- Preset: ${report.preset}`,
-    `- Detected presets: ${report.detectedPresets.length > 0 ? report.detectedPresets.join(", ") : "none"}`,
+    `- Detected presets: ${formatInstructionDetectedPresets(report)}`,
     `- Profile: ${report.profile}`,
     `- Surface: ${report.surface}`,
-    `- Model: ${report.model ?? "unknown"}`,
-    `- Context window: ${report.contextWindow ?? "unknown"}`,
-    `- Max applicable context share: ${formatPercent(report.maxApplicableContextPercent)}`,
-    `- Fail on severity: ${report.failOnSeverity}`,
-    `- Files: ${report.stats.totalFiles}`,
-    `- Applicable files: ${report.stats.applicableFiles}`,
-    `- Statements: ${report.stats.totalStatements}`,
-    `- Applicable statements: ${report.stats.applicableStatements}`,
-    `- Chars: ${report.stats.totalChars}`,
-    `- Estimated tokens: ${report.stats.totalEstimatedTokens} total / ${report.stats.applicableEstimatedTokens} applicable`,
-    `- Matched scope files: ${report.stats.totalMatchedFiles}`,
-    `- Max applicable tokens: ${report.stats.maxApplicableTokens}${report.stats.maxApplicableTargetFile ? ` (${report.stats.maxApplicableTargetFile})` : ""}`,
-    `- Findings: ${report.findings.length} (${report.stats.errorCount} errors, ${report.stats.warningCount} warnings)`,
+    `- Fail threshold: ${report.failOnSeverity}`,
+    "",
+    "## Summary",
+    `- Files: ${report.stats.totalFiles} total, ${report.stats.applicableFiles} applicable`,
+    `- Statements: ${report.stats.totalStatements} total, ${report.stats.applicableStatements} applicable`,
+    `- Size: ${report.stats.totalChars} chars, ${report.stats.totalEstimatedTokens} estimated tokens (${report.stats.applicableEstimatedTokens} applicable)`,
+    `- Matched target files: ${report.stats.totalMatchedFiles}`,
+    `- Largest applicable load: ${formatInstructionMaxApplicableLoad(report)}`,
+    `- Findings: ${report.findings.length} total, ${report.stats.errorCount} errors, ${report.stats.warningCount} warnings`,
   ];
 
+  if (hasInstructionContextBudget(report)) {
+    lines.push(
+      "",
+      "## Context Budget",
+      `- Model: ${report.model ?? "unknown"}`,
+      `- Context window: ${report.contextWindow ?? "unknown"}`,
+      `- Max applicable context share: ${formatPercent(report.maxApplicableContextPercent)}`
+    );
+  }
+
   appendInstructionLintControlMarkdown(lines, report);
-  lines.push("", "## Files");
+  lines.push("", "## Instruction Files");
 
   if (report.files.length === 0) {
     lines.push("- none");
   } else {
     lines.push(
       ...markdownTable(
-        ["File", "Kind", "Preset", "Active", "Apply To", "Scope", "Exclude Agent", "Chars", "Tokens", "Statements", "Matched", "Findings"],
+        ["File", "Kind", "Preset", "Status", "Tokens", "Statements", "Matched", "Findings", "Scope"],
         report.files.map((file) => [
           file.file,
           formatInstructionFileKind(file.kind),
           formatInstructionPreset(file.preset),
-          file.appliesToSurface ? "yes" : "no",
-          file.applyTo?.join(", ") ?? "-",
-          file.scopePath ?? "-",
-          file.excludeAgents?.join(", ") ?? "-",
-          String(file.chars),
+          formatInstructionFileStatus(file),
           String(file.estimatedTokens),
           String(file.statementCount),
           String(file.matchedFileCount ?? 0),
-          String(file.findings.length)
+          String(file.findings.length),
+          formatInstructionFileScope(file)
         ])
       )
     );
