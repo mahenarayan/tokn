@@ -160,8 +160,7 @@ The public release posture is intentionally conservative:
 - package verification stays part of the default verification loop
 
 See [docs/releasing.md](https://github.com/mahenarayan/tokn/blob/main/docs/releasing.md) for the release workflow and required repository setup.
-See [docs/public-launch-checklist.md](https://github.com/mahenarayan/tokn/blob/main/docs/public-launch-checklist.md) for the one time public OSS launch checklist.
-The npm package itself is intentionally lean: runtime artifacts and public support documents ship, while compiled tests and internal ADR/spec docs stay in the repository only.
+The npm package itself is intentionally lean: runtime artifacts and public support documents ship, while compiled tests and internal planning documents stay outside the package.
 
 ## Support And Governance
 

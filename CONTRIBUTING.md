@@ -16,12 +16,10 @@ Read:
 - [README.md](https://github.com/mahenarayan/tokn/blob/main/README.md)
 - [INSTRUCTIONS.md](https://github.com/mahenarayan/tokn/blob/main/INSTRUCTIONS.md)
 - [docs/architecture.md](https://github.com/mahenarayan/tokn/blob/main/docs/architecture.md)
-- [docs/spec-driven-development.md](https://github.com/mahenarayan/tokn/blob/main/docs/spec-driven-development.md)
-- [docs/adr/README.md](https://github.com/mahenarayan/tokn/blob/main/docs/adr/README.md)
 
 ## Development Workflow
 
-1. start from a spec for substantial work
+1. start from a clear problem statement for non-trivial work
 2. add or update fixtures before trusting a provider shape
 3. add or update tests
 4. implement one behavioral change at a time
@@ -49,8 +47,8 @@ npm run pack:check
 
 For architecture or public contract changes:
 
-- add or update a spec under `docs/specs/`
-- add or update an ADR under `docs/adr/` when the decision is lasting
+- update public docs when external behavior changes
+- maintainers should update private planning records when the decision is lasting
 
 ## Contribution Boundaries
 
@@ -77,7 +75,7 @@ Changes that need explicit discussion first:
 - telemetry collection beyond file and trace inspection
 - silently loosening confidence semantics
 - incompatible changes to report shapes or CLI behavior
-- expanding the stable surface beyond `instructions-lint` without an ADR
+- expanding the stable surface beyond `instructions-lint` without explicit maintainer agreement
 
 Workflow changes should preserve the current supply chain posture:
 

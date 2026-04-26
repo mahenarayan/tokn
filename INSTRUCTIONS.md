@@ -29,10 +29,7 @@ Do not expand the scope casually into hosted observability, policy enforcement, 
 - `fixtures/instructions/`: sample Copilot instruction repositories for lint coverage
 - `fixtures/golden/`: exact expected CLI outputs
 - `docs/architecture.md`: high-level architecture and boundaries
-- `docs/spec-driven-development.md`: required workflow for non-trivial changes
-- `docs/specs/`: implementation specs for major work
 - `docs/examples/`: executable example workflows tied to checked-in fixtures
-- `docs/adr/`: architecture decision records
 - `.github/workflows/ci.yml`: CI workflow for `main` and pull requests
 - `CONTRIBUTING.md`: contributor workflow and expectations
 - `SECURITY.md`: vulnerability reporting process
@@ -90,8 +87,7 @@ Preferred day-to-day loop:
 - Do not assume provider payload shapes from memory when official docs or real fixtures can be checked.
 - For provider-adapter work, prefer an official-shape fixture over an invented object.
 - For example-driven docs, prefer existing fixtures and runnable commands over pasted output screenshots or invented transcripts.
-- For major changes, write or update a spec under `docs/specs/` or use the spec template under `docs/templates/`.
-- For major lasting decisions, add or update an ADR under `docs/adr/`.
+- For major changes, update the private maintainer planning repo when the change needs a spec, decision record, or migration note.
 - Treat public documentation as product surface once published.
 - Do not make undocumented breaking changes to JSON output, exports, or command behavior.
 
@@ -113,10 +109,9 @@ npm run pack:check
 
 For any non-trivial feature or architecture change:
 
-1. write the spec
-2. record the decision if it changes architecture or contract
-3. implement against fixtures and tests
-4. verify with `npm run check`
+1. update private maintainer planning if the behavior or contract needs a written decision
+2. implement against fixtures and tests
+3. verify with `npm run check`
 
 If you change formatting or command output:
 
