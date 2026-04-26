@@ -8,6 +8,7 @@ export {
   formatInspectReport,
   formatInstructionLintReportAzure,
   formatInstructionLintReportGithub,
+  formatInstructionLintReportMarkdown,
   formatInstructionLintReport
 } from "./format.js";
 export {

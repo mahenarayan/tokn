@@ -276,6 +276,75 @@ test("cli rejects conflicting --json and --format markdown", () => {
   assert.match(result.stderr, /--json cannot be combined with a non-json --format/);
 });
 
+test("cli supports inline value flags", () => {
+  const inspect = runCliJson([
+    "inspect",
+    "fixtures/openai-request.json",
+    "--format=json"
+  ]) as Record<string, unknown>;
+  const lint = runCliJson([
+    "instructions-lint",
+    "fixtures/instructions/valid-repo",
+    "--format=json",
+    "--profile=strict"
+  ]) as Record<string, unknown>;
+
+  assert.equal(inspect.sourceType, "openai-messages");
+  assert.equal(lint.profile, "strict");
+});
+
+test("cli rejects missing values for value flags", () => {
+  const result = runCliProcess([
+    "instructions-lint",
+    "fixtures/instructions/valid-repo",
+    "--profile"
+  ]);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /--profile requires a value/);
+});
+
+test("cli rejects inline values for boolean flags", () => {
+  const result = runCliProcess([
+    "inspect",
+    "fixtures/openai-request.json",
+    "--json=true"
+  ]);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /--json does not accept a value/);
+});
+
+test("cli rejects options that do not belong to the selected command", () => {
+  const result = runCliProcess([
+    "inspect",
+    "fixtures/openai-request.json",
+    "--profile",
+    "strict"
+  ]);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /Option --profile is not supported for inspect/);
+});
+
+test("cli rejects extra positional arguments", () => {
+  const result = runCliProcess([
+    "inspect",
+    "fixtures/openai-request.json",
+    "fixtures/turn-1.json"
+  ]);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /inspect received unexpected extra argument/);
+});
+
+test("cli prints help with success", () => {
+  const result = runCliProcess(["--help"]);
+
+  assert.equal(result.status, 0);
+  assert.match(result.stdout, /Usage:/);
+});
+
 test("cli check passes when thresholds are satisfied", () => {
   const result = runCliProcess([
     "check",

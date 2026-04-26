@@ -45,20 +45,28 @@ const MODEL_LIMITS: ModelLimit[] = [
   }
 ];
 
+function cloneModelLimit(limit: ModelLimit): ModelLimit {
+  return {
+    ...limit,
+    ...(limit.aliases ? { aliases: [...limit.aliases] } : {})
+  };
+}
+
 export function getModelLimit(model?: string): ModelLimit | undefined {
   if (!model) {
     return undefined;
   }
 
   const normalized = model.toLowerCase();
-  return MODEL_LIMITS.find((entry) => {
+  const match = MODEL_LIMITS.find((entry) => {
     if (entry.id.toLowerCase() === normalized) {
       return true;
     }
     return entry.aliases?.some((alias) => alias.toLowerCase() === normalized) ?? false;
   });
+  return match ? cloneModelLimit(match) : undefined;
 }
 
 export function listModelLimits(): ModelLimit[] {
-  return [...MODEL_LIMITS];
+  return MODEL_LIMITS.map((limit) => cloneModelLimit(limit));
 }

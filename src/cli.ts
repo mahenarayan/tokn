@@ -60,6 +60,32 @@ const SEGMENT_TYPES = new Set<SegmentType>(KNOWN_SEGMENT_TYPES);
 const OUTPUT_FORMATS = new Set(["text", "json", "markdown", "github", "azure"]);
 type OutputMode = "text" | "json" | "markdown" | "github" | "azure";
 
+const OUTPUT_FLAGS = new Set(["--format", "--json"]);
+const INSPECT_FLAGS = OUTPUT_FLAGS;
+const DIFF_FLAGS = OUTPUT_FLAGS;
+const BUDGET_FLAGS = new Set([...OUTPUT_FLAGS, "--model"]);
+const AGENT_REPORT_FLAGS = OUTPUT_FLAGS;
+const CHECK_FLAGS = new Set([
+  ...OUTPUT_FLAGS,
+  "--model",
+  "--max-usage-percent",
+  "--max-total-tokens",
+  "--max-segment-tokens",
+  "--fail-on-risk",
+  "--baseline"
+]);
+const INSTRUCTIONS_LINT_FLAGS = new Set([
+  ...OUTPUT_FLAGS,
+  "--config",
+  "--baseline",
+  "--ignore",
+  "--preset",
+  "--profile",
+  "--surface",
+  "--model",
+  "--fail-on-severity"
+]);
+
 function loadJson(filePath: string): unknown {
   return safeJsonParse(readText(filePath));
 }
@@ -100,14 +126,28 @@ function parseArgs(args: string[]): ParsedArgs {
     }
 
     if (token.startsWith("--")) {
-      const nextToken = args[index + 1];
-      if (VALUE_FLAGS.has(token) && nextToken && !nextToken.startsWith("--")) {
-        const existing = values.get(token) ?? [];
-        existing.push(nextToken);
-        values.set(token, existing);
-        index += 1;
+      const separatorIndex = token.indexOf("=");
+      const flag = separatorIndex > 0 ? token.slice(0, separatorIndex) : token;
+      const inlineValue = separatorIndex > 0 ? token.slice(separatorIndex + 1) : undefined;
+
+      if (VALUE_FLAGS.has(flag)) {
+        const nextToken = args[index + 1];
+        const value = inlineValue ?? (nextToken && !nextToken.startsWith("--") ? nextToken : undefined);
+        if (value === undefined || value === "") {
+          throw new Error(`${flag} requires a value.`);
+        }
+
+        const existing = values.get(flag) ?? [];
+        existing.push(value);
+        values.set(flag, existing);
+        if (inlineValue === undefined) {
+          index += 1;
+        }
       } else {
-        flags.add(token);
+        if (inlineValue !== undefined) {
+          throw new Error(`${flag} does not accept a value.`);
+        }
+        flags.add(flag);
       }
       continue;
     }
@@ -125,6 +165,42 @@ function getLastValue(parsed: ParsedArgs, flag: string): string | undefined {
 
 function getAllValues(parsed: ParsedArgs, flag: string): string[] {
   return parsed.values.get(flag) ?? [];
+}
+
+function validateAllowedOptions(parsed: ParsedArgs, command: string, allowedFlags: Set<string>): void {
+  const usedFlags = new Set([
+    ...parsed.flags,
+    ...parsed.values.keys()
+  ]);
+
+  for (const flag of [...usedFlags].sort((left, right) => left.localeCompare(right))) {
+    if (!allowedFlags.has(flag)) {
+      throw new Error(`Option ${flag} is not supported for ${command}.`);
+    }
+  }
+}
+
+function requirePositionals(parsed: ParsedArgs, command: string, expectedCount: number): void {
+  if (parsed.positionals.length < expectedCount) {
+    throw new Error(
+      expectedCount === 1
+        ? `${command} requires one path argument.`
+        : `${command} requires ${expectedCount} path arguments.`
+    );
+  }
+  if (parsed.positionals.length > expectedCount) {
+    throw new Error(`${command} received unexpected extra argument: ${parsed.positionals[expectedCount]}.`);
+  }
+}
+
+function requireOnePath(parsed: ParsedArgs, command: string): string {
+  requirePositionals(parsed, command, 1);
+  return parsed.positionals[0] as string;
+}
+
+function requireTwoPaths(parsed: ParsedArgs, command: string): [string, string] {
+  requirePositionals(parsed, command, 2);
+  return [parsed.positionals[0] as string, parsed.positionals[1] as string];
 }
 
 function parseFiniteNumber(value: string, flag: string): number {
@@ -326,16 +402,20 @@ async function main(): Promise<void> {
     return;
   }
 
+  if (command === "help" || command === "--help" || command === "-h") {
+    printUsage();
+    process.exitCode = 0;
+    return;
+  }
+
   try {
     const parsed = parseArgs(args);
     const outputMode = resolveOutputMode(parsed);
 
     switch (command) {
       case "inspect": {
-        const file = parsed.positionals[0];
-        if (!file) {
-          throw new Error("inspect requires a JSON file path.");
-        }
+        validateAllowedOptions(parsed, command, INSPECT_FLAGS);
+        const file = requireOnePath(parsed, command);
         const report = analyzePayload(loadJson(file));
         printOutput(
           report,
@@ -348,11 +428,8 @@ async function main(): Promise<void> {
         return;
       }
       case "diff": {
-        const beforeFile = parsed.positionals[0];
-        const afterFile = parsed.positionals[1];
-        if (!beforeFile || !afterFile) {
-          throw new Error("diff requires two JSON file paths.");
-        }
+        validateAllowedOptions(parsed, command, DIFF_FLAGS);
+        const [beforeFile, afterFile] = requireTwoPaths(parsed, command);
         const before = analyzePayload(loadJson(beforeFile));
         const after = analyzePayload(loadJson(afterFile));
         const report = diffReports(before, after);
@@ -367,10 +444,8 @@ async function main(): Promise<void> {
         return;
       }
       case "budget": {
-        const file = parsed.positionals[0];
-        if (!file) {
-          throw new Error("budget requires a JSON file path.");
-        }
+        validateAllowedOptions(parsed, command, BUDGET_FLAGS);
+        const file = requireOnePath(parsed, command);
         const report = loadContextReport(file, getLastValue(parsed, "--model"));
         printOutput(
           report.budget,
@@ -383,10 +458,8 @@ async function main(): Promise<void> {
         return;
       }
       case "agent-report": {
-        const file = parsed.positionals[0];
-        if (!file) {
-          throw new Error("agent-report requires a JSON file path.");
-        }
+        validateAllowedOptions(parsed, command, AGENT_REPORT_FLAGS);
+        const file = requireOnePath(parsed, command);
         const summary = analyzeAgentSnapshot(loadJson(file));
         printOutput(
           summary,
@@ -399,10 +472,8 @@ async function main(): Promise<void> {
         return;
       }
       case "check": {
-        const file = parsed.positionals[0];
-        if (!file) {
-          throw new Error("check requires a JSON file path.");
-        }
+        validateAllowedOptions(parsed, command, CHECK_FLAGS);
+        const file = requireOnePath(parsed, command);
         const thresholds = parseCheckThresholds(parsed);
         const report = loadContextReport(file, getLastValue(parsed, "--model"));
         const baselineFile = getLastValue(parsed, "--baseline");
@@ -420,10 +491,8 @@ async function main(): Promise<void> {
         return;
       }
       case "instructions-lint": {
-        const inputPath = parsed.positionals[0];
-        if (!inputPath) {
-          throw new Error("instructions-lint requires a file or directory path.");
-        }
+        validateAllowedOptions(parsed, command, INSTRUCTIONS_LINT_FLAGS);
+        const inputPath = requireOnePath(parsed, command);
 
         const profile = parseInstructionProfile(parsed);
         const failOnSeverity = parseInstructionFailSeverity(parsed);
