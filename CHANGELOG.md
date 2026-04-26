@@ -4,6 +4,15 @@ All notable changes to Tokn should be recorded in this file.
 
 ## Unreleased
 
+## 0.1.2
+
+- prepare the first GitHub Release driven npm publish flow
+- add a release workflow preflight that fails before publish if the package version already exists on npm
+- document the official release sequence around GitHub Releases and npm trusted publishing
+- keep agent-facing design docs public while leaving completed roadmap and launch planning docs out of the default public surface
+
+## 0.1.1
+
 - add `instructions-lint` for GitHub Copilot instruction files
 - make `instructions-lint` use explicit `copilot` and `agents-md` presets
 - add Copilot instruction fixtures, golden outputs, and CLI coverage
