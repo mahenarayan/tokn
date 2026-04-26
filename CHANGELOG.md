@@ -4,12 +4,15 @@ All notable changes to Tokn should be recorded in this file.
 
 ## Unreleased
 
-## 0.1.2
+## 0.1.3
 
 - prepare the first GitHub Release driven npm publish flow
 - add a release workflow preflight that fails before publish if the package version already exists on npm
+- fix the release workflow tarball path passed to `npm publish`
 - document the official release sequence around GitHub Releases and npm trusted publishing
 - keep agent-facing design docs public while leaving completed roadmap and launch planning docs out of the default public surface
+
+Note: `0.1.2` was prepared but not published to npm. Its GitHub Release was deleted after a failed publish attempt, and the tag could not be reused because GitHub marked the published release as immutable.
 
 ## 0.1.1
 
