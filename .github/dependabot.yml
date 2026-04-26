@@ -5,6 +5,11 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    groups:
+      npm-development:
+        dependency-type: development
+    commit-message:
+      prefix: deps
     labels:
       - dependencies
 
@@ -13,5 +18,11 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: deps
     labels:
       - dependencies

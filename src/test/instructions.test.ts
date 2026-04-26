@@ -329,3 +329,18 @@ test("lintInstructions supports baseline suppression for incremental rollout", (
   assert.equal(report.exitCode, 0);
   assert.equal(report.config?.baselinePath, baselinePath);
 });
+
+test("lintInstructions refuses oversized instruction files before parsing", () => {
+  const repoRoot = createInstructionRepo(
+    {
+      ".github/copilot-instructions.md": `# Repository Instructions\n\n- ${"x".repeat(1024 * 1024)}`,
+      "src/index.ts": "export const value = 1;\n"
+    },
+    "tokn-instructions-oversized-"
+  );
+
+  assert.throws(
+    () => lintInstructions(repoRoot),
+    /exceeds the 1048576 byte safety limit/
+  );
+});

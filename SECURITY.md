@@ -12,6 +12,8 @@ Do not open a public GitHub issue for a potential security vulnerability.
 Use GitHub private vulnerability reporting when it is enabled for the repository.
 If it is not available yet, open a minimal public issue requesting a private reporting channel and do not include exploit details.
 
+Private reporting URL: https://github.com/mahenarayan/tokn/security/advisories/new
+
 Please include:
 
 - affected version or commit
@@ -45,6 +47,8 @@ The public release path is designed to minimize long lived credential risk and m
 - GitHub Actions are pinned to full commit SHAs
 - CI and security workflows use least privilege permissions
 - pull requests run dependency review before merge
+- dependency installs in CI use `npm ci --ignore-scripts`
+- local npm installs default to `ignore-scripts=true`
 - public code scanning and scorecard checks are part of the repository baseline
 - the published npm artifact is checked to exclude compiled tests and internal design docs
 
