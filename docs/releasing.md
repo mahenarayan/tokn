@@ -10,6 +10,7 @@ The official release path is GitHub Release driven: publishing a GitHub Release 
 
 Older package versions may exist without a matching GitHub Release.
 Do not create a GitHub Release for an already-published npm version because the workflow will correctly refuse to republish it.
+Do not reuse a deleted GitHub Release tag; GitHub may mark published release tags as immutable even after deletion.
 
 ## Prerequisites
 
