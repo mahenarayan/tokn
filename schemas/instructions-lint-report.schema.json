@@ -301,6 +301,7 @@
     "ruleId": {
       "enum": [
         "invalid-file-path",
+        "unsupported-agent-surface",
         "malformed-frontmatter",
         "missing-frontmatter",
         "missing-applyto",

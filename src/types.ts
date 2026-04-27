@@ -21,6 +21,7 @@ export type InstructionLintRolloutStage = "advisory" | "baseline" | "enforced";
 export type InstructionExcludeAgent = "code-review" | "coding-agent";
 export type InstructionRuleId =
   | "invalid-file-path"
+  | "unsupported-agent-surface"
   | "malformed-frontmatter"
   | "missing-frontmatter"
   | "missing-applyto"

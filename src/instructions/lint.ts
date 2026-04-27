@@ -324,6 +324,16 @@ function walkFiles(directory: string): string[] {
     }
     if (entry.isFile()) {
       files.push(absolutePath);
+      continue;
+    }
+    if (entry.isSymbolicLink()) {
+      try {
+        if (fs.statSync(absolutePath).isFile()) {
+          files.push(absolutePath);
+        }
+      } catch {
+        continue;
+      }
     }
   }
 
@@ -342,7 +352,15 @@ function inferRepoRootFromDirectory(directoryPath: string): string | undefined {
   let current = path.resolve(directoryPath);
   let fallback: string | undefined;
   while (true) {
-    if (directoryExists(path.join(current, ".github")) || fileExists(path.join(current, "AGENTS.md"))) {
+    if (
+      directoryExists(path.join(current, ".github")) ||
+      directoryExists(path.join(current, ".claude")) ||
+      directoryExists(path.join(current, ".cursor")) ||
+      fileExists(path.join(current, "AGENTS.md")) ||
+      fileExists(path.join(current, "CLAUDE.md")) ||
+      fileExists(path.join(current, "GEMINI.md")) ||
+      fileExists(path.join(current, ".cursorrules"))
+    ) {
       return current;
     }
     if (!fallback && fileExists(path.join(current, "package.json"))) {
@@ -364,7 +382,15 @@ function inferRepoRootFromFile(filePath: string): string | undefined {
   let current = path.dirname(normalized);
   let fallback: string | undefined;
   while (true) {
-    if (directoryExists(path.join(current, ".github")) || fileExists(path.join(current, "AGENTS.md"))) {
+    if (
+      directoryExists(path.join(current, ".github")) ||
+      directoryExists(path.join(current, ".claude")) ||
+      directoryExists(path.join(current, ".cursor")) ||
+      fileExists(path.join(current, "AGENTS.md")) ||
+      fileExists(path.join(current, "CLAUDE.md")) ||
+      fileExists(path.join(current, "GEMINI.md")) ||
+      fileExists(path.join(current, ".cursorrules"))
+    ) {
       return current;
     }
     if (!fallback && fileExists(path.join(current, "package.json"))) {
@@ -392,6 +418,35 @@ function displayPath(absolutePath: string, repoRoot?: string): string {
 
 function matchesAnyGlob(filePath: string, patterns: string[]): boolean {
   return patterns.some((pattern) => path.matchesGlob(filePath, pattern));
+}
+
+function pathHasDirectoryPair(filePath: string, parent: string, child: string): boolean {
+  const parts = normalizePath(filePath).split("/");
+  return parts.some((part, index) => part === parent && parts[index + 1] === child);
+}
+
+function knownUnsupportedAgentSurface(filePath: string): string | undefined {
+  const normalized = normalizePath(filePath);
+  const baseName = normalized.split("/").at(-1) ?? normalized;
+
+  if (
+    baseName === "CLAUDE.md" ||
+    baseName === "CLAUDE.local.md" ||
+    (pathHasDirectoryPair(normalized, ".claude", "rules") && normalized.endsWith(".md"))
+  ) {
+    return "Claude Code";
+  }
+  if (baseName === "GEMINI.md") {
+    return "Gemini CLI";
+  }
+  if (
+    baseName === ".cursorrules" ||
+    (pathHasDirectoryPair(normalized, ".cursor", "rules") && normalized.endsWith(".mdc"))
+  ) {
+    return "Cursor";
+  }
+
+  return undefined;
 }
 
 function classifyCandidate(absolutePath: string, repoRoot?: string): CandidateFile {
@@ -441,6 +496,13 @@ function discoverAgentsCandidates(root: string): CandidateFile[] {
     .sort((left, right) => left.file.localeCompare(right.file));
 }
 
+function discoverKnownUnsupportedAgentCandidates(root: string): CandidateFile[] {
+  return walkFiles(root)
+    .filter((filePath) => knownUnsupportedAgentSurface(path.relative(root, filePath)) !== undefined)
+    .map((filePath) => classifyCandidate(filePath, root))
+    .sort((left, right) => left.file.localeCompare(right.file));
+}
+
 function discoverDirectoryCandidates(
   root: string,
   preset: InstructionLintPresetSelector
@@ -462,6 +524,10 @@ function discoverDirectoryCandidates(
 
   if (preset === "auto" || preset === "agents-md") {
     candidates.push(...discoverAgentsCandidates(root));
+  }
+
+  if (preset === "auto") {
+    candidates.push(...discoverKnownUnsupportedAgentCandidates(root));
   }
 
   return candidates.sort((left, right) => left.file.localeCompare(right.file));
@@ -744,6 +810,10 @@ function parseExcludeAgents(value: string | undefined): {
   const excludeAgents: InstructionExcludeAgent[] = [];
   const invalidEntries: string[] = [];
   for (const entry of value.split(",").map((item) => item.trim()).filter(Boolean)) {
+    if (entry === "cloud-agent") {
+      excludeAgents.push("coding-agent");
+      continue;
+    }
     if (entry === "code-review" || entry === "coding-agent") {
       excludeAgents.push(entry);
       continue;
@@ -791,15 +861,28 @@ function lintLocalRules(
   const seen = new Set<string>();
 
   if (report.kind === "unsupported") {
-    addFinding(
-      report,
-      seen,
-      "error",
-      "invalid-file-path",
-      "Instruction file path does not match a supported instruction preset location.",
-      1,
-      "Use .github/copilot-instructions.md, .github/instructions/*.instructions.md, or AGENTS.md."
-    );
+    const knownSurface = knownUnsupportedAgentSurface(report.file);
+    if (knownSurface) {
+      addFinding(
+        report,
+        seen,
+        "warning",
+        "unsupported-agent-surface",
+        `${knownSurface} instruction file is present, but Tokn does not lint this agent surface yet.`,
+        1,
+        "Keep this file visible in rollout reports and lint supported AGENTS.md or Copilot instructions until a dedicated preset exists."
+      );
+    } else {
+      addFinding(
+        report,
+        seen,
+        "error",
+        "invalid-file-path",
+        "Instruction file path does not match a supported instruction preset location.",
+        1,
+        "Use .github/copilot-instructions.md, .github/instructions/*.instructions.md, or AGENTS.md."
+      );
+    }
   }
 
   if (!report.appliesToSurface) {
@@ -1778,7 +1861,7 @@ export function lintInstructions(
               "invalid-exclude-agent",
               `excludeAgent contains unsupported value(s): ${excludeAgent.invalidEntries.join(", ")}.`,
               report.excludeAgentsLine ?? 1,
-              'Use "code-review" or "coding-agent".'
+              'Use "code-review" or "cloud-agent".'
             )
           );
         }

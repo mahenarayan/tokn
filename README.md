@@ -60,6 +60,7 @@ Tokn reads the instruction files that shape agent behavior and flags problems su
 - vague directives like "follow best practices"
 - stale `applyTo` patterns that match nothing
 - instruction bundles that are larger or noisier than they need to be
+- known external agent files such as `CLAUDE.md` and Cursor rules that are present but not linted yet
 
 The goal is not to generate prompts. The goal is to keep repository instruction sets precise, compact, and governable.
 
@@ -102,6 +103,7 @@ Stable inputs:
 - GitHub Copilot instruction repositories and files
 - root or nested `AGENTS.md` files
 - repository roots containing a mix of supported instruction presets
+- visibility-only detection for known external agent surfaces such as `CLAUDE.md`, `GEMINI.md`, `.cursor/rules/*.mdc`, and `.cursorrules`
 
 Stable SDK entry points:
 
@@ -127,6 +129,7 @@ They normalize OpenAI style payloads, OpenAI compatible request logs, OpenAI Res
 ## Current Limits
 
 - `instructions-lint` uses explicit presets today with `copilot` and `agents-md`
+- Claude, Gemini, and Cursor files are detected for visibility but are not fully linted yet
 - model context budgets are local registry data, so model context reporting stays conservative
 - prompt and trace diagnostics are still experimental and broader in scope than the stable lint contract
 - v1 intentionally avoids file rewrites
