@@ -14,14 +14,18 @@ usage() {
 Usage:
   bash scripts/instructions-lint-demo.sh local
   bash scripts/instructions-lint-demo.sh public
+  bash scripts/instructions-lint-demo.sh agentic
   bash scripts/instructions-lint-demo.sh all
   bash scripts/instructions-lint-demo.sh prepare-public
+  bash scripts/instructions-lint-demo.sh prepare-agentic
 
 Modes:
-  local           Run the mature local fixture set.
-  public          Clone verified public repos and run the public demo set.
-  all             Run both local and public demo sets.
-  prepare-public  Clone the verified public repos without running lint.
+  local            Run the mature local fixture set.
+  public           Clone verified public repos and run the public demo set.
+  agentic          Clone real agent-heavy repos and run the field demo set.
+  all              Run local, public, and agentic demo sets.
+  prepare-public   Clone the verified public repos without running lint.
+  prepare-agentic  Clone the agentic field repos without running lint.
 
 Environment:
   DEMO_ROOT       Checkout root for public repos. Defaults to /tmp/tokn-instructions-demo.
@@ -132,6 +136,47 @@ run_public_suite() {
     --surface code-review
 }
 
+run_agentic_suite() {
+  local openai_agents_dir
+  local openai_codex_dir
+  local claude_sdk_dir
+  local react_dir
+  local pytorch_dir
+
+  openai_agents_dir="$(clone_repo "openai/openai-agents-python")"
+  openai_codex_dir="$(clone_repo "openai/codex")"
+  claude_sdk_dir="$(clone_repo "anthropics/claude-code-sdk-python")"
+  react_dir="$(clone_repo "facebook/react")"
+  pytorch_dir="$(clone_repo "pytorch/pytorch")"
+
+  run_case \
+    "Field repo: openai/openai-agents-python AGENTS.md plus CLAUDE.md" \
+    "$openai_agents_dir" \
+    --surface coding-agent \
+    --model gpt-4o
+
+  run_case \
+    "Field repo: openai/codex nested AGENTS.md scopes" \
+    "$openai_codex_dir" \
+    --preset agents-md \
+    --surface coding-agent \
+    --model gpt-4o
+
+  run_case \
+    "Field repo: anthropics/claude-code-sdk-python unsupported Claude surface" \
+    "$claude_sdk_dir" \
+    --format markdown
+
+  run_case \
+    "Field repo: facebook/react root and nested Claude surfaces" \
+    "$react_dir"
+
+  run_case \
+    "Field repo: pytorch/pytorch mixed Copilot, AGENTS.md, and Claude surfaces" \
+    "$pytorch_dir" \
+    --surface code-review
+}
+
 main() {
   local mode="${1:-local}"
 
@@ -144,10 +189,15 @@ main() {
       ensure_built
       run_public_suite
       ;;
+    agentic)
+      ensure_built
+      run_agentic_suite
+      ;;
     all)
       ensure_built
       run_local_suite
       run_public_suite
+      run_agentic_suite
       ;;
     prepare-public)
       clone_repo "rollup/rollup" >/dev/null
@@ -157,6 +207,14 @@ main() {
       clone_repo "camunda/camunda" >/dev/null
       clone_repo "microsoft/PowerToys" >/dev/null
       echo "Prepared public demo repos under $DEMO_ROOT"
+      ;;
+    prepare-agentic)
+      clone_repo "openai/openai-agents-python" >/dev/null
+      clone_repo "openai/codex" >/dev/null
+      clone_repo "anthropics/claude-code-sdk-python" >/dev/null
+      clone_repo "facebook/react" >/dev/null
+      clone_repo "pytorch/pytorch" >/dev/null
+      echo "Prepared agentic demo repos under $DEMO_ROOT"
       ;;
     -h|--help|help)
       usage

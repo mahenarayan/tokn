@@ -28,6 +28,14 @@ export const INSTRUCTION_RULES: Record<InstructionRuleId, InstructionRuleDefinit
     presets: "all",
     surfaces: "all"
   },
+  "unsupported-agent-surface": {
+    id: "unsupported-agent-surface",
+    category: "compatibility",
+    defaultSeverity: "warning",
+    summary: "A known agent instruction file is present but is not linted by a supported Tokn preset.",
+    presets: "all",
+    surfaces: "all"
+  },
   "malformed-frontmatter": {
     id: "malformed-frontmatter",
     category: "compatibility",

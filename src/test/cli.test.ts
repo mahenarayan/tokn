@@ -573,6 +573,40 @@ test("cli instructions-lint fails with exit code 2 on invalid repository fixture
   assert.match(result.stdout, /invalid-file-path/);
 });
 
+test("cli instructions-lint reports known unsupported agent surfaces without failing the default gate", () => {
+  const repoRoot = createInstructionRepo(
+    {
+      "package.json": "{}\n",
+      "CLAUDE.md": "# Claude Code\n\n- Run npm test before committing.\n",
+      ".cursor/rules/react.mdc": "# Cursor\n\n- Prefer function components for UI changes.\n"
+    },
+    "tokn-cli-agent-surfaces-"
+  );
+
+  const result = runCliProcess(["instructions-lint", repoRoot, "--format", "json"]);
+  assert.equal(result.status, 0, result.stderr);
+
+  const output = JSON.parse(result.stdout) as Record<string, unknown>;
+  assert.equal(output.passed, true);
+
+  const stats = output.stats as Record<string, unknown>;
+  assert.equal(stats.unsupportedFiles, 2);
+
+  const findings = output.findings as Array<Record<string, unknown>>;
+  assert.equal(findings.length, 2);
+  assert.ok(findings.every((finding) => finding.ruleId === "unsupported-agent-surface"));
+  assert.ok(findings.every((finding) => finding.severity === "warning"));
+
+  const strictResult = runCliProcess([
+    "instructions-lint",
+    repoRoot,
+    "--fail-on-severity",
+    "warning"
+  ]);
+  assert.equal(strictResult.status, 2, strictResult.stderr);
+  assert.match(strictResult.stdout, /unsupported-agent-surface/);
+});
+
 test("cli instructions-lint matches golden output for pass case", () => {
   const output = runCli(["instructions-lint", "fixtures/instructions/valid-repo"]);
   assert.equal(output, readGolden("instructions-lint-pass.txt"));

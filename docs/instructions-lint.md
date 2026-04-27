@@ -4,6 +4,8 @@
 
 It is a local linter for repository instruction files. Today it supports the `copilot` preset for `.github/copilot-instructions.md` and `.github/instructions/*.instructions.md`, plus the `agents-md` preset for root or nested `AGENTS.md` files.
 
+In `auto` mode Tokn also detects known external agent-instruction surfaces such as `CLAUDE.md`, `CLAUDE.local.md`, `GEMINI.md`, `.cursor/rules/*.mdc`, and `.cursorrules`. These are reported with `unsupported-agent-surface` warnings for rollout visibility, but Tokn does not lint their tool-specific semantics yet.
+
 ## Why Lint First
 
 Instruction files are part of the context supply chain for coding assistants and coding agents. They are easy to review as prose and hard to reason about as repeated model input.
@@ -190,13 +192,21 @@ For restricted enterprise agents, install `@tokn-labs/tokn` from an approved int
 | `agents-md` | supported | root or nested `AGENTS.md` | treated as repository-wide or directory-scoped instructions |
 | `auto` | stable | repository roots with a mix of supported presets | discovers all supported presets and reports `detectedPresets` |
 
+### Known External Surfaces
+
+| Surface | Status | Input shape | Notes |
+| --- | --- | --- | --- |
+| Claude Code | visibility only | `CLAUDE.md`, `CLAUDE.local.md`, `.claude/rules/*.md` | reported as unsupported so teams know the file exists |
+| Gemini CLI | visibility only | `GEMINI.md` | reported as unsupported so teams can track cross-tool drift |
+| Cursor | visibility only | `.cursor/rules/*.mdc`, `.cursorrules` | reported as unsupported; `.cursorrules` is legacy in Cursor docs |
+
 ### Surfaces
 
 | Surface | Status | Notes |
 | --- | --- | --- |
 | `code-review` | stable | applies the Copilot 4000 character limit |
 | `chat` | stable | skips the code review only file cap |
-| `coding-agent` | stable | respects `excludeAgent: "coding-agent"` on Copilot path specific files |
+| `coding-agent` | stable | respects Copilot `excludeAgent: "cloud-agent"` on path specific files; `coding-agent` is also accepted for compatibility |
 
 ### Output formats
 
@@ -213,6 +223,7 @@ For restricted enterprise agents, install `@tokn-labs/tokn` from an approved int
 | Rule ID | Default severity | Category | Applies to |
 | --- | --- | --- | --- |
 | `invalid-file-path` | error | compatibility | unsupported paths across all presets |
+| `unsupported-agent-surface` | warning | compatibility | known external agent instruction surfaces |
 | `malformed-frontmatter` | error | compatibility | Copilot path specific files |
 | `missing-frontmatter` | error | compatibility | Copilot path specific files |
 | `missing-applyto` | error | compatibility | Copilot path specific files |
@@ -241,4 +252,6 @@ For restricted enterprise agents, install `@tokn-labs/tokn` from an approved int
 
 - `instructions-lint` does not modify files.
 - Tokn does not rewrite instructions or generate fixes in the stable surface.
+- Detection of `CLAUDE.md`, `GEMINI.md`, and Cursor rule files is visibility-only in `auto` mode.
+- Symlinked instruction files that resolve to regular files are discovered; symlinked directories are skipped to avoid traversal loops.
 - Advanced prompt and trace diagnostics remain experimental and are not part of this contract yet.

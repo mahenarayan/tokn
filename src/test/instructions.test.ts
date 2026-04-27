@@ -70,6 +70,24 @@ test("lintInstructions discovers AGENTS.md files through the agents-md preset", 
   assert.ok((scoped?.matchedFileCount ?? 0) >= 2);
 });
 
+test("lintInstructions discovers symlinked known agent instruction surfaces", () => {
+  const repoRoot = createInstructionRepo(
+    {
+      "AGENTS.md": "# Agents\n\n- Run the relevant tests before finalizing.\n",
+      "src/index.ts": "export const value = 1;\n"
+    },
+    "tokn-instructions-symlinked-agent-surface-"
+  );
+  fs.symlinkSync("AGENTS.md", path.join(repoRoot, "CLAUDE.md"));
+
+  const report = lintInstructions(repoRoot);
+  const claudeFile = report.files.find((file) => file.file === "CLAUDE.md");
+
+  assert.ok(claudeFile);
+  assert.equal(claudeFile.kind, "unsupported");
+  assert.equal(claudeFile.findings[0]?.ruleId, "unsupported-agent-surface");
+});
+
 test("lintInstructions detects invalid names, malformed scope setup, duplicates, and conflicts", () => {
   const report = lintInstructions(instructionFixture("invalid-repo"));
   const codes = new Set(report.findings.map((finding) => finding.ruleId));
@@ -192,6 +210,30 @@ test("lintInstructions respects excludeAgent for selected surfaces", () => {
   assert.equal(codeReview.files[0]?.appliesToSurface, false);
   assert.deepEqual(codeReview.files[0]?.excludeAgents, ["code-review"]);
   assert.equal(codingAgent.files[0]?.appliesToSurface, true);
+});
+
+test("lintInstructions maps Copilot cloud-agent exclusions to the coding-agent surface", () => {
+  const repoRoot = createInstructionRepo(
+    {
+      ".github/instructions/cloud.instructions.md": [
+        "---",
+        'applyTo: "**/*.ts"',
+        'excludeAgent: "cloud-agent"',
+        "---",
+        "",
+        "- Keep generated diffs focused."
+      ].join("\n"),
+      "src/index.ts": "export function demo(): number { return 1; }\n"
+    },
+    "tokn-instructions-cloud-agent-"
+  );
+
+  const codingAgent = lintInstructions(repoRoot, { surface: "coding-agent" });
+  const codeReview = lintInstructions(repoRoot, { surface: "code-review" });
+
+  assert.equal(codingAgent.files[0]?.appliesToSurface, false);
+  assert.deepEqual(codingAgent.files[0]?.excludeAgents, ["coding-agent"]);
+  assert.equal(codeReview.files[0]?.appliesToSurface, true);
 });
 
 test("lintInstructions warns when a single target accumulates too many instruction tokens", () => {
