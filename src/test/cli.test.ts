@@ -617,6 +617,11 @@ test("cli instructions-lint supports --config and includes rollout controls in j
       "tokn.config.json": JSON.stringify(
         {
           instructionsLint: {
+            rollout: {
+              stage: "baseline",
+              owner: "platform-ai",
+              policyVersion: "2026.04"
+            },
             profile: "strict",
             rules: {
               "statement-too-long": { severity: "error" }
@@ -657,6 +662,11 @@ test("cli instructions-lint supports --config and includes rollout controls in j
   assert.equal(output.profile, "strict");
   assert.ok(String(config.source).endsWith("tokn.config.json"));
   assert.deepEqual(config.ignore, ["generated/**"]);
+  assert.deepEqual(config.rollout, {
+    stage: "baseline",
+    owner: "platform-ai",
+    policyVersion: "2026.04"
+  });
   assert.equal(stats.ignoredTargetFileCount, 1);
   assert.equal(findings[0]?.severity, "error");
 });
@@ -823,4 +833,18 @@ test("cli instructions-lint respects --fail-on-severity", () => {
   assert.equal(defaultResult.status, 0, defaultResult.stderr);
   assert.equal(warningResult.status, 2, warningResult.stderr);
   assert.match(warningResult.stdout, /statement-too-long/);
+});
+
+test("cli instructions-lint supports advisory fail threshold", () => {
+  const result = runCliProcess([
+    "instructions-lint",
+    "fixtures/instructions/invalid-repo",
+    "--fail-on-severity",
+    "off"
+  ]);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Tokn Instructions Lint: advisory/);
+  assert.match(result.stdout, /Fail threshold: off/);
+  assert.match(result.stdout, /invalid-file-path/);
 });

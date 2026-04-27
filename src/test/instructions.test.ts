@@ -272,6 +272,73 @@ test("lintInstructions emits a stable schema contract and discovers config defau
   assert.ok(!report.findings.some((candidate) => candidate.ruleId === "weak-modal-phrasing"));
 });
 
+test("lintInstructions supports advisory enterprise rollout config", () => {
+  const repoRoot = createInstructionRepo(
+    {
+      "tokn.config.json": JSON.stringify(
+        {
+          instructionsLint: {
+            rollout: {
+              stage: "advisory",
+              owner: "platform-ai",
+              policyVersion: "2026.04",
+              ticket: "AI-1234",
+              expiresOn: "2026-06-30"
+            },
+            failOnSeverity: "off"
+          }
+        },
+        null,
+        2
+      ),
+      ".github/instructions/legacy.md": "- Follow best practices.\n",
+      "src/index.ts": "export const value = 1;\n"
+    },
+    "tokn-instructions-enterprise-rollout-"
+  );
+
+  const report = lintInstructions(repoRoot);
+
+  assert.equal(report.failOnSeverity, "off");
+  assert.equal(report.passed, true);
+  assert.equal(report.exitCode, 0);
+  assert.ok(report.findings.some((finding) => finding.ruleId === "invalid-file-path"));
+  assert.deepEqual(report.config?.rollout, {
+    stage: "advisory",
+    owner: "platform-ai",
+    policyVersion: "2026.04",
+    ticket: "AI-1234",
+    expiresOn: "2026-06-30"
+  });
+});
+
+test("lintInstructions rejects invalid rollout metadata", () => {
+  const repoRoot = createInstructionRepo(
+    {
+      "tokn.config.json": JSON.stringify(
+        {
+          instructionsLint: {
+            rollout: {
+              stage: "trial",
+              expiresOn: "06/30/2026"
+            }
+          }
+        },
+        null,
+        2
+      ),
+      ".github/copilot-instructions.md": "# Repository Instructions\n\n- Keep changes small.\n",
+      "src/index.ts": "export const value = 1;\n"
+    },
+    "tokn-instructions-invalid-rollout-"
+  );
+
+  assert.throws(
+    () => lintInstructions(repoRoot),
+    /instructionsLint\.rollout\.stage must be one of/
+  );
+});
+
 test("lintInstructions applies suppressions from config", () => {
   const repoRoot = createInstructionRepo(
     {

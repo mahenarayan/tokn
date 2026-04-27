@@ -13,9 +13,11 @@ export type SegmentType =
 export type CheckRiskThreshold = "low" | "medium" | "high";
 export type InstructionLintProfile = "lite" | "standard" | "strict";
 export type InstructionLintSeverity = "warning" | "error";
+export type InstructionLintFailOnSeverity = "off" | InstructionLintSeverity;
 export type InstructionLintSurface = "code-review" | "chat" | "coding-agent";
 export type InstructionLintPreset = "copilot" | "agents-md";
 export type InstructionLintPresetSelector = "auto" | InstructionLintPreset;
+export type InstructionLintRolloutStage = "advisory" | "baseline" | "enforced";
 export type InstructionExcludeAgent = "code-review" | "coding-agent";
 export type InstructionRuleId =
   | "invalid-file-path"
@@ -160,7 +162,7 @@ export interface CheckResult {
 
 export interface InstructionLintOptions {
   profile?: InstructionLintProfile;
-  failOnSeverity?: InstructionLintSeverity;
+  failOnSeverity?: InstructionLintFailOnSeverity;
   surface?: InstructionLintSurface;
   model?: string;
   preset?: InstructionLintPresetSelector;
@@ -182,9 +184,17 @@ export interface InstructionSuppression {
   reason?: string;
 }
 
+export interface InstructionLintRollout {
+  stage?: InstructionLintRolloutStage;
+  owner?: string;
+  policyVersion?: string;
+  ticket?: string;
+  expiresOn?: string;
+}
+
 export interface InstructionLintConfigSection {
   profile?: InstructionLintProfile;
-  failOnSeverity?: InstructionLintSeverity;
+  failOnSeverity?: InstructionLintFailOnSeverity;
   surface?: InstructionLintSurface;
   model?: string;
   preset?: InstructionLintPresetSelector;
@@ -192,6 +202,7 @@ export interface InstructionLintConfigSection {
   ignore?: string[];
   rules?: Partial<Record<InstructionRuleId, InstructionRuleOverride>>;
   suppressions?: InstructionSuppression[];
+  rollout?: InstructionLintRollout;
 }
 
 export interface InstructionLintConfigFile {
@@ -205,6 +216,7 @@ export interface InstructionLintAppliedConfig {
   ignore: string[];
   suppressionCount: number;
   overriddenRules: InstructionRuleId[];
+  rollout?: InstructionLintRollout;
 }
 
 export interface InstructionFindingLocation {
@@ -288,7 +300,7 @@ export interface InstructionLintReport {
   maxApplicableContextPercent?: number;
   passed: boolean;
   exitCode: 0 | 2;
-  failOnSeverity: InstructionLintSeverity;
+  failOnSeverity: InstructionLintFailOnSeverity;
   config?: InstructionLintAppliedConfig;
   stats: InstructionLintStats;
   files: InstructionFileReport[];

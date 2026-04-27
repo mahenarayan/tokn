@@ -5,8 +5,11 @@ import { isObject, readText, safeJsonParse } from "../helpers.js";
 import { isInstructionRuleId } from "./rules.js";
 import type {
   InstructionLintConfigSection,
+  InstructionLintFailOnSeverity,
   InstructionLintPresetSelector,
   InstructionLintProfile,
+  InstructionLintRollout,
+  InstructionLintRolloutStage,
   InstructionLintSeverity,
   InstructionLintSurface,
   InstructionRuleId,
@@ -18,8 +21,11 @@ export const INSTRUCTION_LINT_CONFIG_FILENAMES = ["tokn.config.json", ".toknrc.j
 
 const PROFILES = new Set<InstructionLintProfile>(["lite", "standard", "strict"]);
 const SEVERITIES = new Set<InstructionLintSeverity>(["warning", "error"]);
+const FAIL_ON_SEVERITIES = new Set<InstructionLintFailOnSeverity>(["off", "warning", "error"]);
 const SURFACES = new Set<InstructionLintSurface>(["code-review", "chat", "coding-agent"]);
 const PRESETS = new Set<InstructionLintPresetSelector>(["auto", "copilot", "agents-md"]);
+const ROLLOUT_STAGES = new Set<InstructionLintRolloutStage>(["advisory", "baseline", "enforced"]);
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_CONFIG_FILE_BYTES = 1024 * 1024;
 
 export interface NormalizedInstructionSuppression {
@@ -31,7 +37,7 @@ export interface NormalizedInstructionSuppression {
 export interface ResolvedInstructionLintConfig {
   sourcePath: string;
   profile?: InstructionLintProfile;
-  failOnSeverity?: InstructionLintSeverity;
+  failOnSeverity?: InstructionLintFailOnSeverity;
   surface?: InstructionLintSurface;
   model?: string;
   preset?: InstructionLintPresetSelector;
@@ -39,6 +45,7 @@ export interface ResolvedInstructionLintConfig {
   ignore: string[];
   ruleOverrides: Partial<Record<InstructionRuleId, InstructionRuleOverride>>;
   suppressions: NormalizedInstructionSuppression[];
+  rollout?: InstructionLintRollout;
 }
 
 function asStringArray(value: unknown, fieldName: string): string[] {
@@ -68,6 +75,60 @@ function resolveSection(raw: unknown): InstructionLintConfigSection {
   }
 
   return raw as InstructionLintConfigSection;
+}
+
+function readOptionalTrimmedString(
+  value: unknown,
+  fieldName: string
+): string | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (typeof value !== "string") {
+    throw new Error(`${fieldName} must be a string.`);
+  }
+  const trimmed = value.trim();
+  return trimmed ? trimmed : undefined;
+}
+
+function normalizeRollout(raw: unknown): InstructionLintRollout {
+  if (!isObject(raw)) {
+    throw new Error("instructionsLint.rollout must be a JSON object.");
+  }
+
+  const rollout: InstructionLintRollout = {};
+  const stage = readOptionalTrimmedString(raw.stage, "instructionsLint.rollout.stage");
+  if (stage !== undefined) {
+    if (!ROLLOUT_STAGES.has(stage as InstructionLintRolloutStage)) {
+      throw new Error("instructionsLint.rollout.stage must be one of: advisory, baseline, enforced.");
+    }
+    rollout.stage = stage as InstructionLintRolloutStage;
+  }
+
+  const owner = readOptionalTrimmedString(raw.owner, "instructionsLint.rollout.owner");
+  if (owner !== undefined) {
+    rollout.owner = owner;
+  }
+
+  const policyVersion = readOptionalTrimmedString(raw.policyVersion, "instructionsLint.rollout.policyVersion");
+  if (policyVersion !== undefined) {
+    rollout.policyVersion = policyVersion;
+  }
+
+  const ticket = readOptionalTrimmedString(raw.ticket, "instructionsLint.rollout.ticket");
+  if (ticket !== undefined) {
+    rollout.ticket = ticket;
+  }
+
+  const expiresOn = readOptionalTrimmedString(raw.expiresOn, "instructionsLint.rollout.expiresOn");
+  if (expiresOn !== undefined) {
+    if (!ISO_DATE_RE.test(expiresOn)) {
+      throw new Error("instructionsLint.rollout.expiresOn must use YYYY-MM-DD.");
+    }
+    rollout.expiresOn = expiresOn;
+  }
+
+  return rollout;
 }
 
 export function discoverInstructionLintConfigPath(baseDirectory: string): string | undefined {
@@ -102,8 +163,8 @@ export function loadInstructionLintConfig(configPath: string): ResolvedInstructi
   }
 
   if (section.failOnSeverity !== undefined) {
-    if (!SEVERITIES.has(section.failOnSeverity)) {
-      throw new Error(`instructionsLint.failOnSeverity must be one of: warning, error.`);
+    if (!FAIL_ON_SEVERITIES.has(section.failOnSeverity)) {
+      throw new Error(`instructionsLint.failOnSeverity must be one of: off, warning, error.`);
     }
     result.failOnSeverity = section.failOnSeverity;
   }
@@ -138,6 +199,10 @@ export function loadInstructionLintConfig(configPath: string): ResolvedInstructi
 
   if (section.ignore !== undefined) {
     result.ignore = asStringArray(section.ignore, "instructionsLint.ignore").map((entry) => entry.trim()).filter(Boolean);
+  }
+
+  if (section.rollout !== undefined) {
+    result.rollout = normalizeRollout(section.rollout);
   }
 
   if (section.rules !== undefined) {

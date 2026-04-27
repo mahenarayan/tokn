@@ -1,6 +1,6 @@
 {
   "name": "@tokn-labs/tokn",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "description": "CLI + SDK for linting repository instruction files and governing instruction context",
   "type": "module",
   "bin": {
