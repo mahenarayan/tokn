@@ -39,9 +39,14 @@ Create `tokn.config.json`:
 {
   "$schema": "https://github.com/mahenarayan/tokn/blob/main/schemas/tokn-config.schema.json",
   "instructionsLint": {
+    "rollout": {
+      "stage": "advisory",
+      "owner": "platform-ai",
+      "policyVersion": "2026.04"
+    },
     "profile": "standard",
     "surface": "coding-agent",
-    "failOnSeverity": "warning",
+    "failOnSeverity": "off",
     "ignore": ["generated/**", "vendor/**"],
     "baseline": "./.tokn/instructions-baseline.json"
   }
@@ -111,10 +116,12 @@ Start with:
 
 - `profile: "standard"`
 - `surface: "coding-agent"` if coding agents are the main concern
+- `rollout.stage: "advisory"` and `failOnSeverity: "off"` while teams review the first reports
 - `failOnSeverity: "warning"` only after the baseline is accepted
 
 Tighten later by:
 
+- moving `rollout.stage` from `advisory` to `baseline`, then `enforced`
 - removing suppressions as owners clean up legacy files
 - moving from `standard` to `strict` for stronger instruction sets
 - adding `--model` when you want context window share reporting in the JSON artifact

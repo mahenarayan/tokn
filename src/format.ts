@@ -83,6 +83,13 @@ function formatInstructionFileStatus(file: InstructionLintReport["files"][number
   return file.appliesToSurface ? "active" : "inactive for surface";
 }
 
+function formatInstructionLintStatus(report: InstructionLintReport): string {
+  if (report.failOnSeverity === "off") {
+    return "advisory";
+  }
+  return report.passed ? "pass" : "fail";
+}
+
 function formatInstructionFileText(file: InstructionLintReport["files"][number]): string {
   const details = [formatInstructionFileKind(file.kind)];
   const preset = formatInstructionPreset(file.preset);
@@ -193,6 +200,19 @@ function appendInstructionLintControlLines(lines: string[], report: InstructionL
   if (report.config && report.config.overriddenRules.length > 0) {
     controlLines.push(`Rule overrides: ${report.config.overriddenRules.join(", ")}`);
   }
+  if (report.config?.rollout) {
+    const rollout = report.config.rollout;
+    const rolloutParts = [
+      rollout.stage ? `stage=${rollout.stage}` : undefined,
+      rollout.owner ? `owner=${rollout.owner}` : undefined,
+      rollout.policyVersion ? `policy=${rollout.policyVersion}` : undefined,
+      rollout.ticket ? `ticket=${rollout.ticket}` : undefined,
+      rollout.expiresOn ? `expires=${rollout.expiresOn}` : undefined
+    ].filter((part): part is string => Boolean(part));
+    if (rolloutParts.length > 0) {
+      controlLines.push(`Rollout: ${rolloutParts.join(" | ")}`);
+    }
+  }
   if (report.config && report.config.ignore.length > 0) {
     controlLines.push(`Ignore globs: ${report.config.ignore.join(", ")}`);
   }
@@ -230,6 +250,19 @@ function appendInstructionLintControlMarkdown(lines: string[], report: Instructi
   }
   if (report.config && report.config.overriddenRules.length > 0) {
     controlLines.push(`- Rule overrides: ${report.config.overriddenRules.join(", ")}`);
+  }
+  if (report.config?.rollout) {
+    const rollout = report.config.rollout;
+    const rolloutParts = [
+      rollout.stage ? `stage=${rollout.stage}` : undefined,
+      rollout.owner ? `owner=${rollout.owner}` : undefined,
+      rollout.policyVersion ? `policy=${rollout.policyVersion}` : undefined,
+      rollout.ticket ? `ticket=${rollout.ticket}` : undefined,
+      rollout.expiresOn ? `expires=${rollout.expiresOn}` : undefined
+    ].filter((part): part is string => Boolean(part));
+    if (rolloutParts.length > 0) {
+      controlLines.push(`- Rollout: ${rolloutParts.join(" | ")}`);
+    }
   }
   if (report.config && report.config.ignore.length > 0) {
     controlLines.push(`- Ignore globs: ${report.config.ignore.join(", ")}`);
@@ -568,7 +601,7 @@ export function formatCheckReportMarkdown(result: CheckResult): string {
 
 export function formatInstructionLintReport(report: InstructionLintReport): string {
   const lines = [
-    `Tokn Instructions Lint: ${report.passed ? "pass" : "fail"}`,
+    `Tokn Instructions Lint: ${formatInstructionLintStatus(report)}`,
     "",
     "Scope:",
     `- Preset: ${report.preset}`,
@@ -694,7 +727,7 @@ export function formatInstructionLintReportMarkdown(report: InstructionLintRepor
   const lines = [
     "# Tokn Instructions Lint Report",
     "",
-    `Status: **${report.passed ? "pass" : "fail"}**`,
+    `Status: **${formatInstructionLintStatus(report)}**`,
     "",
     "## Scope",
     `- Preset: ${report.preset}`,

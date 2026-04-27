@@ -23,9 +23,9 @@ import type {
   CheckRiskThreshold,
   CheckThresholds,
   ContextReport,
+  InstructionLintFailOnSeverity,
   InstructionLintPresetSelector,
   InstructionLintProfile,
-  InstructionLintSeverity,
   InstructionLintSurface,
   SegmentType
 } from "./types.js";
@@ -61,7 +61,7 @@ const VALUE_FLAGS = new Set([
 ]);
 const RISK_THRESHOLDS = new Set<CheckRiskThreshold>(["low", "medium", "high"]);
 const INSTRUCTION_PROFILES = new Set<InstructionLintProfile>(["lite", "standard", "strict"]);
-const INSTRUCTION_SEVERITIES = new Set<InstructionLintSeverity>(["warning", "error"]);
+const INSTRUCTION_FAIL_ON_SEVERITIES = new Set<InstructionLintFailOnSeverity>(["off", "warning", "error"]);
 const INSTRUCTION_SURFACES = new Set<InstructionLintSurface>(["code-review", "chat", "coding-agent"]);
 const INSTRUCTION_PRESETS = new Set<InstructionLintPresetSelector>(["auto", "copilot", "agents-md"]);
 const SEGMENT_TYPES = new Set<SegmentType>(KNOWN_SEGMENT_TYPES);
@@ -99,7 +99,7 @@ const COMMAND_HELP: Record<string, CommandHelp> = {
   "instructions-lint": {
     summary: "Lint repository instruction files for duplicated, conflicting, vague, stale, or oversized guidance.",
     usage:
-      "tokn instructions-lint <path> [--config <file>] [--baseline <file>] [--ignore <glob>] [--preset <auto|copilot|agents-md>] [--profile <lite|standard|strict>] [--surface <code-review|chat|coding-agent>] [--model <id>] [--fail-on-severity <warning|error>] [--format <text|json|markdown|github|azure>]",
+      "tokn instructions-lint <path> [--config <file>] [--baseline <file>] [--ignore <glob>] [--preset <auto|copilot|agents-md>] [--profile <lite|standard|strict>] [--surface <code-review|chat|coding-agent>] [--model <id>] [--fail-on-severity <off|warning|error>] [--format <text|json|markdown|github|azure>]",
     options: [
       "--config <file>                 Read instructions-lint config from a JSON file.",
       "--baseline <file>               Suppress findings already present in a previous JSON report.",
@@ -108,7 +108,7 @@ const COMMAND_HELP: Record<string, CommandHelp> = {
       "--profile <lite|standard|strict>",
       "--surface <code-review|chat|coding-agent>",
       "--model <id>                    Include model-aware context budget fields when available.",
-      "--fail-on-severity <warning|error>",
+      "--fail-on-severity <off|warning|error>",
       "--format <text|json|markdown|github|azure>",
       "--json                          Alias for --format json."
     ],
@@ -504,15 +504,15 @@ function parseInstructionProfile(parsed: ParsedArgs): InstructionLintProfile | u
   return profile as InstructionLintProfile;
 }
 
-function parseInstructionFailSeverity(parsed: ParsedArgs): InstructionLintSeverity | undefined {
+function parseInstructionFailSeverity(parsed: ParsedArgs): InstructionLintFailOnSeverity | undefined {
   const severity = getLastValue(parsed, "--fail-on-severity");
   if (severity === undefined) {
     return undefined;
   }
-  if (!INSTRUCTION_SEVERITIES.has(severity as InstructionLintSeverity)) {
-    throw new Error("--fail-on-severity must be one of: warning, error.");
+  if (!INSTRUCTION_FAIL_ON_SEVERITIES.has(severity as InstructionLintFailOnSeverity)) {
+    throw new Error("--fail-on-severity must be one of: off, warning, error.");
   }
-  return severity as InstructionLintSeverity;
+  return severity as InstructionLintFailOnSeverity;
 }
 
 function parseInstructionSurface(parsed: ParsedArgs): InstructionLintSurface | undefined {

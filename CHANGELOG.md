@@ -4,6 +4,14 @@ All notable changes to Tokn should be recorded in this file.
 
 ## Unreleased
 
+## 0.2.0
+
+- add enterprise rollout metadata for `tokn.config.json`
+- add advisory report-only mode with `failOnSeverity: "off"`
+- include rollout stage and ownership metadata in instruction lint reports
+- document advisory, baseline, and enforced rollout phases for enterprise adoption
+- update config and report schemas for rollout metadata and advisory thresholds
+
 ## 0.1.3
 
 - prepare the first GitHub Release driven npm publish flow

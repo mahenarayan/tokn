@@ -22,6 +22,7 @@ import type {
   InstructionFileReport,
   InstructionFinding,
   InstructionFindingEvidence,
+  InstructionLintFailOnSeverity,
   InstructionLintAppliedConfig,
   InstructionLintOptions,
   InstructionLintPreset,
@@ -114,7 +115,7 @@ interface ResolvedLintPolicy {
   appliedConfig?: InstructionLintAppliedConfig;
   preset: InstructionLintPresetSelector;
   profile: InstructionLintProfile;
-  failOnSeverity: InstructionLintSeverity;
+  failOnSeverity: InstructionLintFailOnSeverity;
   surface: InstructionLintSurface;
   model?: string;
   baselinePath?: string;
@@ -134,7 +135,7 @@ interface InstructionBudgets {
 }
 
 const DEFAULT_PROFILE: InstructionLintProfile = "standard";
-const DEFAULT_FAIL_ON_SEVERITY: InstructionLintSeverity = "error";
+const DEFAULT_FAIL_ON_SEVERITY: InstructionLintFailOnSeverity = "error";
 const DEFAULT_SURFACE: InstructionLintSurface = "code-review";
 const DEFAULT_PRESET: InstructionLintPresetSelector = "auto";
 const MAX_INSTRUCTION_FILE_BYTES = 1024 * 1024;
@@ -1370,8 +1371,11 @@ function buildStats(
 
 function isSeverityFailing(
   finding: InstructionFinding,
-  failOnSeverity: InstructionLintSeverity
+  failOnSeverity: InstructionLintFailOnSeverity
 ): boolean {
+  if (failOnSeverity === "off") {
+    return false;
+  }
   return compareSeverity(finding.severity, failOnSeverity) >= 0;
 }
 
@@ -1472,7 +1476,8 @@ function resolveLintPolicy(
           suppressionCount: suppressions.length,
           overriddenRules: Object.keys(ruleOverrides)
             .filter((ruleId): ruleId is InstructionRuleId => isInstructionRuleId(ruleId))
-            .sort((left, right) => left.localeCompare(right))
+            .sort((left, right) => left.localeCompare(right)),
+          ...(loadedConfig?.rollout ? { rollout: loadedConfig.rollout } : {})
         }
       : undefined;
 

@@ -49,6 +49,13 @@ Preferred shape:
 {
   "$schema": "https://github.com/mahenarayan/tokn/blob/main/schemas/tokn-config.schema.json",
   "instructionsLint": {
+    "rollout": {
+      "stage": "baseline",
+      "owner": "platform-ai",
+      "policyVersion": "2026.04",
+      "ticket": "AI-1234",
+      "expiresOn": "2026-06-30"
+    },
     "profile": "standard",
     "surface": "code-review",
     "failOnSeverity": "error",
@@ -83,10 +90,18 @@ tokn instructions-lint . \
 
 Tokn keeps rollout controls intentionally small:
 
+- `rollout`: attaches stage and ownership metadata to reports for enterprise tracking
+- `failOnSeverity: "off"`: report findings without failing the process during advisory rollout
 - `ignore`: skips instruction files and repository target files matched by the given globs
 - `rules`: can disable a rule or change its severity
 - `suppressions`: suppresses selected rule IDs for matching instruction files
 - `baseline`: suppresses findings that already exist in a previous JSON lint report
+
+Recommended enterprise rollout stages:
+
+1. Advisory: set `rollout.stage` to `advisory` and `failOnSeverity` to `off`, publish JSON or CI annotations, and collect owners.
+2. Baseline: set `rollout.stage` to `baseline`, commit a baseline report, and fail only on new errors or warnings.
+3. Enforced: set `rollout.stage` to `enforced`, ratchet suppressions down, and use `failOnSeverity: "warning"` when the instruction set is healthy.
 
 Baselines are for incremental adoption. Generate one from the current repository state, commit it, then fail only on new findings:
 
