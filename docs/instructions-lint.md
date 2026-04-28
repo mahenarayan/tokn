@@ -4,19 +4,22 @@
 
 It is a local linter for repository instruction files. Today it supports the `copilot` preset for `.github/copilot-instructions.md` and `.github/instructions/*.instructions.md`, plus the `agents-md` preset for root or nested `AGENTS.md` files.
 
+The purpose is context and agent engineering for AI-assisted development. Tokn treats instruction files as recurring model input: it measures load, scope, duplication, conflicts, and compatibility before those instructions are sent to coding assistants or agents. Code review is one supported surface, not the whole product scope.
+
 In `auto` mode Tokn also detects known external agent-instruction surfaces such as `CLAUDE.md`, `CLAUDE.local.md`, `GEMINI.md`, `.cursor/rules/*.mdc`, and `.cursorrules`. These are reported with `unsupported-agent-surface` warnings for rollout visibility, but Tokn does not lint their tool-specific semantics yet.
 
 ## Why Lint First
 
 Instruction files are part of the context supply chain for coding assistants and coding agents. They are easy to review as prose and hard to reason about as repeated model input.
 
-`instructions-lint` gives teams a practical starting point for context engineering:
+`instructions-lint` gives teams a practical starting point for context and agent engineering:
 
 - measure always on instruction load before it becomes invisible context pressure
 - find duplicated or conflicting guidance across scoped instruction files
 - catch stale path scopes before instructions silently stop applying
 - separate limits that vary by platform from general context budget pressure
 - create baselines so teams can improve instruction quality over time without blocking every existing issue on day one
+- run the same instruction governance across chat, coding-agent, and code-review surfaces
 
 Advanced prompt and trace diagnostics build on the same idea, but linting is the first place most teams can adopt this safely because it runs locally, avoids file rewrites, and fits CI.
 
@@ -112,6 +115,29 @@ tokn instructions-lint . --format json > .tokn/instructions-baseline.json
 tokn instructions-lint . --baseline ./.tokn/instructions-baseline.json
 ```
 
+## Concepts And Limits
+
+Tokn prints the active limits in text and Markdown reports so findings do not look like unexplained magic numbers.
+
+Important terms:
+
+- Lint purpose: context and agent engineering for repository instruction files; code review is one supported surface.
+- Surface: the target consumption mode for a run, such as chat assistance, autonomous coding agents, or code review compatibility.
+- Statement: one parsed instruction directive, counted from a bullet, numbered item, or paragraph block.
+- Applicable: loaded for the selected surface and eligible for matching target files.
+- Target load: total active instruction tokens that can apply to one repository file.
+- Estimated tokens: local approximation for context pressure, not provider billing.
+
+Profile budgets are Tokn compactness policies. They are intentionally conservative defaults that teams can tune with `profile`, `rules`, suppressions, and baselines.
+
+| Profile | Repository file | Path-specific file | Target load | Statements per file | Words per statement |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `lite` | 2500 chars / 600 tokens | 1500 chars / 375 tokens | 900 tokens | 20 | 50 |
+| `standard` | 1500 chars / 375 tokens | 900 chars / 225 tokens | 600 tokens | 12 | 30 |
+| `strict` | 900 chars / 225 tokens | 600 chars / 150 tokens | 350 tokens | 8 | 20 |
+
+Platform limits are separate from Tokn budgets. For the `code-review` surface, Tokn checks GitHub Copilot code review's documented behavior that only the first 4,000 characters of a custom instruction file are read. That check is emitted as `file-char-limit` and is not configurable as a profile budget. See GitHub's guide to [using custom instructions with Copilot code review](https://docs.github.com/en/enterprise-cloud@latest/copilot/tutorials/use-custom-instructions).
+
 ## GitHub Actions Integration
 
 `--format github` emits GitHub workflow annotations for each finding plus a summary notice. This is the leanest integration path for CI without adding a separate action package.
@@ -204,9 +230,9 @@ For restricted enterprise agents, install `@tokn-labs/tokn` from an approved int
 
 | Surface | Status | Notes |
 | --- | --- | --- |
-| `code-review` | stable | applies the Copilot 4000 character limit |
-| `chat` | stable | skips the code review only file cap |
-| `coding-agent` | stable | respects Copilot `excludeAgent: "cloud-agent"` on path specific files; `coding-agent` is also accepted for compatibility |
+| `code-review` | stable | code review compatibility mode; applies the Copilot 4000 character limit |
+| `chat` | stable | chat assistance mode; skips the code review only file cap |
+| `coding-agent` | stable | autonomous coding-agent mode; respects Copilot `excludeAgent: "cloud-agent"` on path specific files; `coding-agent` is also accepted for compatibility |
 
 ### Output formats
 

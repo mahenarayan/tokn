@@ -4,6 +4,15 @@ All notable changes to Tokn should be recorded in this file.
 
 ## Unreleased
 
+## 0.3.0
+
+- detect known external agent instruction surfaces such as `CLAUDE.md`, `GEMINI.md`, and Cursor rule files as visibility-only warnings
+- discover symlinked instruction files that resolve to regular files
+- add an agentic public-repo demo mode for OpenAI, Anthropic, Meta, and PyTorch examples
+- clarify that instruction linting is for context and agent engineering, with code review as one supported surface
+- improve text and Markdown reports with explicit limits, terms, target-load language, and spacing between findings
+- document profile budgets and the Copilot code review platform character limit
+
 ## 0.2.0
 
 - add enterprise rollout metadata for `tokn.config.json`

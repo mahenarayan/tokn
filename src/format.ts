@@ -1,4 +1,8 @@
 import { formatPercent } from "./helpers.js";
+import {
+  COPILOT_CODE_REVIEW_CHAR_LIMIT,
+  INSTRUCTION_PROFILE_BUDGETS
+} from "./instructions/limits.js";
 import type {
   AgentSummary,
   CheckResult,
@@ -56,10 +60,100 @@ function hasInstructionContextBudget(report: InstructionLintReport): boolean {
 }
 
 function formatInstructionMaxApplicableLoad(report: InstructionLintReport): string {
-  const tokens = `${report.stats.maxApplicableTokens} tokens`;
+  const tokens = `${report.stats.maxApplicableTokens} estimated tokens`;
   return report.stats.maxApplicableTargetFile
     ? `${tokens} on ${report.stats.maxApplicableTargetFile}`
     : tokens;
+}
+
+function instructionSeverityRank(severity: "warning" | "error"): number {
+  return severity === "error" ? 2 : 1;
+}
+
+function formatInstructionResultReason(report: InstructionLintReport): string {
+  if (report.failOnSeverity === "off") {
+    return "advisory mode; findings are reported but do not fail the process";
+  }
+
+  const thresholdRank = instructionSeverityRank(report.failOnSeverity);
+  const failingFindings = report.findings.filter(
+    (finding) => instructionSeverityRank(finding.severity) >= thresholdRank
+  ).length;
+
+  if (failingFindings === 0) {
+    return `pass; no findings at or above fail threshold ${report.failOnSeverity}`;
+  }
+
+  return `fail; ${pluralize(failingFindings, "finding")} at or above fail threshold ${report.failOnSeverity}`;
+}
+
+function formatInstructionFileLoad(report: InstructionLintReport): string {
+  const unsupportedFiles = report.stats.unsupportedFiles;
+  const unsupportedSuffix = unsupportedFiles > 0 ? `, ${unsupportedFiles} unsupported` : "";
+  return `${report.stats.applicableFiles} loaded of ${report.stats.totalFiles} scanned${unsupportedSuffix}`;
+}
+
+function formatInstructionActiveText(report: InstructionLintReport): string {
+  return `${report.stats.applicableEstimatedTokens} estimated tokens from ${pluralize(
+    report.stats.applicableStatements,
+    "parsed statement"
+  )}`;
+}
+
+function formatInstructionFindingTotals(report: InstructionLintReport): string {
+  return `${report.stats.errorCount} errors, ${report.stats.warningCount} warnings`;
+}
+
+function instructionSummaryLines(report: InstructionLintReport): string[] {
+  return [
+    `- Result: ${formatInstructionResultReason(report)}`,
+    `- Instruction files: ${formatInstructionFileLoad(report)}`,
+    `- Active instruction text: ${formatInstructionActiveText(report)}`,
+    `- Largest target load: ${formatInstructionMaxApplicableLoad(report)}`,
+    `- Target matches: ${report.stats.totalMatchedFiles} matched file references across instruction scopes`,
+    `- Findings: ${formatInstructionFindingTotals(report)}`
+  ];
+}
+
+function instructionLimitLines(report: InstructionLintReport): string[] {
+  const budgets = INSTRUCTION_PROFILE_BUDGETS[report.profile];
+  const lines = [
+    `- Profile ${report.profile}: repository files <= ${budgets.repositoryChars} chars / ${budgets.repositoryTokens} estimated tokens`,
+    `- Profile ${report.profile}: path-specific files <= ${budgets.pathSpecificChars} chars / ${budgets.pathSpecificTokens} estimated tokens`,
+    `- Profile ${report.profile}: target load <= ${budgets.maxApplicableTokens} estimated tokens; statements <= ${budgets.statements} per file; statement length <= ${budgets.wordsPerStatement} words`
+  ];
+
+  if (report.surface === "code-review" && report.detectedPresets.includes("copilot")) {
+    lines.push(
+      `- Copilot code review platform limit: ${COPILOT_CODE_REVIEW_CHAR_LIMIT} chars per instruction file`
+    );
+  }
+
+  return lines;
+}
+
+function formatInstructionSurfacePurpose(surface: string): string {
+  switch (surface) {
+    case "code-review":
+      return "code review compatibility";
+    case "chat":
+      return "chat assistance";
+    case "coding-agent":
+      return "autonomous coding agents";
+    default:
+      return "AI-assisted development";
+  }
+}
+
+function instructionTermLines(report: InstructionLintReport): string[] {
+  return [
+    "- Lint purpose: context and agent engineering for repository instruction files; code review is one supported surface.",
+    `- Surface: ${report.surface} means ${formatInstructionSurfacePurpose(report.surface)} for this run.`,
+    "- Statement: one parsed instruction directive, counted from a bullet, numbered item, or paragraph block.",
+    `- Applicable: loaded for the selected surface (${report.surface}) and eligible for matching target files.`,
+    "- Target load: total active instruction tokens that can apply to one repository file.",
+    "- Estimated tokens: local approximation for context pressure, not provider billing."
+  ];
 }
 
 function formatInstructionFileScope(file: InstructionLintReport["files"][number]): string {
@@ -116,12 +210,12 @@ function formatInstructionFindingEvidenceParts(evidence: InstructionFindingEvide
   const parts: string[] = [];
 
   if (evidence.actual !== undefined && evidence.expected !== undefined) {
-    parts.push(`actual=${evidence.actual}`);
-    parts.push(`expected=${evidence.expected}`);
+    parts.push(`observed=${evidence.actual}`);
+    parts.push(`limit=${evidence.expected}`);
   } else if (evidence.actual !== undefined) {
-    parts.push(`actual=${evidence.actual}`);
+    parts.push(`observed=${evidence.actual}`);
   } else if (evidence.expected !== undefined) {
-    parts.push(`expected=${evidence.expected}`);
+    parts.push(`limit=${evidence.expected}`);
   }
 
   if (evidence.surface) {
@@ -607,16 +701,17 @@ export function formatInstructionLintReport(report: InstructionLintReport): stri
     `- Preset: ${report.preset}`,
     `- Detected presets: ${formatInstructionDetectedPresets(report)}`,
     `- Profile: ${report.profile}`,
-    `- Surface: ${report.surface}`,
+    `- Surface: ${report.surface} (${formatInstructionSurfacePurpose(report.surface)})`,
     `- Fail threshold: ${report.failOnSeverity}`,
     "",
     "Summary:",
-    `- Files: ${report.stats.totalFiles} total, ${report.stats.applicableFiles} applicable`,
-    `- Statements: ${report.stats.totalStatements} total, ${report.stats.applicableStatements} applicable`,
-    `- Size: ${report.stats.totalChars} chars, ${report.stats.totalEstimatedTokens} estimated tokens (${report.stats.applicableEstimatedTokens} applicable)`,
-    `- Matched target files: ${report.stats.totalMatchedFiles}`,
-    `- Largest applicable load: ${formatInstructionMaxApplicableLoad(report)}`,
-    `- Findings: ${report.findings.length} total, ${report.stats.errorCount} errors, ${report.stats.warningCount} warnings`
+    ...instructionSummaryLines(report),
+    "",
+    "Limits Used:",
+    ...instructionLimitLines(report),
+    "",
+    "Terms:",
+    ...instructionTermLines(report)
   ];
 
   if (hasInstructionContextBudget(report)) {
@@ -644,7 +739,10 @@ export function formatInstructionLintReport(report: InstructionLintReport): stri
   if (report.findings.length === 0) {
     lines.push("- none");
   } else {
-    for (const finding of report.findings) {
+    for (const [index, finding] of report.findings.entries()) {
+      if (index > 0) {
+        lines.push("");
+      }
       appendInstructionFindingText(lines, finding);
     }
   }
@@ -733,16 +831,17 @@ export function formatInstructionLintReportMarkdown(report: InstructionLintRepor
     `- Preset: ${report.preset}`,
     `- Detected presets: ${formatInstructionDetectedPresets(report)}`,
     `- Profile: ${report.profile}`,
-    `- Surface: ${report.surface}`,
+    `- Surface: ${report.surface} (${formatInstructionSurfacePurpose(report.surface)})`,
     `- Fail threshold: ${report.failOnSeverity}`,
     "",
     "## Summary",
-    `- Files: ${report.stats.totalFiles} total, ${report.stats.applicableFiles} applicable`,
-    `- Statements: ${report.stats.totalStatements} total, ${report.stats.applicableStatements} applicable`,
-    `- Size: ${report.stats.totalChars} chars, ${report.stats.totalEstimatedTokens} estimated tokens (${report.stats.applicableEstimatedTokens} applicable)`,
-    `- Matched target files: ${report.stats.totalMatchedFiles}`,
-    `- Largest applicable load: ${formatInstructionMaxApplicableLoad(report)}`,
-    `- Findings: ${report.findings.length} total, ${report.stats.errorCount} errors, ${report.stats.warningCount} warnings`,
+    ...instructionSummaryLines(report),
+    "",
+    "## Limits Used",
+    ...instructionLimitLines(report),
+    "",
+    "## Terms",
+    ...instructionTermLines(report),
   ];
 
   if (hasInstructionContextBudget(report)) {
@@ -783,7 +882,10 @@ export function formatInstructionLintReportMarkdown(report: InstructionLintRepor
   if (report.findings.length === 0) {
     lines.push("- none");
   } else {
-    for (const finding of report.findings) {
+    for (const [index, finding] of report.findings.entries()) {
+      if (index > 0) {
+        lines.push("");
+      }
       appendInstructionFindingMarkdown(lines, finding);
     }
   }

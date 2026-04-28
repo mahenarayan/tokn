@@ -4,16 +4,30 @@ Scope:
 - Preset: auto
 - Detected presets: copilot
 - Profile: standard
-- Surface: code-review
+- Surface: code-review (code review compatibility)
 - Fail threshold: error
 
 Summary:
-- Files: 2 total, 2 applicable
-- Statements: 5 total, 5 applicable
-- Size: 324 chars, 85 estimated tokens (85 applicable)
-- Matched target files: 7
-- Largest applicable load: 85 tokens on src/component.tsx
-- Findings: 0 total, 0 errors, 0 warnings
+- Result: pass; no findings at or above fail threshold error
+- Instruction files: 2 loaded of 2 scanned
+- Active instruction text: 85 estimated tokens from 5 parsed statements
+- Largest target load: 85 estimated tokens on src/component.tsx
+- Target matches: 7 matched file references across instruction scopes
+- Findings: 0 errors, 0 warnings
+
+Limits Used:
+- Profile standard: repository files <= 1500 chars / 375 estimated tokens
+- Profile standard: path-specific files <= 900 chars / 225 estimated tokens
+- Profile standard: target load <= 600 estimated tokens; statements <= 12 per file; statement length <= 30 words
+- Copilot code review platform limit: 4000 chars per instruction file
+
+Terms:
+- Lint purpose: context and agent engineering for repository instruction files; code review is one supported surface.
+- Surface: code-review means code review compatibility for this run.
+- Statement: one parsed instruction directive, counted from a bullet, numbered item, or paragraph block.
+- Applicable: loaded for the selected surface (code-review) and eligible for matching target files.
+- Target load: total active instruction tokens that can apply to one repository file.
+- Estimated tokens: local approximation for context pressure, not provider billing.
 
 Instruction Files:
 - .github/copilot-instructions.md: repository-wide, copilot, active, 46 tokens, 3 statements, 5 matched files, 0 findings

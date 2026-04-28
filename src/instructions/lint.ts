@@ -11,6 +11,10 @@ import {
   type ResolvedInstructionLintConfig
 } from "./config.js";
 import {
+  COPILOT_CODE_REVIEW_CHAR_LIMIT,
+  INSTRUCTION_PROFILE_BUDGETS
+} from "./limits.js";
+import {
   getInstructionRuleDefaultSeverity,
   INSTRUCTION_LINT_REPORT_SCHEMA_PATH,
   INSTRUCTION_LINT_REPORT_SCHEMA_VERSION,
@@ -124,54 +128,12 @@ interface ResolvedLintPolicy {
   ruleOverrides: Partial<Record<InstructionRuleId, InstructionRuleOverride>>;
 }
 
-interface InstructionBudgets {
-  repositoryChars: number;
-  pathSpecificChars: number;
-  repositoryTokens: number;
-  pathSpecificTokens: number;
-  maxApplicableTokens: number;
-  statements: number;
-  wordsPerStatement: number;
-}
-
 const DEFAULT_PROFILE: InstructionLintProfile = "standard";
 const DEFAULT_FAIL_ON_SEVERITY: InstructionLintFailOnSeverity = "error";
 const DEFAULT_SURFACE: InstructionLintSurface = "code-review";
 const DEFAULT_PRESET: InstructionLintPresetSelector = "auto";
 const MAX_INSTRUCTION_FILE_BYTES = 1024 * 1024;
 const MAX_BASELINE_FILE_BYTES = 10 * 1024 * 1024;
-
-const PROFILE_BUDGETS: Record<InstructionLintProfile, InstructionBudgets> = {
-  lite: {
-    repositoryChars: 2500,
-    pathSpecificChars: 1500,
-    repositoryTokens: 600,
-    pathSpecificTokens: 375,
-    maxApplicableTokens: 900,
-    statements: 20,
-    wordsPerStatement: 50
-  },
-  standard: {
-    repositoryChars: 1500,
-    pathSpecificChars: 900,
-    repositoryTokens: 375,
-    pathSpecificTokens: 225,
-    maxApplicableTokens: 600,
-    statements: 12,
-    wordsPerStatement: 30
-  },
-  strict: {
-    repositoryChars: 900,
-    pathSpecificChars: 600,
-    repositoryTokens: 225,
-    pathSpecificTokens: 150,
-    maxApplicableTokens: 350,
-    statements: 8,
-    wordsPerStatement: 20
-  }
-};
-
-const CODE_REVIEW_CHAR_LIMIT = 4000;
 const IGNORED_DIRECTORIES = new Set([".git", "node_modules", "dist", ".npm-cache"]);
 const FRONTMATTER_DELIMITER = "---";
 const NEGATION_WORDS = new Set(["do", "no", "not", "never", "avoid", "dont", "don't", "without"]);
@@ -857,7 +819,7 @@ function lintLocalRules(
   profile: InstructionLintProfile,
   surface: InstructionLintSurface
 ): void {
-  const budgets = PROFILE_BUDGETS[profile];
+  const budgets = INSTRUCTION_PROFILE_BUDGETS[profile];
   const seen = new Set<string>();
 
   if (report.kind === "unsupported") {
@@ -889,18 +851,22 @@ function lintLocalRules(
     return;
   }
 
-  if (isCopilotInstruction(report) && surface === "code-review" && report.chars > CODE_REVIEW_CHAR_LIMIT) {
+  if (
+    isCopilotInstruction(report) &&
+    surface === "code-review" &&
+    report.chars > COPILOT_CODE_REVIEW_CHAR_LIMIT
+  ) {
     addFinding(
       report,
       seen,
       "error",
       "file-char-limit",
-      `File is ${report.chars} characters long and exceeds GitHub Copilot code review's 4000-character limit.`,
+      `File is ${report.chars} characters long and exceeds GitHub Copilot code review's ${COPILOT_CODE_REVIEW_CHAR_LIMIT}-character limit.`,
       1,
-      "Split the file or reduce repeated wording so the first 4000 characters contain the full rule set.",
+      `Split the file or reduce repeated wording so the first ${COPILOT_CODE_REVIEW_CHAR_LIMIT} characters contain the full rule set.`,
       {
         actual: report.chars,
-        expected: CODE_REVIEW_CHAR_LIMIT,
+        expected: COPILOT_CODE_REVIEW_CHAR_LIMIT,
         surface
       }
     );
@@ -1316,7 +1282,7 @@ function addApplicableTokenBudgetFindings(
   profile: InstructionLintProfile,
   surface: InstructionLintSurface
 ): { maxApplicableTokens: number; maxApplicableTargetFile?: string } {
-  const budgets = PROFILE_BUDGETS[profile];
+  const budgets = INSTRUCTION_PROFILE_BUDGETS[profile];
   const grouped = new Map<string, InternalFileReport[]>();
 
   for (const report of reports) {

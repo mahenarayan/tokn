@@ -560,7 +560,9 @@ test("cli instructions-lint passes on a valid repository fixture", () => {
   assert.match(result.stdout, /Tokn Instructions Lint: pass/);
   assert.match(result.stdout, /Preset: auto/);
   assert.match(result.stdout, /Detected presets: copilot/);
-  assert.match(result.stdout, /Files: 2 total, 2 applicable/);
+  assert.match(result.stdout, /Instruction files: 2 loaded of 2 scanned/);
+  assert.match(result.stdout, /Limits Used:/);
+  assert.match(result.stdout, /Statement: one parsed instruction directive/);
   assert.match(result.stdout, /Findings:\n- none/);
 });
 
