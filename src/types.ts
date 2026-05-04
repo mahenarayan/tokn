@@ -14,11 +14,14 @@ export type CheckRiskThreshold = "low" | "medium" | "high";
 export type InstructionLintProfile = "lite" | "standard" | "strict";
 export type InstructionLintSeverity = "warning" | "error";
 export type InstructionLintFailOnSeverity = "off" | InstructionLintSeverity;
-export type InstructionLintSurface = "code-review" | "chat" | "coding-agent";
+export type InstructionLintSurface = "all" | "auto" | "code-review" | "chat" | "coding-agent";
 export type InstructionLintPreset = "copilot" | "agents-md";
 export type InstructionLintPresetSelector = "auto" | InstructionLintPreset;
 export type InstructionLintRolloutStage = "advisory" | "baseline" | "enforced";
 export type InstructionExcludeAgent = "code-review" | "coding-agent";
+export type InstructionFindingCategory = "compatibility" | "clarity" | "economy";
+export type InstructionFindingConfidence = "low" | "medium" | "high";
+export type InstructionActivationType = "repository" | "path" | "description" | "directory" | "unsupported";
 export type InstructionRuleId =
   | "invalid-file-path"
   | "unsupported-agent-surface"
@@ -170,8 +173,19 @@ export interface InstructionLintOptions {
   configPath?: string;
   baseline?: string;
   ignore?: string[];
+  budgets?: InstructionLintBudgetOverrides;
   ruleOverrides?: Partial<Record<InstructionRuleId, InstructionRuleOverride>>;
   suppressions?: InstructionSuppression[];
+}
+
+export interface InstructionLintBudgetOverrides {
+  repositoryChars?: number;
+  pathSpecificChars?: number;
+  repositoryTokens?: number;
+  pathSpecificTokens?: number;
+  maxApplicableTokens?: number;
+  statements?: number;
+  wordsPerStatement?: number;
 }
 
 export interface InstructionRuleOverride {
@@ -201,6 +215,7 @@ export interface InstructionLintConfigSection {
   preset?: InstructionLintPresetSelector;
   baseline?: string;
   ignore?: string[];
+  budgets?: InstructionLintBudgetOverrides;
   rules?: Partial<Record<InstructionRuleId, InstructionRuleOverride>>;
   suppressions?: InstructionSuppression[];
   rollout?: InstructionLintRollout;
@@ -217,6 +232,7 @@ export interface InstructionLintAppliedConfig {
   ignore: string[];
   suppressionCount: number;
   overriddenRules: InstructionRuleId[];
+  budgetOverrides?: InstructionLintBudgetOverrides;
   rollout?: InstructionLintRollout;
 }
 
@@ -243,6 +259,11 @@ export interface InstructionFindingEvidence {
 export interface InstructionFinding {
   ruleId: InstructionRuleId;
   severity: InstructionLintSeverity;
+  category?: InstructionFindingCategory;
+  confidence?: InstructionFindingConfidence;
+  surfaceApplicability?: InstructionLintSurface[];
+  activationType?: InstructionActivationType;
+  groupId?: string;
   message: string;
   file: string;
   line: number;
@@ -308,6 +329,7 @@ export interface InstructionLintReport {
   files: InstructionFileReport[];
   findings: InstructionFinding[];
   warnings: string[];
+  notes: string[];
 }
 
 export interface AgentSnapshot {

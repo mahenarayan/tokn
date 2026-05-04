@@ -1,4 +1,7 @@
-import type { InstructionLintProfile } from "../types.js";
+import type {
+  InstructionLintBudgetOverrides,
+  InstructionLintProfile
+} from "../types.js";
 
 export interface InstructionBudgets {
   repositoryChars: number;
@@ -39,5 +42,15 @@ export const INSTRUCTION_PROFILE_BUDGETS: Record<InstructionLintProfile, Instruc
     wordsPerStatement: 30
   }
 };
+
+export function resolveInstructionBudgets(
+  profile: InstructionLintProfile,
+  overrides: InstructionLintBudgetOverrides = {}
+): InstructionBudgets {
+  return {
+    ...INSTRUCTION_PROFILE_BUDGETS[profile],
+    ...overrides
+  };
+}
 
 export const COPILOT_CODE_REVIEW_CHAR_LIMIT = 4000;

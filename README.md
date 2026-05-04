@@ -90,6 +90,7 @@ tokn instructions-lint ./fixtures/instructions/valid-repo
 Common variants:
 
 ```bash
+tokn instructions-lint ./fixtures/instructions/valid-repo --init-config
 tokn instructions-lint ./fixtures/instructions/valid-repo --config ./tokn.config.json
 tokn instructions-lint ./fixtures/instructions/invalid-repo --baseline ./tokn-baseline.json
 tokn instructions-lint ./fixtures/instructions/valid-repo --surface coding-agent --model gpt-4o
@@ -141,7 +142,7 @@ They normalize OpenAI style payloads, OpenAI compatible request logs, OpenAI Res
 Stable command:
 
 ```bash
-tokn instructions-lint <path> [--config <file>] [--baseline <file>] [--ignore <glob>] [--preset <auto|copilot|agents-md>] [--profile <lite|standard|strict>] [--surface <code-review|chat|coding-agent>] [--model <id>] [--fail-on-severity <off|warning|error>] [--format <text|json|markdown|github|azure>]
+tokn instructions-lint <path> [--init-config] [--config <file>] [--baseline <file>] [--ignore <glob>] [--preset <auto|copilot|agents-md>] [--profile <lite|standard|strict>] [--surface <all|auto|code-review|chat|coding-agent>] [--model <id>] [--fail-on-severity <off|warning|error>] [--format <text|json|markdown|github|azure>]
 ```
 
 Experimental diagnostics:

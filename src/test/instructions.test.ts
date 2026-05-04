@@ -30,10 +30,11 @@ test("lintInstructions discovers repository-wide and path-specific files from a 
 
   assert.equal(report.preset, "auto");
   assert.deepEqual(report.detectedPresets, ["copilot"]);
-  assert.equal(report.surface, "code-review");
+  assert.equal(report.surface, "all");
   assert.equal(report.files.length, 2);
   assert.equal(report.findings.length, 0);
   assert.deepEqual(report.warnings, []);
+  assert.deepEqual(report.notes, []);
   assert.equal(report.stats.applicableFiles, 2);
 
   const repoWide = report.files.find((file) => file.kind === "repository");
@@ -72,7 +73,7 @@ test("lintInstructions accepts description-triggered Copilot instruction files",
   assert.equal(file?.description, "Use when the user asks about architecture decisions or ADRs.");
   assert.equal(file?.matchedFileCount, 0);
   assert.ok(!report.findings.some((finding) => finding.ruleId === "missing-applyto"));
-  assert.ok(report.warnings.some((warning) => warning.includes("description-only activation")));
+  assert.ok(report.notes.some((note) => note.includes("description-only activation")));
 });
 
 test("lintInstructions keeps the real-world noise regression fixture focused", () => {
@@ -90,7 +91,7 @@ test("lintInstructions keeps the real-world noise regression fixture focused", (
   assert.equal(report.exitCode, 0);
   assert.ok(!findings.some((finding) => finding.ruleId === "missing-applyto"));
   assert.equal(
-    report.warnings.filter((warning) => warning.includes("description-only activation")).length,
+    report.notes.filter((note) => note.includes("description-only activation")).length,
     2
   );
   assert.ok(!findings.some((finding) => finding.ruleId === "order-dependent-wording"));
@@ -101,7 +102,9 @@ test("lintInstructions keeps the real-world noise regression fixture focused", (
       .map((finding) => `${finding.ruleId}:${finding.file}`),
     []
   );
-  assert.ok(findings.some((finding) => finding.ruleId === "file-char-limit" && finding.file.endsWith("testcode.instructions.md")));
+  const charLimit = findings.find((finding) => finding.ruleId === "file-char-limit" && finding.file.endsWith("testcode.instructions.md"));
+  assert.equal(charLimit?.severity, "warning");
+  assert.deepEqual(charLimit?.surfaceApplicability, ["code-review"]);
   assert.ok(findings.some((finding) => finding.ruleId === "weak-modal-phrasing" && finding.file.endsWith("cooperation.instructions.md")));
   assert.ok(findings.some((finding) => finding.ruleId === "oversized-code-example" && finding.file.endsWith("testcode.instructions.md")));
   assert.ok(findings.some((finding) => finding.ruleId === "statement-too-long" && finding.file.endsWith("testcode.instructions.md")));
@@ -244,10 +247,14 @@ test("lintInstructions only applies the 4000 character cap on code-review", () =
     "tokn-instructions-char-limit-"
   );
 
-  const codeReview = lintInstructions(repoRoot);
+  const defaultAll = lintInstructions(repoRoot);
+  const codeReview = lintInstructions(repoRoot, { surface: "code-review" });
   const chat = lintInstructions(repoRoot, { surface: "chat" });
 
-  assert.ok(codeReview.findings.some((finding) => finding.ruleId === "file-char-limit"));
+  const defaultFinding = defaultAll.findings.find((finding) => finding.ruleId === "file-char-limit");
+  assert.equal(defaultAll.surface, "all");
+  assert.equal(defaultFinding?.severity, "warning");
+  assert.ok(codeReview.findings.some((finding) => finding.ruleId === "file-char-limit" && finding.severity === "error"));
   assert.ok(!chat.findings.some((finding) => finding.ruleId === "file-char-limit"));
   assert.equal(chat.surface, "chat");
 });
@@ -377,6 +384,41 @@ test("lintInstructions emits a stable schema contract and discovers config defau
   assert.equal(report.stats.ignoredTargetFileCount, 1);
   assert.equal(finding?.severity, "error");
   assert.ok(!report.findings.some((candidate) => candidate.ruleId === "weak-modal-phrasing"));
+});
+
+test("lintInstructions applies numeric budget overrides from config", () => {
+  const repoRoot = createInstructionRepo(
+    {
+      "tokn.config.json": JSON.stringify(
+        {
+          instructionsLint: {
+            budgets: {
+              pathSpecificChars: 5000,
+              pathSpecificTokens: 3000,
+              statements: 40
+            }
+          }
+        },
+        null,
+        2
+      ),
+      ".github/instructions/tests.instructions.md": [
+        "---",
+        'applyTo: "**/*_test.go"',
+        "---",
+        "",
+        `- ${"Use explicit domain fixtures for state transition coverage ".repeat(80)}`
+      ].join("\n"),
+      "src/case_test.go": "package src\n"
+    },
+    "tokn-instructions-budget-overrides-"
+  );
+
+  const report = lintInstructions(repoRoot, { failOnSeverity: "warning" });
+
+  assert.equal(report.config?.budgetOverrides?.pathSpecificChars, 5000);
+  assert.ok(!report.findings.some((finding) => finding.ruleId === "path-specific-char-budget"));
+  assert.ok(!report.findings.some((finding) => finding.ruleId === "path-specific-token-budget"));
 });
 
 test("lintInstructions supports advisory enterprise rollout config", () => {

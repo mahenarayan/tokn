@@ -5,6 +5,7 @@ import { isObject, readText, safeJsonParse } from "../helpers.js";
 import { isInstructionRuleId } from "./rules.js";
 import type {
   InstructionLintConfigSection,
+  InstructionLintBudgetOverrides,
   InstructionLintFailOnSeverity,
   InstructionLintPresetSelector,
   InstructionLintProfile,
@@ -22,7 +23,7 @@ export const INSTRUCTION_LINT_CONFIG_FILENAMES = ["tokn.config.json", ".toknrc.j
 const PROFILES = new Set<InstructionLintProfile>(["lite", "standard", "strict"]);
 const SEVERITIES = new Set<InstructionLintSeverity>(["warning", "error"]);
 const FAIL_ON_SEVERITIES = new Set<InstructionLintFailOnSeverity>(["off", "warning", "error"]);
-const SURFACES = new Set<InstructionLintSurface>(["code-review", "chat", "coding-agent"]);
+const SURFACES = new Set<InstructionLintSurface>(["all", "auto", "code-review", "chat", "coding-agent"]);
 const PRESETS = new Set<InstructionLintPresetSelector>(["auto", "copilot", "agents-md"]);
 const ROLLOUT_STAGES = new Set<InstructionLintRolloutStage>(["advisory", "baseline", "enforced"]);
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -43,9 +44,46 @@ export interface ResolvedInstructionLintConfig {
   preset?: InstructionLintPresetSelector;
   baselinePath?: string;
   ignore: string[];
+  budgets?: InstructionLintBudgetOverrides;
   ruleOverrides: Partial<Record<InstructionRuleId, InstructionRuleOverride>>;
   suppressions: NormalizedInstructionSuppression[];
   rollout?: InstructionLintRollout;
+}
+
+const BUDGET_KEYS = [
+  "repositoryChars",
+  "pathSpecificChars",
+  "repositoryTokens",
+  "pathSpecificTokens",
+  "maxApplicableTokens",
+  "statements",
+  "wordsPerStatement"
+] as const;
+
+function normalizeBudgets(raw: unknown): InstructionLintBudgetOverrides {
+  if (!isObject(raw)) {
+    throw new Error("instructionsLint.budgets must be a JSON object.");
+  }
+
+  const budgets: InstructionLintBudgetOverrides = {};
+  for (const key of Object.keys(raw)) {
+    if (!BUDGET_KEYS.includes(key as typeof BUDGET_KEYS[number])) {
+      throw new Error(`instructionsLint.budgets contains unknown budget: ${key}.`);
+    }
+  }
+
+  for (const key of BUDGET_KEYS) {
+    const value = raw[key];
+    if (value === undefined) {
+      continue;
+    }
+    if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+      throw new Error(`instructionsLint.budgets.${key} must be a positive number.`);
+    }
+    budgets[key] = Math.ceil(value);
+  }
+
+  return budgets;
 }
 
 function asStringArray(value: unknown, fieldName: string): string[] {
@@ -171,7 +209,7 @@ export function loadInstructionLintConfig(configPath: string): ResolvedInstructi
 
   if (section.surface !== undefined) {
     if (!SURFACES.has(section.surface)) {
-      throw new Error(`instructionsLint.surface must be one of: code-review, chat, coding-agent.`);
+      throw new Error(`instructionsLint.surface must be one of: all, auto, code-review, chat, coding-agent.`);
     }
     result.surface = section.surface;
   }
@@ -199,6 +237,10 @@ export function loadInstructionLintConfig(configPath: string): ResolvedInstructi
 
   if (section.ignore !== undefined) {
     result.ignore = asStringArray(section.ignore, "instructionsLint.ignore").map((entry) => entry.trim()).filter(Boolean);
+  }
+
+  if (section.budgets !== undefined) {
+    result.budgets = normalizeBudgets(section.budgets);
   }
 
   if (section.rollout !== undefined) {

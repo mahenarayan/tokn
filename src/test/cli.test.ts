@@ -707,6 +707,25 @@ test("cli instructions-lint supports --config and includes rollout controls in j
   assert.equal(findings[0]?.severity, "error");
 });
 
+test("cli instructions-lint prints a calibrated starter config", () => {
+  const result = runCliProcess([
+    "instructions-lint",
+    "fixtures/instructions/noise-regression-repo",
+    "--init-config"
+  ]);
+
+  assert.equal(result.status, 0, result.stderr);
+  const output = JSON.parse(result.stdout) as Record<string, unknown>;
+  const section = output.instructionsLint as Record<string, unknown>;
+  const budgets = section.budgets as Record<string, unknown>;
+
+  assert.equal(section.surface, "all");
+  assert.equal(section.failOnSeverity, "warning");
+  assert.equal((section.rollout as Record<string, unknown>).stage, "advisory");
+  assert.equal(typeof budgets.pathSpecificChars, "number");
+  assert.ok((budgets.pathSpecificChars as number) >= 2500);
+});
+
 test("cli instructions-lint supports --baseline for incremental rollout", () => {
   const baselineDir = fs.mkdtempSync(path.join(os.tmpdir(), "tokn-cli-baseline-"));
   const baselinePath = path.join(baselineDir, "baseline.json");
@@ -828,13 +847,18 @@ test("cli instructions-lint supports --surface and only applies the 4000-char ru
     "tokn-cli-instructions-surface-"
   );
 
-  const codeReview = runCliProcess(["instructions-lint", repoRoot]);
+  const defaultAll = runCliProcess(["instructions-lint", repoRoot]);
+  const codeReview = runCliProcess(["instructions-lint", repoRoot, "--surface", "code-review"]);
   const chat = runCliProcess(["instructions-lint", repoRoot, "--surface", "chat"]);
 
+  assert.equal(defaultAll.status, 0, defaultAll.stderr);
   assert.equal(codeReview.status, 2, codeReview.stderr);
   assert.equal(chat.status, 0, chat.stderr);
+  assert.match(defaultAll.stdout, /Surface: all/);
   assert.match(codeReview.stdout, /Surface: code-review/);
   assert.match(chat.stdout, /Surface: chat/);
+  assert.match(defaultAll.stdout, /file-char-limit/);
+  assert.match(defaultAll.stdout, /would exceed GitHub Copilot code review/);
   assert.match(codeReview.stdout, /file-char-limit/);
   assert.doesNotMatch(chat.stdout, /file-char-limit/);
 });
@@ -851,7 +875,7 @@ test("cli instructions-lint supports --model for context share reporting", () =>
 
   assert.equal(output.model, "gpt-4o");
   assert.equal(output.contextWindow, 128000);
-  assert.equal(output.surface, "code-review");
+  assert.equal(output.surface, "all");
 });
 
 test("cli instructions-lint respects --fail-on-severity", () => {

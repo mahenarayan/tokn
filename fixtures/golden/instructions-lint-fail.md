@@ -6,7 +6,7 @@ Status: **fail**
 - Preset: auto
 - Detected presets: copilot
 - Profile: standard
-- Surface: code-review (code review compatibility)
+- Surface: all (all supported instruction surfaces)
 - Fail threshold: error
 
 ## Summary
@@ -21,13 +21,13 @@ Status: **fail**
 - Profile standard: repository files <= 2500 chars / 650 estimated tokens
 - Profile standard: path-specific files <= 2500 chars / 650 estimated tokens
 - Profile standard: target load <= 2400 estimated tokens; statements <= 24 per file; statement length <= 50 words
-- Copilot code review platform limit: 4000 chars per instruction file
+- Conditional Copilot code review platform limit: 4000 chars per instruction file
 
 ## Terms
 - Lint purpose: context and agent engineering for repository instruction files; code review is one supported surface.
-- Surface: code-review means code review compatibility for this run.
+- Surface: all means all supported instruction surfaces for this run.
 - Statement: one parsed instruction directive, counted from a bullet, numbered item, or paragraph block.
-- Applicable: loaded for the selected surface (code-review) and eligible for matching target files.
+- Applicable: loaded for the selected surface (all) and eligible for matching target files.
 - Target load: total active instruction tokens that can apply to one repository file.
 - Estimated tokens: local approximation for context pressure, not provider billing.
 
@@ -90,6 +90,7 @@ Status: **fail**
 - **warning** `oversized-code-example` at `.github/copilot-instructions.md:12`
   Problem: Code example is large enough to crowd out higher-signal instruction text.
   Fix: Keep examples minimal and only show the pattern that Copilot must prefer or avoid.
+  Evidence: `observed=13` `limit=12`
 
 - **warning** `stale-applyto` at `.github/instructions/rust.instructions.md:2`
   Problem: applyTo patterns do not match any repository files.
