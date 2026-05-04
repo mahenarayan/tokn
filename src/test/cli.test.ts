@@ -671,7 +671,7 @@ test("cli instructions-lint supports --config and includes rollout controls in j
       ".github/copilot-instructions.md": [
         "# Repository Instructions",
         "",
-        "- Keep exported interfaces explicit, spell out the constrained domain vocabulary for every repository-facing API change, and include the compatibility rationale in each review note."
+        "- Keep exported interfaces explicit, spell out the constrained domain vocabulary for every repository-facing API change, include the compatibility rationale in each review note, and document migration impact so downstream teams can evaluate risk without asking for hidden context."
       ].join("\n"),
       "src/index.ts": "export const value = 1;\n",
       "generated/out.ts": "export const value = 2;\n"
@@ -857,11 +857,15 @@ test("cli instructions-lint supports --model for context share reporting", () =>
 test("cli instructions-lint respects --fail-on-severity", () => {
   const defaultResult = runCliProcess([
     "instructions-lint",
-    "fixtures/instructions/verbose-repo"
+    "fixtures/instructions/verbose-repo",
+    "--profile",
+    "strict"
   ]);
   const warningResult = runCliProcess([
     "instructions-lint",
     "fixtures/instructions/verbose-repo",
+    "--profile",
+    "strict",
     "--fail-on-severity",
     "warning"
   ]);

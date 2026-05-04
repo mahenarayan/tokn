@@ -56,7 +56,7 @@ export const INSTRUCTION_RULES: Record<InstructionRuleId, InstructionRuleDefinit
     id: "missing-applyto",
     category: "compatibility",
     defaultSeverity: "error",
-    summary: "Path-specific Copilot instructions are missing a usable applyTo value.",
+    summary: "Path-specific Copilot instructions are missing a usable applyTo or description value.",
     presets: ["copilot"],
     surfaces: "all"
   },

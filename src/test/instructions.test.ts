@@ -49,6 +49,70 @@ test("lintInstructions discovers repository-wide and path-specific files from a 
   assert.deepEqual(pathSpecific?.applyTo, ["**/*.ts", "**/*.tsx"]);
 });
 
+test("lintInstructions accepts description-triggered Copilot instruction files", () => {
+  const repoRoot = createInstructionRepo(
+    {
+      ".github/instructions/architecture.instructions.md": [
+        "---",
+        'description: "Use when the user asks about architecture decisions or ADRs."',
+        "---",
+        "",
+        "- Reference accepted ADRs before proposing architectural changes."
+      ].join("\n"),
+      "src/index.ts": "export const value = 1;\n"
+    },
+    "tokn-instructions-description-"
+  );
+
+  const report = lintInstructions(repoRoot);
+  const file = report.files.find((candidate) => candidate.file.endsWith("architecture.instructions.md"));
+
+  assert.ok(file);
+  assert.equal(file?.kind, "path-specific");
+  assert.equal(file?.description, "Use when the user asks about architecture decisions or ADRs.");
+  assert.equal(file?.matchedFileCount, 0);
+  assert.ok(!report.findings.some((finding) => finding.ruleId === "missing-applyto"));
+  assert.ok(report.warnings.some((warning) => warning.includes("description-only activation")));
+});
+
+test("lintInstructions keeps the real-world noise regression fixture focused", () => {
+  const report = lintInstructions(instructionFixture("noise-regression-repo"), {
+    failOnSeverity: "off"
+  });
+  const findings = report.findings;
+  const moderateBudgetRules = new Set([
+    "path-specific-char-budget",
+    "path-specific-token-budget",
+    "statement-count-budget",
+    "applicable-token-budget"
+  ]);
+
+  assert.equal(report.exitCode, 0);
+  assert.ok(!findings.some((finding) => finding.ruleId === "missing-applyto"));
+  assert.equal(
+    report.warnings.filter((warning) => warning.includes("description-only activation")).length,
+    2
+  );
+  assert.ok(!findings.some((finding) => finding.ruleId === "order-dependent-wording"));
+  assert.deepEqual(
+    findings
+      .filter((finding) => moderateBudgetRules.has(finding.ruleId))
+      .filter((finding) => !finding.file.endsWith("testcode.instructions.md"))
+      .map((finding) => `${finding.ruleId}:${finding.file}`),
+    []
+  );
+  assert.ok(findings.some((finding) => finding.ruleId === "file-char-limit" && finding.file.endsWith("testcode.instructions.md")));
+  assert.ok(findings.some((finding) => finding.ruleId === "weak-modal-phrasing" && finding.file.endsWith("cooperation.instructions.md")));
+  assert.ok(findings.some((finding) => finding.ruleId === "oversized-code-example" && finding.file.endsWith("testcode.instructions.md")));
+  assert.ok(findings.some((finding) => finding.ruleId === "statement-too-long" && finding.file.endsWith("testcode.instructions.md")));
+
+  const chatReport = lintInstructions(instructionFixture("noise-regression-repo"), {
+    surface: "chat",
+    failOnSeverity: "off"
+  });
+  assert.ok(!chatReport.findings.some((finding) => finding.ruleId === "file-char-limit"));
+});
+
 test("lintInstructions discovers AGENTS.md files through the agents-md preset", () => {
   const report = lintInstructions(instructionFixture("agents-repo"), {
     preset: "agents-md"
@@ -117,8 +181,8 @@ test("lintInstructions detects invalid names, malformed scope setup, duplicates,
 });
 
 test("lintInstructions statement budget warnings vary by compactness profile", () => {
-  const standard = lintInstructions(instructionFixture("verbose-repo"), {
-    profile: "standard",
+  const strict = lintInstructions(instructionFixture("verbose-repo"), {
+    profile: "strict",
     failOnSeverity: "warning"
   });
   const lite = lintInstructions(instructionFixture("verbose-repo"), {
@@ -126,9 +190,9 @@ test("lintInstructions statement budget warnings vary by compactness profile", (
     failOnSeverity: "warning"
   });
 
-  assert.ok(standard.findings.some((finding) => finding.ruleId === "statement-too-long"));
+  assert.ok(strict.findings.some((finding) => finding.ruleId === "statement-too-long"));
   assert.ok(!lite.findings.some((finding) => finding.ruleId === "statement-too-long"));
-  assert.equal(standard.exitCode, 2);
+  assert.equal(strict.exitCode, 2);
   assert.equal(lite.exitCode, 0);
 });
 
@@ -253,6 +317,7 @@ test("lintInstructions warns when a single target accumulates too many instructi
   );
 
   const report = lintInstructions(repoRoot, {
+    profile: "strict",
     surface: "coding-agent",
     failOnSeverity: "warning",
     model: "gpt-4o"
@@ -290,7 +355,7 @@ test("lintInstructions emits a stable schema contract and discovers config defau
       ".github/copilot-instructions.md": [
         "# Repository Instructions",
         "",
-        "- Try to keep exported interfaces explicit, spell out the constrained domain vocabulary for every repository-facing API change, and include the compatibility rationale in each review note."
+        "- Try to keep exported interfaces explicit, spell out the constrained domain vocabulary for every repository-facing API change, include the compatibility rationale in each review note, and document migration impact so downstream teams can evaluate risk without asking for hidden context."
       ].join("\n"),
       "src/index.ts": "export const value = 1;\n",
       "generated/out.ts": "export const generated = 1;\n"
@@ -402,7 +467,7 @@ test("lintInstructions applies suppressions from config", () => {
       ".github/copilot-instructions.md": [
         "# Repository Instructions",
         "",
-        "- Keep exported interfaces explicit, spell out the constrained domain vocabulary for every repository-facing API change, and include the compatibility rationale in each review note."
+        "- Keep exported interfaces explicit, spell out the constrained domain vocabulary for every repository-facing API change, include the compatibility rationale in each review note, and document migration impact so downstream teams can evaluate risk without asking for hidden context."
       ].join("\n"),
       "src/index.ts": "export const value = 1;\n"
     },

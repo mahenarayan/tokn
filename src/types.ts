@@ -255,6 +255,7 @@ export interface InstructionFileReport {
   kind: InstructionFileKind;
   preset?: InstructionLintPreset;
   applyTo?: string[];
+  description?: string;
   scopePath?: string;
   excludeAgents?: InstructionExcludeAgent[];
   appliesToSurface: boolean;

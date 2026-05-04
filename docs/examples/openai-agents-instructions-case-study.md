@@ -46,7 +46,7 @@ The first cleanup target is not "make the file pretty." The target is to reduce 
 | --- | --- | --- |
 | Global instructions | One large repository level `AGENTS.md` | Short global file with only universal rules |
 | Scoped guidance | Mixed into the global file | Move package, test, and docs specific rules into nested `AGENTS.md` files |
-| Long statements | Many statements above the standard 30-word budget | Rewrite as atomic bullets with direct verbs |
+| Long statements | Many statements above the strict 30-word budget | Rewrite as atomic bullets with direct verbs |
 | Context pressure | 3,267 estimated tokens always applicable | Keep the max applicable bundle below the configured profile budget or make the excess intentional |
 | Rollout | All findings appear at once | Commit a baseline, then fail only on new findings |
 

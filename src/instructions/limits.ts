@@ -12,15 +12,24 @@ export interface InstructionBudgets {
 
 export const INSTRUCTION_PROFILE_BUDGETS: Record<InstructionLintProfile, InstructionBudgets> = {
   lite: {
-    repositoryChars: 2500,
-    pathSpecificChars: 1500,
-    repositoryTokens: 600,
-    pathSpecificTokens: 375,
-    maxApplicableTokens: 900,
-    statements: 20,
-    wordsPerStatement: 50
+    repositoryChars: 4000,
+    pathSpecificChars: 4000,
+    repositoryTokens: 1000,
+    pathSpecificTokens: 1000,
+    maxApplicableTokens: 3000,
+    statements: 40,
+    wordsPerStatement: 70
   },
   standard: {
+    repositoryChars: 2500,
+    pathSpecificChars: 2500,
+    repositoryTokens: 650,
+    pathSpecificTokens: 650,
+    maxApplicableTokens: 2400,
+    statements: 24,
+    wordsPerStatement: 50
+  },
+  strict: {
     repositoryChars: 1500,
     pathSpecificChars: 900,
     repositoryTokens: 375,
@@ -28,15 +37,6 @@ export const INSTRUCTION_PROFILE_BUDGETS: Record<InstructionLintProfile, Instruc
     maxApplicableTokens: 600,
     statements: 12,
     wordsPerStatement: 30
-  },
-  strict: {
-    repositoryChars: 900,
-    pathSpecificChars: 600,
-    repositoryTokens: 225,
-    pathSpecificTokens: 150,
-    maxApplicableTokens: 350,
-    statements: 8,
-    wordsPerStatement: 20
   }
 };
 

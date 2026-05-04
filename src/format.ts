@@ -161,6 +161,9 @@ function formatInstructionFileScope(file: InstructionLintReport["files"][number]
   if (file.applyTo && file.applyTo.length > 0) {
     scopeParts.push(`applyTo=${file.applyTo.join(",")}`);
   }
+  if (file.description) {
+    scopeParts.push("activation=description");
+  }
   if (file.scopePath) {
     scopeParts.push(`scope=${file.scopePath}`);
   }

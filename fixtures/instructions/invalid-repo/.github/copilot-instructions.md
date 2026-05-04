@@ -7,7 +7,7 @@
 - Use sentence case headings in `docs/**/*.md`.
 - Add type hints to Python scripts in `scripts/`.
 
-When you are editing this repository, try to follow best practices and write clean code with the guidance above before deciding what to change because the team wants consistent work across many subsystems and documentation surfaces.
+When you are editing this repository, try to follow best practices and write clean code with the previous rule before deciding what to change because the team wants consistent work across many subsystems and documentation surfaces.
 
 ```ts
 export function exampleFormatter(config: Record<string, string>): string {
