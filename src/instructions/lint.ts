@@ -97,6 +97,8 @@ interface InternalFileReport {
   estimatedTokens: number;
   applyTo: string[];
   applyToLine?: number;
+  description?: string;
+  descriptionLine?: number;
   blocks: MarkdownBlock[];
   statements: Statement[];
   matchedFiles: string[];
@@ -170,7 +172,7 @@ const STOP_WORDS = new Set([
 ]);
 
 const ORDER_DEPENDENT_RE =
-  /\b(above|below|earlier rule|later rule|next rule|previous rule|following rule|as described above|mentioned above|see above|see below)\b/i;
+  /\b(earlier rule|later rule|next rule|previous rule|following rule|as described above|mentioned above|see above|see below|rules? above|rules? below|instructions? above|instructions? below|above rules?|below rules?|above instructions?|below instructions?)\b/i;
 const WEAK_MODAL_RE =
   /\b(try to|should consider|best effort|ideally|if possible|where possible|as appropriate)\b/i;
 const VAGUE_RE =
@@ -761,6 +763,11 @@ function parseApplyTo(value: string | undefined): string[] {
     .filter(Boolean);
 }
 
+function parseFrontmatterText(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : undefined;
+}
+
 function parseExcludeAgents(value: string | undefined): {
   excludeAgents: InstructionExcludeAgent[];
   invalidEntries: string[];
@@ -1005,7 +1012,7 @@ function lintLocalRules(
       );
     }
 
-    if (statement.sourceType === "paragraph" && (statement.sentenceCount >= 2 || statement.wordCount >= 24)) {
+    if (statement.sourceType === "paragraph" && (statement.sentenceCount >= 3 || statement.wordCount >= 50)) {
       addFinding(
         report,
         seen,
@@ -1784,7 +1791,7 @@ export function lintInstructions(
             "malformed-frontmatter",
             frontmatter.error,
             frontmatter.errorLine ?? 1,
-            "Use simple YAML frontmatter with applyTo: \"glob\"."
+            "Use simple YAML frontmatter with applyTo: \"glob\" or description: \"when to use this file\"."
           )
         );
       } else if (!frontmatter.hasFrontmatter) {
@@ -1793,24 +1800,38 @@ export function lintInstructions(
             report.file,
             "error",
             "missing-frontmatter",
-            "Path-specific instruction files must start with YAML frontmatter containing applyTo.",
+            "Path-specific instruction files must start with YAML frontmatter containing applyTo or description.",
             1,
-            "Add frontmatter like --- applyTo: \"**/*.ts\" --- at the top of the file."
+            "Add frontmatter like --- applyTo: \"**/*.ts\" --- or --- description: \"Use for architecture questions\" --- at the top of the file."
           )
         );
       } else {
         report.applyTo = parseApplyTo(frontmatter.data.applyTo);
-        report.applyToLine = frontmatter.lines.applyTo ?? 2;
-        if (report.applyTo.length === 0) {
+        if (frontmatter.lines.applyTo !== undefined) {
+          report.applyToLine = frontmatter.lines.applyTo;
+        }
+        const description = parseFrontmatterText(frontmatter.data.description);
+        if (description) {
+          report.description = description;
+        }
+        if (frontmatter.lines.description !== undefined) {
+          report.descriptionLine = frontmatter.lines.description;
+        }
+        if (report.applyTo.length === 0 && !report.description) {
           report.findings.push(
             createFinding(
               report.file,
               "error",
               "missing-applyto",
-              "Path-specific instruction file is missing a valid applyTo value.",
-              report.applyToLine,
-              "Set applyTo to one or more comma-separated glob patterns."
+              "Path-specific instruction file is missing a valid applyTo or description value.",
+              report.applyToLine ?? report.descriptionLine ?? 2,
+              "Set applyTo for automatic path matching, or set description for manual/task-triggered activation."
             )
+          );
+        }
+        if (report.applyTo.length === 0 && report.description) {
+          warnings.add(
+            `${report.file} uses description-only activation; target-file matching, stale applyTo checks, and overlap analysis are skipped for this file.`
           );
         }
 
@@ -1922,6 +1943,7 @@ export function lintInstructions(
       kind: report.kind,
       ...(report.preset ? { preset: report.preset } : {}),
       ...(report.applyTo.length > 0 ? { applyTo: report.applyTo } : {}),
+      ...(report.description ? { description: report.description } : {}),
       ...(report.scopePath ? { scopePath: report.scopePath } : {}),
       ...(report.excludeAgents.length > 0 ? { excludeAgents: report.excludeAgents } : {}),
       appliesToSurface: report.appliesToSurface,

@@ -15,12 +15,12 @@ Status: **fail**
 - Active instruction text: 430 estimated tokens from 12 parsed statements
 - Largest target load: 392 estimated tokens on app/view.tsx
 - Target matches: 20 matched file references across instruction scopes
-- Findings: 4 errors, 11 warnings
+- Findings: 4 errors, 9 warnings
 
 ## Limits Used
-- Profile standard: repository files <= 1500 chars / 375 estimated tokens
-- Profile standard: path-specific files <= 900 chars / 225 estimated tokens
-- Profile standard: target load <= 600 estimated tokens; statements <= 12 per file; statement length <= 30 words
+- Profile standard: repository files <= 2500 chars / 650 estimated tokens
+- Profile standard: path-specific files <= 2500 chars / 650 estimated tokens
+- Profile standard: target load <= 2400 estimated tokens; statements <= 24 per file; statement length <= 50 words
 - Copilot code review platform limit: 4000 chars per instruction file
 
 ## Terms
@@ -34,7 +34,7 @@ Status: **fail**
 ## Instruction Files
 | File | Kind | Preset | Status | Tokens | Statements | Matched | Findings | Scope |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| .github/copilot-instructions.md | repository-wide | copilot | active | 323 | 7 | 12 | 10 | - |
+| .github/copilot-instructions.md | repository-wide | copilot | active | 323 | 7 | 12 | 8 | - |
 | .github/instructions/all.instructions.md | path-specific | copilot | active | 22 | 1 | 5 | 1 | applyTo=** |
 | .github/instructions/legacy.md | unsupported | unknown | not loaded | 11 | 1 | 0 | 1 | - |
 | .github/instructions/no-frontmatter.instructions.md | path-specific | copilot | active | 19 | 1 | 0 | 1 | - |
@@ -57,8 +57,8 @@ Status: **fail**
   Fix: Use .github/copilot-instructions.md, .github/instructions/*.instructions.md, or AGENTS.md.
 
 - **error** `missing-frontmatter` at `.github/instructions/no-frontmatter.instructions.md:1`
-  Problem: Path-specific instruction files must start with YAML frontmatter containing applyTo.
-  Fix: Add frontmatter like --- applyTo: "**/*.ts" --- at the top of the file.
+  Problem: Path-specific instruction files must start with YAML frontmatter containing applyTo or description.
+  Fix: Add frontmatter like --- applyTo: "**/*.ts" --- or --- description: "Use for architecture questions" --- at the top of the file.
 
 - **warning** `exact-duplicate-statement` at `.github/copilot-instructions.md:3`
   Problem: Instruction duplicates .github/instructions/all.instructions.md:6 across overlapping scope.
@@ -78,15 +78,6 @@ Status: **fail**
 - **warning** `repo-wide-scoped-topics` at `.github/copilot-instructions.md:4`
   Problem: Repository-scoped instructions mix in multiple scoped topics that likely belong in narrower instruction files.
   Fix: Move language-, path-, or subsystem-specific rules into narrower scoped instruction files.
-
-- **warning** `paragraph-narrative` at `.github/copilot-instructions.md:10`
-  Problem: Paragraph-style narrative is harder for instruction runtimes to scan than short atomic directives.
-  Fix: Break this paragraph into short bullet rules.
-
-- **warning** `statement-too-long` at `.github/copilot-instructions.md:10`
-  Problem: Instruction statement uses 36 words and exceeds the standard profile budget of 30.
-  Fix: Rewrite as one short directive with only the necessary why.
-  Evidence: `observed=36` `limit=30`
 
 - **warning** `vague-instruction` at `.github/copilot-instructions.md:10`
   Problem: Instruction is too generic to add repository-specific value.

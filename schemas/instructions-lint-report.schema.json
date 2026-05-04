@@ -212,6 +212,7 @@
           "type": "array",
           "items": { "type": "string" }
         },
+        "description": { "type": "string" },
         "scopePath": { "type": "string" },
         "excludeAgents": {
           "type": "array",

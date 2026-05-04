@@ -18,9 +18,9 @@ Status: **pass**
 - Findings: 0 errors, 0 warnings
 
 ## Limits Used
-- Profile standard: repository files <= 1500 chars / 375 estimated tokens
-- Profile standard: path-specific files <= 900 chars / 225 estimated tokens
-- Profile standard: target load <= 600 estimated tokens; statements <= 12 per file; statement length <= 30 words
+- Profile standard: repository files <= 2500 chars / 650 estimated tokens
+- Profile standard: path-specific files <= 2500 chars / 650 estimated tokens
+- Profile standard: target load <= 2400 estimated tokens; statements <= 24 per file; statement length <= 50 words
 - Copilot code review platform limit: 4000 chars per instruction file
 
 ## Terms

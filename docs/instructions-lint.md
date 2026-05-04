@@ -128,15 +128,25 @@ Important terms:
 - Target load: total active instruction tokens that can apply to one repository file.
 - Estimated tokens: local approximation for context pressure, not provider billing.
 
-Profile budgets are Tokn compactness policies. They are intentionally conservative defaults that teams can tune with `profile`, `rules`, suppressions, and baselines.
+Profile budgets are Tokn compactness policies. `standard` is designed for practical enterprise rollout without forcing every readable paragraph into a finding. `strict` is the aggressive context-economy profile for teams that want very small always-on instruction bundles.
 
 | Profile | Repository file | Path-specific file | Target load | Statements per file | Words per statement |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| `lite` | 2500 chars / 600 tokens | 1500 chars / 375 tokens | 900 tokens | 20 | 50 |
-| `standard` | 1500 chars / 375 tokens | 900 chars / 225 tokens | 600 tokens | 12 | 30 |
-| `strict` | 900 chars / 225 tokens | 600 chars / 150 tokens | 350 tokens | 8 | 20 |
+| `lite` | 4000 chars / 1000 tokens | 4000 chars / 1000 tokens | 3000 tokens | 40 | 70 |
+| `standard` | 2500 chars / 650 tokens | 2500 chars / 650 tokens | 2400 tokens | 24 | 50 |
+| `strict` | 1500 chars / 375 tokens | 900 chars / 225 tokens | 600 tokens | 12 | 30 |
 
 Platform limits are separate from Tokn budgets. For the `code-review` surface, Tokn checks GitHub Copilot code review's documented behavior that only the first 4,000 characters of a custom instruction file are read. That check is emitted as `file-char-limit` and is not configurable as a profile budget. See GitHub's guide to [using custom instructions with Copilot code review](https://docs.github.com/en/enterprise-cloud@latest/copilot/tutorials/use-custom-instructions).
+
+## Interpreting Findings
+
+Tokn groups findings by why they matter, not by style preference alone:
+
+- Compatibility errors identify platform behavior that can prevent instructions from loading or behaving predictably.
+- Economy warnings identify instruction text that may create context pressure when multiple files apply to one target.
+- Clarity warnings identify instructions that are vague, weakly worded, overly long, or harder for agents to follow.
+
+For Copilot `.github/instructions/*.instructions.md` files, `applyTo` enables automatic path matching. `description` enables task-triggered or manually attached instructions in supported editor flows. Tokn accepts description-only files and reports them as active, but skips target-file matching, stale-scope checks, and overlap analysis because there is no deterministic file glob to resolve.
 
 ## GitHub Actions Integration
 
@@ -214,7 +224,7 @@ For restricted enterprise agents, install `@tokn-labs/tokn` from an approved int
 
 | Preset | Status | Input shape | Notes |
 | --- | --- | --- | --- |
-| `copilot` | stable | `.github/copilot-instructions.md`, `.github/instructions/*.instructions.md` | includes `applyTo`, `excludeAgent`, and `code-review` 4000-character checks |
+| `copilot` | stable | `.github/copilot-instructions.md`, `.github/instructions/*.instructions.md` | includes `applyTo`, `description`, `excludeAgent`, and `code-review` 4000-character checks |
 | `agents-md` | supported | root or nested `AGENTS.md` | treated as repository-wide or directory-scoped instructions |
 | `auto` | stable | repository roots with a mix of supported presets | discovers all supported presets and reports `detectedPresets` |
 
@@ -252,7 +262,7 @@ For restricted enterprise agents, install `@tokn-labs/tokn` from an approved int
 | `unsupported-agent-surface` | warning | compatibility | known external agent instruction surfaces |
 | `malformed-frontmatter` | error | compatibility | Copilot path specific files |
 | `missing-frontmatter` | error | compatibility | Copilot path specific files |
-| `missing-applyto` | error | compatibility | Copilot path specific files |
+| `missing-applyto` | error | compatibility | Copilot path specific files with neither `applyTo` nor `description` |
 | `invalid-exclude-agent` | error | compatibility | Copilot path specific files |
 | `global-applyto-overlap` | error | compatibility | Copilot path specific files |
 | `stale-applyto` | warning | compatibility | Copilot path specific files |
