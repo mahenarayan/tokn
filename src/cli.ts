@@ -24,8 +24,10 @@ import type {
   CheckThresholds,
   ContextReport,
   InstructionLintFailOnSeverity,
+  InstructionLintBudgetOverrides,
   InstructionLintPresetSelector,
   InstructionLintProfile,
+  InstructionLintReport,
   InstructionLintSurface,
   SegmentType
 } from "./types.js";
@@ -62,7 +64,7 @@ const VALUE_FLAGS = new Set([
 const RISK_THRESHOLDS = new Set<CheckRiskThreshold>(["low", "medium", "high"]);
 const INSTRUCTION_PROFILES = new Set<InstructionLintProfile>(["lite", "standard", "strict"]);
 const INSTRUCTION_FAIL_ON_SEVERITIES = new Set<InstructionLintFailOnSeverity>(["off", "warning", "error"]);
-const INSTRUCTION_SURFACES = new Set<InstructionLintSurface>(["code-review", "chat", "coding-agent"]);
+const INSTRUCTION_SURFACES = new Set<InstructionLintSurface>(["all", "auto", "code-review", "chat", "coding-agent"]);
 const INSTRUCTION_PRESETS = new Set<InstructionLintPresetSelector>(["auto", "copilot", "agents-md"]);
 const SEGMENT_TYPES = new Set<SegmentType>(KNOWN_SEGMENT_TYPES);
 const OUTPUT_FORMATS = new Set(["text", "json", "markdown", "github", "azure"]);
@@ -85,6 +87,8 @@ const CHECK_FLAGS = new Set([
 ]);
 const INSTRUCTIONS_LINT_FLAGS = new Set([
   ...OUTPUT_FLAGS,
+  "--init-config",
+  "--calibrate",
   "--config",
   "--baseline",
   "--ignore",
@@ -99,14 +103,15 @@ const COMMAND_HELP: Record<string, CommandHelp> = {
   "instructions-lint": {
     summary: "Lint repository instruction files for duplicated, conflicting, vague, stale, or oversized guidance.",
     usage:
-      "tokn instructions-lint <path> [--config <file>] [--baseline <file>] [--ignore <glob>] [--preset <auto|copilot|agents-md>] [--profile <lite|standard|strict>] [--surface <code-review|chat|coding-agent>] [--model <id>] [--fail-on-severity <off|warning|error>] [--format <text|json|markdown|github|azure>]",
+      "tokn instructions-lint <path> [--init-config] [--config <file>] [--baseline <file>] [--ignore <glob>] [--preset <auto|copilot|agents-md>] [--profile <lite|standard|strict>] [--surface <all|auto|code-review|chat|coding-agent>] [--model <id>] [--fail-on-severity <off|warning|error>] [--format <text|json|markdown|github|azure>]",
     options: [
       "--config <file>                 Read instructions-lint config from a JSON file.",
       "--baseline <file>               Suppress findings already present in a previous JSON report.",
       "--ignore <glob>                 Ignore instruction or target files; repeat for multiple globs.",
       "--preset <auto|copilot|agents-md>",
       "--profile <lite|standard|strict>",
-      "--surface <code-review|chat|coding-agent>",
+      "--init-config                    Print a calibrated starter config to stdout.",
+      "--surface <all|auto|code-review|chat|coding-agent>",
       "--model <id>                    Include model-aware context budget fields when available.",
       "--fail-on-severity <off|warning|error>",
       "--format <text|json|markdown|github|azure>",
@@ -114,6 +119,7 @@ const COMMAND_HELP: Record<string, CommandHelp> = {
     ],
     examples: [
       "tokn instructions-lint .",
+      "tokn instructions-lint . --init-config",
       "tokn instructions-lint . --config ./tokn.config.json",
       "tokn instructions-lint . --baseline ./.tokn/instructions-baseline.json",
       "tokn instructions-lint . --surface coding-agent --preset agents-md",
@@ -521,7 +527,7 @@ function parseInstructionSurface(parsed: ParsedArgs): InstructionLintSurface | u
     return undefined;
   }
   if (!INSTRUCTION_SURFACES.has(surface as InstructionLintSurface)) {
-    throw new Error("--surface must be one of: code-review, chat, coding-agent.");
+    throw new Error("--surface must be one of: all, auto, code-review, chat, coding-agent.");
   }
   return surface as InstructionLintSurface;
 }
@@ -535,6 +541,47 @@ function parseInstructionPreset(parsed: ParsedArgs): InstructionLintPresetSelect
     throw new Error("--preset must be one of: auto, copilot, agents-md.");
   }
   return preset as InstructionLintPresetSelector;
+}
+
+function roundBudget(value: number, floor: number, step: number): number {
+  return Math.max(floor, Math.ceil(value / step) * step);
+}
+
+function maxOrZero(values: number[]): number {
+  return values.length > 0 ? Math.max(...values) : 0;
+}
+
+function calibratedInstructionBudgets(report: InstructionLintReport): InstructionLintBudgetOverrides {
+  const applicableFiles = report.files.filter((file) => file.appliesToSurface && file.kind !== "unsupported");
+  const repositoryFiles = applicableFiles.filter((file) => file.kind === "repository");
+  const pathFiles = applicableFiles.filter((file) => file.kind === "path-specific" && !file.description);
+
+  return {
+    repositoryChars: roundBudget(maxOrZero(repositoryFiles.map((file) => file.chars)) * 1.2, 2500, 100),
+    pathSpecificChars: roundBudget(maxOrZero(pathFiles.map((file) => file.chars)) * 1.2, 2500, 100),
+    repositoryTokens: roundBudget(maxOrZero(repositoryFiles.map((file) => file.estimatedTokens)) * 1.2, 650, 25),
+    pathSpecificTokens: roundBudget(maxOrZero(pathFiles.map((file) => file.estimatedTokens)) * 1.2, 650, 25),
+    maxApplicableTokens: roundBudget(report.stats.maxApplicableTokens * 1.2, 2400, 100),
+    statements: roundBudget(maxOrZero(pathFiles.map((file) => file.statementCount)) * 1.2, 24, 1),
+    wordsPerStatement: 50
+  };
+}
+
+function printInstructionInitConfig(report: InstructionLintReport): void {
+  const config = {
+    $schema: "https://github.com/mahenarayan/tokn/blob/main/schemas/tokn-config.schema.json",
+    instructionsLint: {
+      preset: report.preset,
+      profile: report.profile,
+      surface: report.surface,
+      failOnSeverity: "warning",
+      budgets: calibratedInstructionBudgets(report),
+      rollout: {
+        stage: "advisory"
+      }
+    }
+  };
+  console.log(JSON.stringify(config, null, 2));
 }
 
 function printOutput(
@@ -688,16 +735,22 @@ async function main(): Promise<void> {
         const configPath = getLastValue(parsed, "--config");
         const baseline = getLastValue(parsed, "--baseline");
         const ignore = getAllValues(parsed, "--ignore");
+        const initConfig = parsed.flags.has("--init-config") || parsed.flags.has("--calibrate");
         const report = lintInstructions(inputPath, {
           ...(preset ? { preset } : {}),
           ...(profile ? { profile } : {}),
-          ...(failOnSeverity ? { failOnSeverity } : {}),
+          ...(initConfig ? { failOnSeverity: "off" as const } : failOnSeverity ? { failOnSeverity } : {}),
           ...(surface ? { surface } : {}),
           ...(model ? { model } : {}),
           ...(configPath ? { configPath } : {}),
           ...(baseline ? { baseline } : {}),
           ...(ignore.length > 0 ? { ignore } : {})
         });
+        if (initConfig) {
+          printInstructionInitConfig(report);
+          process.exitCode = 0;
+          return;
+        }
         printOutput(
           report,
           {

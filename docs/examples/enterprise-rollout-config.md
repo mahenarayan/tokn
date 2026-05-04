@@ -17,7 +17,7 @@ Start with report-only mode. This lets teams publish CI annotations and JSON art
       "ticket": "AI-1234"
     },
     "profile": "standard",
-    "surface": "coding-agent",
+    "surface": "all",
     "failOnSeverity": "off",
     "ignore": ["generated/**", "vendor/**"]
   }
@@ -35,6 +35,12 @@ tokn instructions-lint . --config ./tokn.config.json --format json > .tokn/instr
 
 After teams understand the findings, commit a baseline so existing issues stay visible but do not block every PR.
 
+You can generate a starter config from the current repository shape before editing ownership fields:
+
+```bash
+tokn instructions-lint . --init-config > tokn.config.json
+```
+
 ```json
 {
   "$schema": "https://github.com/mahenarayan/tokn/blob/main/schemas/tokn-config.schema.json",
@@ -47,8 +53,13 @@ After teams understand the findings, commit a baseline so existing issues stay v
       "expiresOn": "2026-06-30"
     },
     "profile": "standard",
-    "surface": "coding-agent",
+    "surface": "all",
     "failOnSeverity": "error",
+    "budgets": {
+      "pathSpecificChars": 3200,
+      "pathSpecificTokens": 850,
+      "maxApplicableTokens": 2800
+    },
     "baseline": "./.tokn/instructions-baseline.json",
     "ignore": ["generated/**", "vendor/**"]
   }

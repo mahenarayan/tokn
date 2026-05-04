@@ -1,7 +1,7 @@
 import { formatPercent } from "./helpers.js";
 import {
   COPILOT_CODE_REVIEW_CHAR_LIMIT,
-  INSTRUCTION_PROFILE_BUDGETS
+  resolveInstructionBudgets
 } from "./instructions/limits.js";
 import type {
   AgentSummary,
@@ -116,7 +116,7 @@ function instructionSummaryLines(report: InstructionLintReport): string[] {
 }
 
 function instructionLimitLines(report: InstructionLintReport): string[] {
-  const budgets = INSTRUCTION_PROFILE_BUDGETS[report.profile];
+  const budgets = resolveInstructionBudgets(report.profile, report.config?.budgetOverrides);
   const lines = [
     `- Profile ${report.profile}: repository files <= ${budgets.repositoryChars} chars / ${budgets.repositoryTokens} estimated tokens`,
     `- Profile ${report.profile}: path-specific files <= ${budgets.pathSpecificChars} chars / ${budgets.pathSpecificTokens} estimated tokens`,
@@ -128,6 +128,11 @@ function instructionLimitLines(report: InstructionLintReport): string[] {
       `- Copilot code review platform limit: ${COPILOT_CODE_REVIEW_CHAR_LIMIT} chars per instruction file`
     );
   }
+  if ((report.surface === "all" || report.surface === "auto") && report.detectedPresets.includes("copilot")) {
+    lines.push(
+      `- Conditional Copilot code review platform limit: ${COPILOT_CODE_REVIEW_CHAR_LIMIT} chars per instruction file`
+    );
+  }
 
   return lines;
 }
@@ -136,6 +141,10 @@ function formatInstructionSurfacePurpose(surface: string): string {
   switch (surface) {
     case "code-review":
       return "code review compatibility";
+    case "all":
+      return "all supported instruction surfaces";
+    case "auto":
+      return "all supported instruction surfaces";
     case "chat":
       return "chat assistance";
     case "coding-agent":
@@ -297,6 +306,13 @@ function appendInstructionLintControlLines(lines: string[], report: InstructionL
   if (report.config && report.config.overriddenRules.length > 0) {
     controlLines.push(`Rule overrides: ${report.config.overriddenRules.join(", ")}`);
   }
+  if (report.config?.budgetOverrides && Object.keys(report.config.budgetOverrides).length > 0) {
+    controlLines.push(
+      `Budget overrides: ${Object.entries(report.config.budgetOverrides)
+        .map(([key, value]) => `${key}=${value}`)
+        .join(", ")}`
+    );
+  }
   if (report.config?.rollout) {
     const rollout = report.config.rollout;
     const rolloutParts = [
@@ -347,6 +363,13 @@ function appendInstructionLintControlMarkdown(lines: string[], report: Instructi
   }
   if (report.config && report.config.overriddenRules.length > 0) {
     controlLines.push(`- Rule overrides: ${report.config.overriddenRules.join(", ")}`);
+  }
+  if (report.config?.budgetOverrides && Object.keys(report.config.budgetOverrides).length > 0) {
+    controlLines.push(
+      `- Budget overrides: ${Object.entries(report.config.budgetOverrides)
+        .map(([key, value]) => `${key}=${value}`)
+        .join(", ")}`
+    );
   }
   if (report.config?.rollout) {
     const rollout = report.config.rollout;
@@ -440,7 +463,6 @@ export function formatInspectReport(report: ContextReport): string {
       lines.push(`- ${warning}`);
     }
   }
-
   return lines.join("\n");
 }
 
@@ -508,7 +530,6 @@ export function formatInspectReportMarkdown(report: ContextReport): string {
       lines.push(`- ${warning}`);
     }
   }
-
   return lines.join("\n");
 }
 
@@ -756,6 +777,12 @@ export function formatInstructionLintReport(report: InstructionLintReport): stri
       lines.push(`- ${warning}`);
     }
   }
+  if (report.notes.length > 0) {
+    lines.push("", "Notes:");
+    for (const note of report.notes) {
+      lines.push(`- ${note}`);
+    }
+  }
 
   return lines.join("\n");
 }
@@ -897,6 +924,12 @@ export function formatInstructionLintReportMarkdown(report: InstructionLintRepor
     lines.push("", "## Warnings");
     for (const warning of report.warnings) {
       lines.push(`- ${warning}`);
+    }
+  }
+  if (report.notes.length > 0) {
+    lines.push("", "## Notes");
+    for (const note of report.notes) {
+      lines.push(`- ${note}`);
     }
   }
 

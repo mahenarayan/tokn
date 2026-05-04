@@ -12,9 +12,11 @@ import {
 } from "./config.js";
 import {
   COPILOT_CODE_REVIEW_CHAR_LIMIT,
-  INSTRUCTION_PROFILE_BUDGETS
+  type InstructionBudgets,
+  resolveInstructionBudgets
 } from "./limits.js";
 import {
+  getInstructionRuleCategory,
   getInstructionRuleDefaultSeverity,
   INSTRUCTION_LINT_REPORT_SCHEMA_PATH,
   INSTRUCTION_LINT_REPORT_SCHEMA_VERSION,
@@ -22,10 +24,13 @@ import {
 } from "./rules.js";
 import type {
   InstructionExcludeAgent,
+  InstructionActivationType,
   InstructionFileKind,
   InstructionFileReport,
   InstructionFinding,
   InstructionFindingEvidence,
+  InstructionFindingConfidence,
+  InstructionLintBudgetOverrides,
   InstructionLintFailOnSeverity,
   InstructionLintAppliedConfig,
   InstructionLintOptions,
@@ -123,6 +128,8 @@ interface ResolvedLintPolicy {
   profile: InstructionLintProfile;
   failOnSeverity: InstructionLintFailOnSeverity;
   surface: InstructionLintSurface;
+  budgets: InstructionBudgets;
+  budgetOverrides: InstructionLintBudgetOverrides;
   model?: string;
   baselinePath?: string;
   ignore: string[];
@@ -132,7 +139,7 @@ interface ResolvedLintPolicy {
 
 const DEFAULT_PROFILE: InstructionLintProfile = "standard";
 const DEFAULT_FAIL_ON_SEVERITY: InstructionLintFailOnSeverity = "error";
-const DEFAULT_SURFACE: InstructionLintSurface = "code-review";
+const DEFAULT_SURFACE: InstructionLintSurface = "all";
 const DEFAULT_PRESET: InstructionLintPresetSelector = "auto";
 const MAX_INSTRUCTION_FILE_BYTES = 1024 * 1024;
 const MAX_BASELINE_FILE_BYTES = 10 * 1024 * 1024;
@@ -179,6 +186,9 @@ const VAGUE_RE =
   /\b(follow best practices|write clean code|use clean code|write readable code|ensure high quality|do the right thing|be thoughtful)\b/i;
 const SCOPED_TOPIC_RE =
   /(\*\*\/|\.[a-z0-9]{1,5}\b|\/[A-Za-z0-9._-]+\/|typescript|javascript|python|ruby|react|frontend|backend|docs\/|tests?\/|tsx|jsx|sql|api|schema)/i;
+
+const CONCRETE_SURFACES = ["code-review", "chat", "coding-agent"] as const;
+type ConcreteInstructionLintSurface = typeof CONCRETE_SURFACES[number];
 
 function normalizePath(filePath: string): string {
   return filePath.split(path.sep).join("/");
@@ -722,11 +732,22 @@ function createFinding(
   message: string,
   line: number,
   suggestion?: string,
-  evidence?: InstructionFindingEvidence
+  evidence?: InstructionFindingEvidence,
+  metadata: {
+    confidence?: InstructionFindingConfidence;
+    surfaceApplicability?: InstructionLintSurface[];
+    activationType?: InstructionActivationType;
+    groupId?: string;
+  } = {}
 ): InstructionFinding {
   return {
     file,
     severity,
+    category: getInstructionRuleCategory(ruleId),
+    confidence: metadata.confidence ?? defaultFindingConfidence(ruleId),
+    ...(metadata.surfaceApplicability ? { surfaceApplicability: metadata.surfaceApplicability } : {}),
+    ...(metadata.activationType ? { activationType: metadata.activationType } : {}),
+    ...(metadata.groupId ? { groupId: metadata.groupId } : {}),
     ruleId,
     message,
     line,
@@ -743,14 +764,25 @@ function addFinding(
   message: string,
   line: number,
   suggestion?: string,
-  evidence?: InstructionFindingEvidence
+  evidence?: InstructionFindingEvidence,
+  metadata: {
+    confidence?: InstructionFindingConfidence;
+    surfaceApplicability?: InstructionLintSurface[];
+    groupId?: string;
+  } = {}
 ): void {
   const key = `${severity}|${ruleId}|${report.file}|${line}|${message}`;
   if (seen.has(key)) {
     return;
   }
   seen.add(key);
-  report.findings.push(createFinding(report.file, severity, ruleId, message, line, suggestion, evidence));
+  report.findings.push(
+    createFinding(report.file, severity, ruleId, message, line, suggestion, evidence, {
+      activationType: instructionActivationType(report),
+      surfaceApplicability: surfaceApplicabilityForReport(report),
+      ...metadata
+    })
+  );
 }
 
 function parseApplyTo(value: string | undefined): string[] {
@@ -808,9 +840,13 @@ function isCopilotInstruction(report: Pick<InternalFileReport, "preset">): boole
   return report.preset === "copilot";
 }
 
-function appliesToSurface(
+function isAllSurface(surface: InstructionLintSurface): boolean {
+  return surface === "all" || surface === "auto";
+}
+
+function concreteSurfaceApplies(
   report: Pick<InternalFileReport, "kind" | "excludeAgents">,
-  surface: InstructionLintSurface
+  surface: ConcreteInstructionLintSurface
 ): boolean {
   if (report.kind === "unsupported") {
     return false;
@@ -821,13 +857,66 @@ function appliesToSurface(
   return !report.excludeAgents.includes(surface);
 }
 
+function appliesToSurface(
+  report: Pick<InternalFileReport, "kind" | "excludeAgents">,
+  surface: InstructionLintSurface
+): boolean {
+  if (report.kind === "unsupported") {
+    return false;
+  }
+  if (isAllSurface(surface)) {
+    return true;
+  }
+  return concreteSurfaceApplies(report, surface as ConcreteInstructionLintSurface);
+}
+
+function surfaceApplicabilityForReport(
+  report: Pick<InternalFileReport, "kind" | "excludeAgents">
+): ConcreteInstructionLintSurface[] {
+  return CONCRETE_SURFACES.filter((surface) => concreteSurfaceApplies(report, surface));
+}
+
+function instructionActivationType(report: Pick<InternalFileReport, "kind" | "preset" | "applyTo" | "description" | "scopePath">): InstructionActivationType {
+  if (report.kind === "unsupported") {
+    return "unsupported";
+  }
+  if (report.kind === "repository") {
+    return "repository";
+  }
+  if (report.preset === "agents-md" && report.scopePath) {
+    return "directory";
+  }
+  if (report.applyTo.length > 0) {
+    return "path";
+  }
+  if (report.description) {
+    return "description";
+  }
+  return "path";
+}
+
+function defaultFindingConfidence(ruleId: InstructionRuleId): InstructionFindingConfidence {
+  if (
+    ruleId === "high-similarity-statement" ||
+    ruleId === "possible-conflict" ||
+    ruleId === "paragraph-narrative" ||
+    ruleId === "vague-instruction"
+  ) {
+    return "medium";
+  }
+  return "high";
+}
+
 function lintLocalRules(
   report: InternalFileReport,
   profile: InstructionLintProfile,
-  surface: InstructionLintSurface
+  surface: InstructionLintSurface,
+  budgets: InstructionBudgets
 ): void {
-  const budgets = INSTRUCTION_PROFILE_BUDGETS[profile];
   const seen = new Set<string>();
+  const activationType = instructionActivationType(report);
+  const budgetEligible = activationType !== "description";
+  const fileBudgetGroupId = `file-budget:${report.file}`;
 
   if (report.kind === "unsupported") {
     const knownSurface = knownUnsupportedAgentSurface(report.file);
@@ -860,26 +949,34 @@ function lintLocalRules(
 
   if (
     isCopilotInstruction(report) &&
-    surface === "code-review" &&
+    (surface === "code-review" || isAllSurface(surface)) &&
+    concreteSurfaceApplies(report, "code-review") &&
     report.chars > COPILOT_CODE_REVIEW_CHAR_LIMIT
   ) {
+    const isConditional = isAllSurface(surface);
     addFinding(
       report,
       seen,
-      "error",
+      isConditional ? "warning" : "error",
       "file-char-limit",
-      `File is ${report.chars} characters long and exceeds GitHub Copilot code review's ${COPILOT_CODE_REVIEW_CHAR_LIMIT}-character limit.`,
+      isConditional
+        ? `File is ${report.chars} characters long and would exceed GitHub Copilot code review's ${COPILOT_CODE_REVIEW_CHAR_LIMIT}-character limit if used for code review.`
+        : `File is ${report.chars} characters long and exceeds GitHub Copilot code review's ${COPILOT_CODE_REVIEW_CHAR_LIMIT}-character limit.`,
       1,
-      `Split the file or reduce repeated wording so the first ${COPILOT_CODE_REVIEW_CHAR_LIMIT} characters contain the full rule set.`,
+      `Split the file or reduce repeated wording when this instruction file is intended for Copilot code review.`,
       {
         actual: report.chars,
         expected: COPILOT_CODE_REVIEW_CHAR_LIMIT,
-        surface
+        surface: "code-review"
+      },
+      {
+        surfaceApplicability: ["code-review"],
+        groupId: fileBudgetGroupId
       }
     );
   }
 
-  if (isRepositoryInstruction(report) && report.chars > budgets.repositoryChars) {
+  if (budgetEligible && isRepositoryInstruction(report) && report.chars > budgets.repositoryChars) {
     addFinding(
       report,
       seen,
@@ -891,11 +988,14 @@ function lintLocalRules(
       {
         actual: report.chars,
         expected: budgets.repositoryChars
+      },
+      {
+        groupId: fileBudgetGroupId
       }
     );
   }
 
-  if (isRepositoryInstruction(report) && report.estimatedTokens > budgets.repositoryTokens) {
+  if (budgetEligible && isRepositoryInstruction(report) && report.estimatedTokens > budgets.repositoryTokens) {
     addFinding(
       report,
       seen,
@@ -907,11 +1007,14 @@ function lintLocalRules(
       {
         actual: report.estimatedTokens,
         expected: budgets.repositoryTokens
+      },
+      {
+        groupId: fileBudgetGroupId
       }
     );
   }
 
-  if (isPathSpecificInstruction(report) && report.chars > budgets.pathSpecificChars) {
+  if (budgetEligible && isPathSpecificInstruction(report) && report.chars > budgets.pathSpecificChars) {
     addFinding(
       report,
       seen,
@@ -923,11 +1026,14 @@ function lintLocalRules(
       {
         actual: report.chars,
         expected: budgets.pathSpecificChars
+      },
+      {
+        groupId: fileBudgetGroupId
       }
     );
   }
 
-  if (isPathSpecificInstruction(report) && report.estimatedTokens > budgets.pathSpecificTokens) {
+  if (budgetEligible && isPathSpecificInstruction(report) && report.estimatedTokens > budgets.pathSpecificTokens) {
     addFinding(
       report,
       seen,
@@ -939,11 +1045,14 @@ function lintLocalRules(
       {
         actual: report.estimatedTokens,
         expected: budgets.pathSpecificTokens
+      },
+      {
+        groupId: fileBudgetGroupId
       }
     );
   }
 
-  if (report.statements.length > budgets.statements) {
+  if (budgetEligible && report.statements.length > budgets.statements) {
     addFinding(
       report,
       seen,
@@ -955,6 +1064,9 @@ function lintLocalRules(
       {
         actual: report.statements.length,
         expected: budgets.statements
+      },
+      {
+        groupId: fileBudgetGroupId
       }
     );
   }
@@ -1035,7 +1147,14 @@ function lintLocalRules(
         "oversized-code-example",
         "Code example is large enough to crowd out higher-signal instruction text.",
         block.line,
-        "Keep examples minimal and only show the pattern that Copilot must prefer or avoid."
+        "Keep examples minimal and only show the pattern that Copilot must prefer or avoid.",
+        {
+          actual: block.lines,
+          expected: 12
+        },
+        {
+          groupId: `example-budget:${report.file}`
+        }
       );
     }
   }
@@ -1287,9 +1406,9 @@ function addApplicableTokenBudgetFindings(
   reports: InternalFileReport[],
   repoFilesByRoot: Map<string, string[]>,
   profile: InstructionLintProfile,
-  surface: InstructionLintSurface
+  surface: InstructionLintSurface,
+  budgets: InstructionBudgets
 ): { maxApplicableTokens: number; maxApplicableTargetFile?: string } {
-  const budgets = INSTRUCTION_PROFILE_BUDGETS[profile];
   const grouped = new Map<string, InternalFileReport[]>();
 
   for (const report of reports) {
@@ -1378,6 +1497,11 @@ function addApplicableTokenBudgetFindings(
               .map((report) => report.file)
               .sort((left, right) => left.localeCompare(right))
           )
+        },
+        {
+          activationType: instructionActivationType(hostReport),
+          surfaceApplicability: surfaceApplicabilityForReport(hostReport),
+          groupId: `target-budget:${targetFile}`
         }
       )
     );
@@ -1512,6 +1636,10 @@ function resolveLintPolicy(
     ...(loadedConfig?.ruleOverrides ?? {}),
     ...(options.ruleOverrides ?? {})
   };
+  const budgetOverrides = {
+    ...(loadedConfig?.budgets ?? {}),
+    ...(options.budgets ?? {})
+  };
 
   const suppressions = [
     ...(loadedConfig?.suppressions ?? []),
@@ -1524,7 +1652,12 @@ function resolveLintPolicy(
   const model = options.model ?? loadedConfig?.model;
 
   const appliedConfig =
-    loadedConfig || baselinePath || ignore.length > 0 || suppressions.length > 0 || Object.keys(ruleOverrides).length > 0
+    loadedConfig ||
+      baselinePath ||
+      ignore.length > 0 ||
+      suppressions.length > 0 ||
+      Object.keys(ruleOverrides).length > 0 ||
+      Object.keys(budgetOverrides).length > 0
       ? {
           ...(loadedConfig ? { source: displayPath(loadedConfig.sourcePath) } : {}),
           ...(baselinePath ? { baselinePath: displayPath(baselinePath) } : {}),
@@ -1533,18 +1666,22 @@ function resolveLintPolicy(
           overriddenRules: Object.keys(ruleOverrides)
             .filter((ruleId): ruleId is InstructionRuleId => isInstructionRuleId(ruleId))
             .sort((left, right) => left.localeCompare(right)),
+          ...(Object.keys(budgetOverrides).length > 0 ? { budgetOverrides } : {}),
           ...(loadedConfig?.rollout ? { rollout: loadedConfig.rollout } : {})
         }
       : undefined;
+  const profile = options.profile ?? loadedConfig?.profile ?? DEFAULT_PROFILE;
 
   return {
     ...(loadedConfig ? { config: loadedConfig } : {}),
     ...(appliedConfig ? { appliedConfig } : {}),
     preset: options.preset ?? loadedConfig?.preset ?? DEFAULT_PRESET,
-    profile: options.profile ?? loadedConfig?.profile ?? DEFAULT_PROFILE,
+    profile,
     failOnSeverity:
       options.failOnSeverity ?? loadedConfig?.failOnSeverity ?? DEFAULT_FAIL_ON_SEVERITY,
     surface: options.surface ?? loadedConfig?.surface ?? DEFAULT_SURFACE,
+    budgets: resolveInstructionBudgets(profile, budgetOverrides),
+    budgetOverrides,
     ...(model !== undefined ? { model } : {}),
     ...(baselinePath ? { baselinePath } : {}),
     ignore,
@@ -1663,10 +1800,12 @@ export function lintInstructions(
   const profile = policy.profile;
   const failOnSeverity = policy.failOnSeverity;
   const surface = policy.surface;
+  const budgets = policy.budgets;
   const model = policy.model;
   const modelLimit = getModelLimit(model);
   const candidates: CandidateFile[] = [];
   const warnings = new Set<string>();
+  const notes = new Set<string>();
   const repoFilesByRoot = new Map<string, string[]>();
   const ignoreSummary: IgnoreSummary = {
     ignoredInstructionFileCount: 0,
@@ -1830,7 +1969,7 @@ export function lintInstructions(
           );
         }
         if (report.applyTo.length === 0 && report.description) {
-          warnings.add(
+          notes.add(
             `${report.file} uses description-only activation; target-file matching, stale applyTo checks, and overlap analysis are skipped for this file.`
           );
         }
@@ -1856,7 +1995,7 @@ export function lintInstructions(
     }
 
     report.appliesToSurface = appliesToSurface(report, surface);
-    lintLocalRules(report, profile, surface);
+    lintLocalRules(report, profile, surface, budgets);
     internalReports.push(report);
   }
 
@@ -1932,7 +2071,8 @@ export function lintInstructions(
     internalReports,
     repoFilesByRoot,
     profile,
-    surface
+    surface,
+    budgets
   );
   const postProcessSummary = postProcessFindings(internalReports, policy);
 
@@ -1985,6 +2125,7 @@ export function lintInstructions(
     stats,
     files,
     findings,
-    warnings: [...warnings].sort((left, right) => left.localeCompare(right))
+    warnings: [...warnings].sort((left, right) => left.localeCompare(right)),
+    notes: [...notes].sort((left, right) => left.localeCompare(right))
   };
 }

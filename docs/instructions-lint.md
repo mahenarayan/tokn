@@ -62,10 +62,16 @@ Preferred shape:
       "expiresOn": "2026-06-30"
     },
     "profile": "standard",
-    "surface": "code-review",
+    "surface": "all",
     "failOnSeverity": "error",
     "ignore": ["generated/**", "vendor/**"],
     "baseline": "./.tokn/instructions-baseline.json",
+    "budgets": {
+      "pathSpecificChars": 3200,
+      "pathSpecificTokens": 850,
+      "maxApplicableTokens": 2800,
+      "wordsPerStatement": 60
+    },
     "rules": {
       "statement-too-long": { "severity": "error" },
       "weak-modal-phrasing": { "enabled": false }
@@ -98,6 +104,7 @@ Tokn keeps rollout controls intentionally small:
 - `rollout`: attaches stage and ownership metadata to reports for enterprise tracking
 - `failOnSeverity: "off"`: report findings without failing the process during advisory rollout
 - `ignore`: skips instruction files and repository target files matched by the given globs
+- `budgets`: overrides numeric compactness budgets for the selected team policy
 - `rules`: can disable a rule or change its severity
 - `suppressions`: suppresses selected rule IDs for matching instruction files
 - `baseline`: suppresses findings that already exist in a previous JSON lint report
@@ -115,6 +122,12 @@ tokn instructions-lint . --format json > .tokn/instructions-baseline.json
 tokn instructions-lint . --baseline ./.tokn/instructions-baseline.json
 ```
 
+Generate a starter config from the current repository shape:
+
+```bash
+tokn instructions-lint . --init-config > tokn.config.json
+```
+
 ## Concepts And Limits
 
 Tokn prints the active limits in text and Markdown reports so findings do not look like unexplained magic numbers.
@@ -122,7 +135,7 @@ Tokn prints the active limits in text and Markdown reports so findings do not lo
 Important terms:
 
 - Lint purpose: context and agent engineering for repository instruction files; code review is one supported surface.
-- Surface: the target consumption mode for a run, such as chat assistance, autonomous coding agents, or code review compatibility.
+- Surface: the target consumption mode for a run. `all` is the default and reports conditional surface-specific issues without failing on code-review-only limits.
 - Statement: one parsed instruction directive, counted from a bullet, numbered item, or paragraph block.
 - Applicable: loaded for the selected surface and eligible for matching target files.
 - Target load: total active instruction tokens that can apply to one repository file.
@@ -136,7 +149,7 @@ Profile budgets are Tokn compactness policies. `standard` is designed for practi
 | `standard` | 2500 chars / 650 tokens | 2500 chars / 650 tokens | 2400 tokens | 24 | 50 |
 | `strict` | 1500 chars / 375 tokens | 900 chars / 225 tokens | 600 tokens | 12 | 30 |
 
-Platform limits are separate from Tokn budgets. For the `code-review` surface, Tokn checks GitHub Copilot code review's documented behavior that only the first 4,000 characters of a custom instruction file are read. That check is emitted as `file-char-limit` and is not configurable as a profile budget. See GitHub's guide to [using custom instructions with Copilot code review](https://docs.github.com/en/enterprise-cloud@latest/copilot/tutorials/use-custom-instructions).
+Platform limits are separate from Tokn budgets. For the `code-review` surface, Tokn checks GitHub Copilot code review's documented behavior that only the first 4,000 characters of a custom instruction file are read. In `surface: "all"` runs this is reported as a conditional warning; in `surface: "code-review"` runs it remains an error. See GitHub's guide to [using custom instructions with Copilot code review](https://docs.github.com/en/enterprise-cloud@latest/copilot/tutorials/use-custom-instructions).
 
 ## Interpreting Findings
 
@@ -147,6 +160,16 @@ Tokn groups findings by why they matter, not by style preference alone:
 - Clarity warnings identify instructions that are vague, weakly worded, overly long, or harder for agents to follow.
 
 For Copilot `.github/instructions/*.instructions.md` files, `applyTo` enables automatic path matching. `description` enables task-triggered or manually attached instructions in supported editor flows. Tokn accepts description-only files and reports them as active, but skips target-file matching, stale-scope checks, and overlap analysis because there is no deterministic file glob to resolve.
+
+JSON findings include structured relevance metadata:
+
+- `category`: compatibility, economy, or clarity
+- `confidence`: high, medium, or low
+- `surfaceApplicability`: surfaces where the finding matters
+- `activationType`: repository, path, description, directory, or unsupported
+- `groupId`: stable grouping key for correlated budget findings
+
+Human text and Markdown output keep this metadata out of the main finding body to stay readable. Use JSON output for dashboards, editor integrations, or custom prioritization.
 
 ## GitHub Actions Integration
 
@@ -240,7 +263,9 @@ For restricted enterprise agents, install `@tokn-labs/tokn` from an approved int
 
 | Surface | Status | Notes |
 | --- | --- | --- |
-| `code-review` | stable | code review compatibility mode; applies the Copilot 4000 character limit |
+| `all` | stable | default; evaluates all supported surfaces and reports surface-specific limits conditionally |
+| `auto` | stable | alias for all supported surfaces |
+| `code-review` | stable | code review compatibility mode; applies the Copilot 4000 character limit as an error |
 | `chat` | stable | chat assistance mode; skips the code review only file cap |
 | `coding-agent` | stable | autonomous coding-agent mode; respects Copilot `excludeAgent: "cloud-agent"` on path specific files; `coding-agent` is also accepted for compatibility |
 

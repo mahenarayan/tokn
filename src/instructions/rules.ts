@@ -231,3 +231,7 @@ export function isInstructionRuleId(value: string): value is InstructionRuleId {
 export function getInstructionRuleDefaultSeverity(ruleId: InstructionRuleId): InstructionLintSeverity {
   return INSTRUCTION_RULES[ruleId].defaultSeverity;
 }
+
+export function getInstructionRuleCategory(ruleId: InstructionRuleId): InstructionRuleCategory {
+  return INSTRUCTION_RULES[ruleId].category;
+}

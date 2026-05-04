@@ -18,7 +18,8 @@
     "stats",
     "files",
     "findings",
-    "warnings"
+    "warnings",
+    "notes"
   ],
   "properties": {
     "kind": {
@@ -43,7 +44,7 @@
       "enum": ["lite", "standard", "strict"]
     },
     "surface": {
-      "enum": ["code-review", "chat", "coding-agent"]
+      "enum": ["all", "auto", "code-review", "chat", "coding-agent"]
     },
     "model": {
       "type": "string"
@@ -86,6 +87,12 @@
       "items": {
         "type": "string"
       }
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
     }
   },
   "$defs": {
@@ -115,9 +122,25 @@
             "$ref": "#/$defs/ruleId"
           }
         },
+        "budgetOverrides": {
+          "$ref": "#/$defs/budgets"
+        },
         "rollout": {
           "$ref": "#/$defs/rollout"
         }
+      }
+    },
+    "budgets": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "repositoryChars": { "type": "number" },
+        "pathSpecificChars": { "type": "number" },
+        "repositoryTokens": { "type": "number" },
+        "pathSpecificTokens": { "type": "number" },
+        "maxApplicableTokens": { "type": "number" },
+        "statements": { "type": "number" },
+        "wordsPerStatement": { "type": "number" }
       }
     },
     "rollout": {
@@ -252,7 +275,7 @@
           "oneOf": [{ "type": "number" }, { "type": "string" }]
         },
         "surface": {
-          "enum": ["code-review", "chat", "coding-agent"]
+          "enum": ["all", "auto", "code-review", "chat", "coding-agent"]
         },
         "relatedLocation": {
           "$ref": "#/$defs/findingLocation"
@@ -290,6 +313,22 @@
         "severity": {
           "enum": ["warning", "error"]
         },
+        "category": {
+          "enum": ["compatibility", "clarity", "economy"]
+        },
+        "confidence": {
+          "enum": ["low", "medium", "high"]
+        },
+        "surfaceApplicability": {
+          "type": "array",
+          "items": {
+            "enum": ["all", "auto", "code-review", "chat", "coding-agent"]
+          }
+        },
+        "activationType": {
+          "enum": ["repository", "path", "description", "directory", "unsupported"]
+        },
+        "groupId": { "type": "string" },
         "message": { "type": "string" },
         "file": { "type": "string" },
         "line": { "type": "number" },
