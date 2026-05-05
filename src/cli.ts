@@ -98,6 +98,15 @@ const INSTRUCTIONS_LINT_FLAGS = new Set([
   "--model",
   "--fail-on-severity"
 ]);
+const INSTRUCTIONS_INIT_FLAGS = new Set([
+  "--config",
+  "--baseline",
+  "--ignore",
+  "--preset",
+  "--profile",
+  "--surface",
+  "--model"
+]);
 
 const COMMAND_HELP: Record<string, CommandHelp> = {
   "instructions-lint": {
@@ -128,6 +137,52 @@ const COMMAND_HELP: Record<string, CommandHelp> = {
     notes: [
       "This is the stable public Tokn command in public alpha.",
       "The command is read-only and does not modify instruction files."
+    ]
+  },
+  init: {
+    summary: "Print a calibrated starter tokn.config.json for a repository.",
+    usage:
+      "tokn init <path> [--config <file>] [--baseline <file>] [--ignore <glob>] [--preset <auto|copilot|agents-md>] [--profile <lite|standard|strict>] [--surface <all|auto|code-review|chat|coding-agent>] [--model <id>]",
+    options: [
+      "--config <file>                 Read existing instructions-lint config before calibrating.",
+      "--baseline <file>               Account for an existing baseline report.",
+      "--ignore <glob>                 Ignore instruction or target files; repeat for multiple globs.",
+      "--preset <auto|copilot|agents-md>",
+      "--profile <lite|standard|strict>",
+      "--surface <all|auto|code-review|chat|coding-agent>",
+      "--model <id>                    Include model-aware context budget fields when available."
+    ],
+    examples: [
+      "tokn init . > tokn.config.json",
+      "tokn init . --surface coding-agent --preset agents-md",
+      "tokn init . --config ./tokn.config.json"
+    ],
+    notes: [
+      "Alias: tokn calibrate <path>.",
+      "The command prints JSON to stdout and does not write files."
+    ]
+  },
+  calibrate: {
+    summary: "Print a calibrated starter tokn.config.json for a repository.",
+    usage:
+      "tokn calibrate <path> [--config <file>] [--baseline <file>] [--ignore <glob>] [--preset <auto|copilot|agents-md>] [--profile <lite|standard|strict>] [--surface <all|auto|code-review|chat|coding-agent>] [--model <id>]",
+    options: [
+      "--config <file>                 Read existing instructions-lint config before calibrating.",
+      "--baseline <file>               Account for an existing baseline report.",
+      "--ignore <glob>                 Ignore instruction or target files; repeat for multiple globs.",
+      "--preset <auto|copilot|agents-md>",
+      "--profile <lite|standard|strict>",
+      "--surface <all|auto|code-review|chat|coding-agent>",
+      "--model <id>                    Include model-aware context budget fields when available."
+    ],
+    examples: [
+      "tokn calibrate . > tokn.config.json",
+      "tokn calibrate . --surface coding-agent --preset agents-md",
+      "tokn calibrate . --config ./tokn.config.json"
+    ],
+    notes: [
+      "Alias: tokn init <path>.",
+      "The command prints JSON to stdout and does not write files."
     ]
   },
   inspect: {
@@ -224,6 +279,8 @@ Usage:
 
 Stable public command:
   instructions-lint  Lint repository instruction files for AI-assisted development.
+  init               Print a calibrated starter tokn.config.json.
+  calibrate          Alias for init.
 
 Experimental diagnostics:
   inspect            Inspect prompt/context composition from a saved payload.
@@ -234,6 +291,7 @@ Experimental diagnostics:
 
 Examples:
   tokn instructions-lint .
+  tokn init . > tokn.config.json
   tokn instructions-lint . --format github --fail-on-severity warning
   tokn inspect ./fixtures/openai-request.json --format markdown
   tokn diff ./fixtures/turn-1.json ./fixtures/turn-2.json
@@ -721,6 +779,32 @@ async function main(): Promise<void> {
           outputMode
         );
         process.exitCode = result.exitCode;
+        return;
+      }
+      case "init":
+      case "calibrate": {
+        validateAllowedOptions(parsed, command, INSTRUCTIONS_INIT_FLAGS);
+        const inputPath = requireOnePath(parsed, command);
+
+        const profile = parseInstructionProfile(parsed);
+        const surface = parseInstructionSurface(parsed);
+        const preset = parseInstructionPreset(parsed);
+        const model = getLastValue(parsed, "--model");
+        const configPath = getLastValue(parsed, "--config");
+        const baseline = getLastValue(parsed, "--baseline");
+        const ignore = getAllValues(parsed, "--ignore");
+        const report = lintInstructions(inputPath, {
+          ...(preset ? { preset } : {}),
+          ...(profile ? { profile } : {}),
+          failOnSeverity: "off",
+          ...(surface ? { surface } : {}),
+          ...(model ? { model } : {}),
+          ...(configPath ? { configPath } : {}),
+          ...(baseline ? { baseline } : {}),
+          ...(ignore.length > 0 ? { ignore } : {})
+        });
+        printInstructionInitConfig(report);
+        process.exitCode = 0;
         return;
       }
       case "instructions-lint": {
