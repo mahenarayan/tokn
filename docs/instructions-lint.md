@@ -125,8 +125,10 @@ tokn instructions-lint . --baseline ./.tokn/instructions-baseline.json
 Generate a starter config from the current repository shape:
 
 ```bash
-tokn instructions-lint . --init-config > tokn.config.json
+tokn init . > tokn.config.json
 ```
+
+`tokn calibrate .` is an equivalent alias. The older `tokn instructions-lint . --init-config` form remains supported for compatibility.
 
 ## Concepts And Limits
 

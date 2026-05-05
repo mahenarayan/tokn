@@ -38,7 +38,7 @@ After teams understand the findings, commit a baseline so existing issues stay v
 You can generate a starter config from the current repository shape before editing ownership fields:
 
 ```bash
-tokn instructions-lint . --init-config > tokn.config.json
+tokn init . > tokn.config.json
 ```
 
 ```json
