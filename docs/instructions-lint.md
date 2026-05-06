@@ -12,14 +12,14 @@ In `auto` mode Tokn also detects known external agent-instruction surfaces such 
 
 Instruction files are part of the context supply chain for coding assistants and coding agents. They are easy to review as prose and hard to reason about as repeated model input.
 
-`instructions-lint` gives teams a practical starting point for context and agent engineering:
+`instructions-lint` gives maintainers and teams a practical starting point for context and agent engineering:
 
 - measure always on instruction load before it becomes invisible context pressure
 - find duplicated or conflicting guidance across scoped instruction files
 - catch stale path scopes before instructions silently stop applying
 - separate limits that vary by platform from general context budget pressure
 - create baselines so teams can improve instruction quality over time without blocking every existing issue on day one
-- run the same instruction governance across chat, coding-agent, and code-review surfaces
+- run the same instruction checks across chat, coding-agent, and code-review surfaces
 
 Advanced prompt and trace diagnostics build on the same idea, but linting is the first place most teams can adopt this safely because it runs locally, avoids file rewrites, and fits CI.
 
@@ -101,7 +101,7 @@ tokn instructions-lint . \
 
 Tokn keeps rollout controls intentionally small:
 
-- `rollout`: attaches stage and ownership metadata to reports for enterprise tracking
+- `rollout`: attaches stage and ownership metadata to reports for team or organization tracking
 - `failOnSeverity: "off"`: report findings without failing the process during advisory rollout
 - `ignore`: skips instruction files and repository target files matched by the given globs
 - `budgets`: overrides numeric compactness budgets for the selected team policy
@@ -109,7 +109,7 @@ Tokn keeps rollout controls intentionally small:
 - `suppressions`: suppresses selected rule IDs for matching instruction files
 - `baseline`: suppresses findings that already exist in a previous JSON lint report
 
-Recommended enterprise rollout stages:
+Recommended adoption stages:
 
 1. Advisory: set `rollout.stage` to `advisory` and `failOnSeverity` to `off`, publish JSON or CI annotations, and collect owners.
 2. Baseline: set `rollout.stage` to `baseline`, commit a baseline report, and fail only on new errors or warnings.
@@ -143,7 +143,7 @@ Important terms:
 - Target load: total active instruction tokens that can apply to one repository file.
 - Estimated tokens: local approximation for context pressure, not provider billing.
 
-Profile budgets are Tokn compactness policies. `standard` is designed for practical enterprise rollout without forcing every readable paragraph into a finding. `strict` is the aggressive context-economy profile for teams that want very small always-on instruction bundles.
+Profile budgets are Tokn compactness policies. `standard` is designed for practical team adoption without forcing every readable paragraph into a finding. `strict` is the aggressive context-economy profile for teams that want very small always-on instruction bundles.
 
 | Profile | Repository file | Path-specific file | Target load | Statements per file | Words per statement |
 | --- | ---: | ---: | ---: | ---: | ---: |
@@ -241,7 +241,7 @@ steps:
       artifact: tokn-instructions-lint
 ```
 
-For restricted enterprise agents, install `@tokn-labs/tokn` from an approved internal npm mirror and call the installed `tokn` binary. Tokn itself only reads local repository files during analysis.
+For restricted environments, install `@tokn-labs/tokn` from an approved internal npm mirror and call the installed `tokn` binary. Tokn itself only reads local repository files during analysis.
 
 ## Support Matrix
 
