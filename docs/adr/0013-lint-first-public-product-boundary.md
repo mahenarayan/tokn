@@ -8,10 +8,10 @@ Accepted
 
 Tokn now contains two different kinds of value:
 
-- `instructions-lint`, which is deterministic, works in CI, is scoped to repositories, and is easy to explain to maintainers and engineering teams
+- `instructions-lint`, which is deterministic, works in CI, is scoped to repositories and is easy to explain to maintainers and engineering teams
 - broader prompt and trace diagnostics, which are useful but adapter heavy, faster moving, and less cohesive as a stable public promise
 
-For public OSS adoption and larger-team demos, combining both under one undifferentiated product surface would create avoidable problems:
+For public OSS adoption and larger team demos, combining both under one undifferentiated product surface would create avoidable problems:
 
 - the repository story becomes harder to trust
 - the stable contract becomes vague
@@ -27,7 +27,7 @@ Keep one repository, but adopt a lint focused product boundary:
 - `instructions-lint` is the stable primary public surface for Tokn
 - instruction lint report types and lint formatters are part of that stable surface
 - `inspect`, `diff`, `budget`, `agent-report`, and `check` remain available as experimental diagnostics
-- public demos, docs, release hardening, and team-adoption positioning optimize for the linting workflow first
+- public demos, docs, release hardening, and team adoption positioning optimize for the linting workflow first
 - do not split repositories at this stage
 
 Future package separation is allowed once usage justifies it.

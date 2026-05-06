@@ -64,7 +64,7 @@ Tokn reads the instruction files that shape agent behavior and flags problems su
 
 The goal is not to generate prompts. The goal is to keep repository instruction sets precise, compact, and governable.
 
-Code review is only one supported surface. Tokn also models chat and coding-agent surfaces because the broader goal is to govern recurring model context for assistants and agents.
+Code review is only one supported surface. Tokn also models chat and coding agent surfaces because the broader goal is to govern recurring model context for assistants and agents.
 
 Reference documentation for the stable lint surface lives in [docs/instructions-lint.md](https://github.com/mahenarayan/tokn/blob/main/docs/instructions-lint.md).
 
@@ -107,7 +107,7 @@ Stable inputs:
 - GitHub Copilot instruction repositories and files
 - root or nested `AGENTS.md` files
 - repository roots containing a mix of supported instruction presets
-- visibility-only detection for known external agent surfaces such as `CLAUDE.md`, `GEMINI.md`, `.cursor/rules/*.mdc`, and `.cursorrules`
+- visibility only detection for known external agent surfaces such as `CLAUDE.md`, `GEMINI.md`, `.cursor/rules/*.mdc`, and `.cursorrules`
 
 Stable SDK entry points:
 
@@ -160,7 +160,7 @@ tokn check <file> [--model <id>] [--max-usage-percent <n>] [--max-total-tokens <
 
 ## Release Integrity
 
-The public release posture is intentionally conservative and suitable for teams that need repeatable supply-chain checks:
+The public release posture is intentionally conservative and suitable for teams that need repeatable supply chain checks:
 
 - GitHub Actions are pinned to full commit SHAs
 - CI uses least privilege workflow permissions
