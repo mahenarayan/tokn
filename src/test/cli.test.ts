@@ -726,6 +726,26 @@ test("cli instructions-lint prints a calibrated starter config", () => {
   assert.ok((budgets.pathSpecificChars as number) >= 2500);
 });
 
+test("cli init and calibrate print calibrated starter configs", () => {
+  for (const command of ["init", "calibrate"]) {
+    const result = runCliProcess([
+      command,
+      "fixtures/instructions/noise-regression-repo",
+      "--surface",
+      "coding-agent"
+    ]);
+
+    assert.equal(result.status, 0, result.stderr);
+    const output = JSON.parse(result.stdout) as Record<string, unknown>;
+    const section = output.instructionsLint as Record<string, unknown>;
+    const budgets = section.budgets as Record<string, unknown>;
+
+    assert.equal(section.surface, "coding-agent");
+    assert.equal(section.failOnSeverity, "warning");
+    assert.equal(typeof budgets.maxApplicableTokens, "number");
+  }
+});
+
 test("cli instructions-lint supports --baseline for incremental rollout", () => {
   const baselineDir = fs.mkdtempSync(path.join(os.tmpdir(), "tokn-cli-baseline-"));
   const baselinePath = path.join(baselineDir, "baseline.json");

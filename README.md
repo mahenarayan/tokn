@@ -90,7 +90,8 @@ tokn instructions-lint ./fixtures/instructions/valid-repo
 Common variants:
 
 ```bash
-tokn instructions-lint ./fixtures/instructions/valid-repo --init-config
+tokn init ./fixtures/instructions/valid-repo
+tokn calibrate ./fixtures/instructions/valid-repo
 tokn instructions-lint ./fixtures/instructions/valid-repo --config ./tokn.config.json
 tokn instructions-lint ./fixtures/instructions/invalid-repo --baseline ./tokn-baseline.json
 tokn instructions-lint ./fixtures/instructions/valid-repo --surface coding-agent --model gpt-4o
@@ -143,6 +144,8 @@ Stable command:
 
 ```bash
 tokn instructions-lint <path> [--init-config] [--config <file>] [--baseline <file>] [--ignore <glob>] [--preset <auto|copilot|agents-md>] [--profile <lite|standard|strict>] [--surface <all|auto|code-review|chat|coding-agent>] [--model <id>] [--fail-on-severity <off|warning|error>] [--format <text|json|markdown|github|azure>]
+tokn init <path> [--config <file>] [--baseline <file>] [--ignore <glob>] [--preset <auto|copilot|agents-md>] [--profile <lite|standard|strict>] [--surface <all|auto|code-review|chat|coding-agent>] [--model <id>]
+tokn calibrate <path> [same options as init]
 ```
 
 Experimental diagnostics:

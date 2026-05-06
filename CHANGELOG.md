@@ -4,6 +4,16 @@ All notable changes to Tokn should be recorded in this file.
 
 ## Unreleased
 
+## 0.4.0
+
+- reduce false positives for description-triggered Copilot instruction files and non-code-review usage
+- make `instructions-lint` default to all supported instruction surfaces, with the Copilot code review character cap reported conditionally unless `--surface code-review` is selected
+- add configurable instruction lint budgets for repository, path-specific, statement, and target-load limits
+- add calibrated starter config generation through `tokn instructions-lint --init-config`, plus top-level `tokn init` and `tokn calibrate` aliases
+- add structured relevance metadata to JSON findings, including category, confidence, surface applicability, activation type, and grouping
+- keep text and Markdown reports minimal by moving description-only activation details into report notes
+- update schemas, fixtures, docs, and regression tests for the context-engineering lint policy model
+
 ## 0.3.0
 
 - detect known external agent instruction surfaces such as `CLAUDE.md`, `GEMINI.md`, and Cursor rule files as visibility-only warnings
