@@ -29,9 +29,9 @@ steps:
 
 Use this when the repository already has a small instruction set and you are ready to fail the build on warnings.
 
-## Enterprise Rollout
+## Gradual Rollout
 
-Most enterprise teams should start with a baseline. That lets the first PR introduce visibility without blocking every existing issue.
+Most teams should start with a baseline. That lets the first PR introduce visibility without blocking every existing issue.
 
 Create `tokn.config.json`:
 
@@ -102,7 +102,7 @@ steps:
       artifact: tokn-instructions-lint
 ```
 
-The first lint step annotates the build. The JSON artifact gives platform and architecture teams a stable report they can trend outside the pipeline.
+The first lint step annotates the build. The JSON artifact gives maintainers, platform teams, and architecture teams a stable report they can trend outside the pipeline.
 
 The YAML uses standard Azure Pipelines pieces:
 

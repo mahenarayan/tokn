@@ -7,7 +7,7 @@
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/mahenarayan/tokn/badge)](https://scorecard.dev/viewer/?uri=github.com/mahenarayan/tokn)
 [![Status: public alpha](https://img.shields.io/badge/status-public%20alpha-0a7ea4)](https://github.com/mahenarayan/tokn)
 
-Instruction linting and governance for repository instruction files.
+Instruction linting for repository AI guidance files.
 
 Tokn is a TypeScript CLI + SDK centered on `instructions-lint`: a local linter for repository instruction files such as `.github/copilot-instructions.md`, `.github/instructions/*.instructions.md`, and `AGENTS.md`. Its primary purpose is context and agent engineering for AI-assisted development. It helps teams catch duplicated guidance, conflicting rules, vague wording, stale scope patterns, limits that vary by surface, and wasted instruction context before those files spread across repositories and CI. Once installed, the core CLI runs on local files without network access during analysis.
 The npm package is published as `@tokn-labs/tokn`, while the installed CLI command remains `tokn`.
@@ -47,7 +47,7 @@ tokn instructions-lint ./fixtures/instructions/valid-repo
 - estimates instruction context pressure with compactness and token budget checks
 - emits deterministic text, JSON, Markdown, GitHub Actions, and Azure Pipelines output for CI, PR comments, editor tooling, and demos
 - runs locally on repository files without requiring network access during analysis
-- does not modify files, so it can fit conservative enterprise workflows
+- does not modify files, so it can fit conservative or regulated workflows
 
 ## What Instruction Linting Means
 
@@ -77,7 +77,7 @@ Tokn is in public alpha.
 - supported preset: `agents-md`
 - experimental diagnostics surface: `inspect`, `diff`, `budget`, `agent-report`, and `check`
 - file analysis only; Tokn does not rewrite instruction files
-- intended for repository governance and engineering diagnostics, not runtime enforcement
+- intended for repository review, CI checks, and engineering diagnostics, not runtime enforcement
 
 ## Stable Surface
 
@@ -120,7 +120,7 @@ console.log(formatInstructionLintReport(report));
 
 ## Experimental Diagnostics
 
-These commands remain useful, but they are not the primary enterprise promise for the public alpha:
+These commands remain useful, but they are not the primary stable surface for the public alpha:
 
 - `inspect`
 - `diff`
@@ -160,7 +160,7 @@ tokn check <file> [--model <id>] [--max-usage-percent <n>] [--max-total-tokens <
 
 ## Release Integrity
 
-The public release posture is intentionally conservative:
+The public release posture is intentionally conservative and suitable for teams that need repeatable supply-chain checks:
 
 - GitHub Actions are pinned to full commit SHAs
 - CI uses least privilege workflow permissions
