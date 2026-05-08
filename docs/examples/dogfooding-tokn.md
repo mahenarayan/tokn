@@ -103,10 +103,9 @@ The repository dogfoods Tokn through `.github/workflows/instructions-lint.yml`. 
 ```yaml
 - name: Lint repository instructions
   run: |
-    npm exec --yes --package @tokn-labs/tokn@0.4.0 -- \
-      tokn instructions-lint . \
-        --config ./tokn.config.json \
-        --format github
+    npx --yes @tokn-labs/tokn@0.4.0 instructions-lint . \
+      --config ./tokn.config.json \
+      --format github
 ```
 
 The workflow also writes an advisory JSON report with `--fail-on-severity off` so maintainers can inspect report shape even when the annotation gate fails.

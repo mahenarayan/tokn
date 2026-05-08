@@ -31,20 +31,18 @@ jobs:
 
       - name: Lint repository instructions
         run: |
-          npm exec --yes --package @tokn-labs/tokn@0.4.0 -- \
-            tokn instructions-lint . \
-              --config ./tokn.config.json \
-              --format github
+          npx --yes @tokn-labs/tokn@0.4.0 instructions-lint . \
+            --config ./tokn.config.json \
+            --format github
 
       - name: Write advisory JSON report
         if: ${{ always() }}
         run: |
-          npm exec --yes --package @tokn-labs/tokn@0.4.0 -- \
-            tokn instructions-lint . \
-              --config ./tokn.config.json \
-              --fail-on-severity off \
-              --format json \
-              > instructions-lint-report.json
+          npx --yes @tokn-labs/tokn@0.4.0 instructions-lint . \
+            --config ./tokn.config.json \
+            --fail-on-severity off \
+            --format json \
+            > instructions-lint-report.json
 
       - name: Summarize advisory report
         if: ${{ always() }}
