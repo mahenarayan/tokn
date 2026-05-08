@@ -101,9 +101,12 @@ This repository now keeps a small `tokn.config.json` at the root:
 The repository dogfoods Tokn through `.github/workflows/instructions-lint.yml`. The workflow uses the published npm package instead of the local source tree, which is the same path a downstream consumer would use:
 
 ```yaml
+- name: Install Tokn CLI
+  run: npm install --global @tokn-labs/tokn@0.4.0 --ignore-scripts
+
 - name: Lint repository instructions
   run: |
-    npx --yes @tokn-labs/tokn@0.4.0 instructions-lint . \
+    tokn instructions-lint . \
       --config ./tokn.config.json \
       --format github
 ```

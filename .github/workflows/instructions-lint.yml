@@ -29,16 +29,19 @@ jobs:
           node-version: 24
           cache: npm
 
+      - name: Install Tokn CLI
+        run: npm install --global @tokn-labs/tokn@0.4.0 --ignore-scripts
+
       - name: Lint repository instructions
         run: |
-          npx --yes @tokn-labs/tokn@0.4.0 instructions-lint . \
+          tokn instructions-lint . \
             --config ./tokn.config.json \
             --format github
 
       - name: Write advisory JSON report
         if: ${{ always() }}
         run: |
-          npx --yes @tokn-labs/tokn@0.4.0 instructions-lint . \
+          tokn instructions-lint . \
             --config ./tokn.config.json \
             --fail-on-severity off \
             --format json \
