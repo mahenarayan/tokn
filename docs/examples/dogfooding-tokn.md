@@ -77,7 +77,50 @@ tokn init . > tokn.config.json
 
 Then edit the config intentionally. Keep only the policy knobs the team understands. Prefer `budgets`, `baseline`, and `suppressions` over adding new CLI flags to every CI job.
 
-### 3. Baseline For Existing Debt
+This repository now keeps a small `tokn.config.json` at the root:
+
+```json
+{
+  "instructionsLint": {
+    "preset": "auto",
+    "profile": "standard",
+    "surface": "coding-agent",
+    "failOnSeverity": "warning",
+    "ignore": ["dist/**", "node_modules/**"],
+    "rollout": {
+      "stage": "advisory",
+      "owner": "maintainers",
+      "policyVersion": "2026.05"
+    }
+  }
+}
+```
+
+### 3. GitHub Actions Consumer Workflow
+
+The repository dogfoods Tokn through `.github/workflows/instructions-lint.yml`. The workflow uses the published npm package instead of the local source tree, which is the same path a downstream consumer would use:
+
+```yaml
+- name: Lint repository instructions
+  run: |
+    npm exec --yes --package @tokn-labs/tokn@0.4.0 -- \
+      tokn instructions-lint . \
+        --config ./tokn.config.json \
+        --format github
+```
+
+The workflow also writes an advisory JSON report with `--fail-on-severity off` so maintainers can inspect report shape even when the annotation gate fails.
+
+The dogfood config uses `surface: "coding-agent"` because that is the most relevant consumption mode for this repository's maintainer guidance and it works with the currently published package used by the workflow.
+
+Why this helps Tokn:
+
+- every pull request exercises the published package path
+- GitHub annotations expose whether finding messages are useful in real review
+- the root config proves whether the policy surface stays small enough for normal repositories
+- scheduled runs catch drift when instruction files change outside feature work
+
+### 4. Baseline For Existing Debt
 
 Use a baseline when the first scan finds existing issues:
 
@@ -89,7 +132,7 @@ tokn instructions-lint . --baseline ./.tokn/instructions-baseline.json
 
 This lets teams block new instruction debt without forcing a full cleanup on day one.
 
-### 4. CI Annotations
+### 5. CI Annotations
 
 For GitHub Actions:
 
@@ -107,7 +150,7 @@ npm exec --yes --package @tokn-labs/tokn -- \
 
 These modes make instruction issues visible where code review already happens.
 
-### 5. Periodic Cleanup Review
+### 6. Periodic Cleanup Review
 
 Run a stricter report periodically instead of making every pull request strict:
 
