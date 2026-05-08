@@ -15,6 +15,7 @@ The examples use `node dist/cli.js` so they work without `npm link` or npm publi
 
 - [Copilot Instructions Lint](https://github.com/mahenarayan/tokn/blob/main/docs/examples/copilot-instructions-lint.md)
 - [AGENTS.md Instructions Lint](https://github.com/mahenarayan/tokn/blob/main/docs/examples/agents-instructions-lint.md)
+- [Dogfooding Tokn](https://github.com/mahenarayan/tokn/blob/main/docs/examples/dogfooding-tokn.md)
 - [Instructions Lint Demo Commands](https://github.com/mahenarayan/tokn/blob/main/docs/examples/instructions-lint-demo-commands.md)
 - [Team Rollout Config](https://github.com/mahenarayan/tokn/blob/main/docs/examples/team-rollout-config.md)
 - [Azure DevOps Instructions Lint](https://github.com/mahenarayan/tokn/blob/main/docs/examples/azure-devops-instructions-lint.md)

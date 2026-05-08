@@ -1,0 +1,15 @@
+{
+  "$schema": "https://github.com/mahenarayan/tokn/blob/main/schemas/tokn-config.schema.json",
+  "instructionsLint": {
+    "preset": "auto",
+    "profile": "standard",
+    "surface": "coding-agent",
+    "failOnSeverity": "warning",
+    "ignore": ["dist/**", "node_modules/**"],
+    "rollout": {
+      "stage": "advisory",
+      "owner": "maintainers",
+      "policyVersion": "2026.05"
+    }
+  }
+}
