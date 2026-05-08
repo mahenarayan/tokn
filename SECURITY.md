@@ -5,7 +5,7 @@
 Security fixes are best effort during public alpha.
 The supported line is the latest published `0.x` release and the current `main` branch tip.
 
-## Reporting A Vulnerability
+## Reporting Vulnerability
 
 Do not open a public GitHub issue for a potential security vulnerability.
 
