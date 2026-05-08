@@ -76,6 +76,10 @@ Preferred day-to-day loop:
 ## Change Rules
 
 - Keep the SDK read-only in behavior unless the project direction changes explicitly.
+- Optimize for minimalism before coverage. Prefer one clear supported path over several speculative edge-case paths.
+- Grow the CLI and SDK surface organically from repeated real usage, not from imagined future integrations.
+- Before adding a flag, export, output field, preset, surface, or adapter, identify the existing user workflow it unlocks and why config or documentation is not enough.
+- Prefer tightening existing concepts over adding parallel concepts. New names should earn their place in the public vocabulary.
 - Prefer extending the normalized context model over adding provider-specific behavior directly to CLI code.
 - Keep instruction linting in the dedicated `src/instructions/` subsystem rather than folding it into `ContextReport`.
 - Preserve the distinction between `exact`, `provider-reported`, `tokenizer-based`, and `heuristic` counts.
@@ -96,6 +100,37 @@ Preferred day-to-day loop:
 - Do not keep stale completed specs, launch planning, or roadmap drafts in the public repo; archive those privately when they stop guiding current work.
 - Treat public documentation as product surface once published.
 - Do not make undocumented breaking changes to JSON output, exports, or command behavior.
+
+## Minimalism And API Surface
+
+Tokn should stay small enough that a maintainer can reason about the full stable surface. The goal is not to cover every agent, editor, provider, and trace shape upfront. The goal is to keep the core model precise, prove usage with fixtures, and expand only when the next step is obvious.
+
+Default stance:
+
+- `instructions-lint` is the primary stable product surface.
+- `inspect`, `diff`, `budget`, `agent-report`, and `check` are useful diagnostics, but should not drive broad public API growth unless their usage pattern becomes clear.
+- Public exports in `src/index.ts` are a compatibility commitment. Export fewer things by default; add exports only for concrete SDK use cases.
+- JSON report fields are API surface. Add fields only when they are stable, documented, and useful to machines.
+- CLI flags are workflow commitments. Prefer config files for policy and keep flags for common, high-value overrides.
+- Rule IDs should be durable. Prefer improving evidence, severity, or docs for an existing rule over adding a near-duplicate rule.
+
+Current complexity hotspots:
+
+- `src/analyzer.ts`: many provider and trace shapes in one file. Keep new adapters small, fixture-driven, and conservative. If another adapter needs substantial helpers, consider a focused module before expanding this file further.
+- `src/instructions/lint.ts`: discovery, parsing, policy, matching, and findings are tightly coupled. Prefer extracting cohesive helpers over adding another nested branch to the main lint path.
+- `src/format.ts`: text, Markdown, GitHub, and Azure output share formatting rules. Avoid changing wording casually because golden files and user automation depend on stable output.
+- `src/cli.ts`: command parsing is intentionally dependency-light but easy to bloat. Do not add top-level commands or aliases unless they simplify a frequent workflow.
+- `src/types.ts` and `schemas/*.json`: these define the machine contract. Keep additions small and version-aware.
+
+When considering a new feature, ask:
+
+1. Can this be solved by documentation, examples, or config instead of code?
+2. Does this improve the stable lint workflow, or is it diagnostics research?
+3. Is there a real fixture, public example, or repeated user need behind it?
+4. Does this add a new concept users must learn?
+5. Can this be implemented as an internal helper before becoming public API?
+
+If the answer is unclear, keep the change internal, document the limitation, and wait for another real use case.
 
 ## Testing Expectations
 
