@@ -9,7 +9,7 @@
 
 Keep repository AI instructions small, scoped, and reviewable.
 
-Tokn is a TypeScript CLI + SDK centered on `instructions-lint`: a local linter for repository instruction files such as `.github/copilot-instructions.md`, `.github/instructions/*.instructions.md`, and `AGENTS.md`. It helps teams catch duplicated guidance, conflicting rules, vague wording, stale scope patterns, surface-specific limits, and wasted instruction context before those files spread across repositories and CI. Once installed, the core CLI runs on local files without network access during analysis.
+Tokn is a TypeScript CLI + SDK centered on `instructions-lint`: a local linter for repository instruction files such as `.github/copilot-instructions.md`, `.github/instructions/*.instructions.md`, and `AGENTS.md`. It helps teams catch duplicated guidance, conflicting rules, vague wording, stale scope patterns, surface-specific limits, and wasted instruction context before those files spread across repositories. Once installed, the core CLI runs on local files without network access during analysis.
 The npm package is published as `@tokn-labs/tokn`, while the installed CLI command remains `tokn`.
 
 Tokn is also working on advanced diagnostics for prompts, traces, and context composition through `inspect`, `diff`, `budget`, `agent-report`, and `check`. That diagnostics surface is experimental today and is not part of the primary public contract.
