@@ -164,7 +164,7 @@ They normalize OpenAI style payloads, OpenAI compatible request logs, OpenAI Res
 Stable command:
 
 ```bash
-tokn instructions-lint <path> [--init-config] [--config <file>] [--baseline <file>] [--ignore <glob>] [--preset <auto|copilot|agents-md>] [--profile <lite|standard|strict>] [--surface <all|auto|code-review|chat|coding-agent>] [--model <id>] [--fail-on-severity <off|warning|error>] [--format <text|json|markdown|github|azure>]
+tokn instructions-lint <path> [--init-config] [--config <file>] [--baseline <file>] [--ignore <glob>] [--preset <auto|copilot|agents-md>] [--profile <lite|standard|strict>] [--surface <all|auto|code-review|chat|coding-agent>] [--model <id>] [--fail-on-severity <off|warning|error>] [--verbose] [--format <text|json|markdown|github|azure>]
 tokn init <path> [--config <file>] [--baseline <file>] [--ignore <glob>] [--preset <auto|copilot|agents-md>] [--profile <lite|standard|strict>] [--surface <all|auto|code-review|chat|coding-agent>] [--model <id>]
 tokn calibrate <path> [same options as init]
 ```

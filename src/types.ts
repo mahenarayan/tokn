@@ -170,6 +170,7 @@ export interface InstructionLintOptions {
   surface?: InstructionLintSurface;
   model?: string;
   preset?: InstructionLintPresetSelector;
+  verbose?: boolean;
   configPath?: string;
   baseline?: string;
   ignore?: string[];
@@ -284,8 +285,18 @@ export interface InstructionFileReport {
   words: number;
   estimatedTokens: number;
   statementCount: number;
+  statementEstimates?: InstructionStatementEstimate[];
   matchedFileCount?: number;
   findings: InstructionFinding[];
+}
+
+export interface InstructionStatementEstimate {
+  line: number;
+  sourceType: "bullet" | "numbered" | "paragraph";
+  chars: number;
+  words: number;
+  estimatedTokens: number;
+  text: string;
 }
 
 export interface InstructionLintStats {

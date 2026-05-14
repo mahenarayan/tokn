@@ -97,6 +97,8 @@ tokn instructions-lint . \
   --format json
 ```
 
+Add `--verbose` when optimizing instruction budget. Verbose reports include statement-level token estimates with line, statement type, word count, character count, statement text, and Tokn's heuristic formula.
+
 ## Rollout Controls
 
 Tokn keeps rollout controls intentionally small:
