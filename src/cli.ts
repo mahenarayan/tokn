@@ -96,7 +96,8 @@ const INSTRUCTIONS_LINT_FLAGS = new Set([
   "--profile",
   "--surface",
   "--model",
-  "--fail-on-severity"
+  "--fail-on-severity",
+  "--verbose"
 ]);
 const INSTRUCTIONS_INIT_FLAGS = new Set([
   "--config",
@@ -112,7 +113,7 @@ const COMMAND_HELP: Record<string, CommandHelp> = {
   "instructions-lint": {
     summary: "Lint repository instruction files for duplicated, conflicting, vague, stale, or oversized guidance.",
     usage:
-      "tokn instructions-lint <path> [--init-config] [--config <file>] [--baseline <file>] [--ignore <glob>] [--preset <auto|copilot|agents-md>] [--profile <lite|standard|strict>] [--surface <all|auto|code-review|chat|coding-agent>] [--model <id>] [--fail-on-severity <off|warning|error>] [--format <text|json|markdown|github|azure>]",
+      "tokn instructions-lint <path> [--init-config] [--config <file>] [--baseline <file>] [--ignore <glob>] [--preset <auto|copilot|agents-md>] [--profile <lite|standard|strict>] [--surface <all|auto|code-review|chat|coding-agent>] [--model <id>] [--fail-on-severity <off|warning|error>] [--verbose] [--format <text|json|markdown|github|azure>]",
     options: [
       "--config <file>                 Read instructions-lint config from a JSON file.",
       "--baseline <file>               Suppress findings already present in a previous JSON report.",
@@ -123,6 +124,7 @@ const COMMAND_HELP: Record<string, CommandHelp> = {
       "--surface <all|auto|code-review|chat|coding-agent>",
       "--model <id>                    Include model-aware context budget fields when available.",
       "--fail-on-severity <off|warning|error>",
+      "--verbose                       Show statement-level token estimates.",
       "--format <text|json|markdown|github|azure>",
       "--json                          Alias for --format json."
     ],
@@ -820,12 +822,14 @@ async function main(): Promise<void> {
         const baseline = getLastValue(parsed, "--baseline");
         const ignore = getAllValues(parsed, "--ignore");
         const initConfig = parsed.flags.has("--init-config") || parsed.flags.has("--calibrate");
+        const verbose = parsed.flags.has("--verbose");
         const report = lintInstructions(inputPath, {
           ...(preset ? { preset } : {}),
           ...(profile ? { profile } : {}),
           ...(initConfig ? { failOnSeverity: "off" as const } : failOnSeverity ? { failOnSeverity } : {}),
           ...(surface ? { surface } : {}),
           ...(model ? { model } : {}),
+          ...(verbose ? { verbose } : {}),
           ...(configPath ? { configPath } : {}),
           ...(baseline ? { baseline } : {}),
           ...(ignore.length > 0 ? { ignore } : {})

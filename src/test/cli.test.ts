@@ -391,6 +391,7 @@ test("cli supports help command and short help for subcommands", () => {
 
   assert.equal(helpCommand.status, 0, helpCommand.stderr);
   assert.match(helpCommand.stdout, /Tokn instructions-lint/);
+  assert.match(helpCommand.stdout, /--verbose/);
   assert.match(helpCommand.stdout, /Examples:/);
 
   assert.equal(shortFlag.status, 0, shortFlag.stderr);
@@ -645,6 +646,33 @@ test("cli instructions-lint supports --json", () => {
   const relatedLocation = evidence?.relatedLocation as Record<string, unknown> | undefined;
   assert.equal(relatedLocation?.file, ".github/instructions/all.instructions.md");
   assert.equal(relatedLocation?.line, 6);
+});
+
+test("cli instructions-lint supports verbose statement token estimates", () => {
+  const output = runCliJson([
+    "instructions-lint",
+    "fixtures/instructions/valid-repo",
+    "--json",
+    "--verbose"
+  ]) as Record<string, unknown>;
+
+  const files = output.files as Array<Record<string, unknown>>;
+  const repoWide = files.find((file) => file.file === ".github/copilot-instructions.md");
+  const estimates = repoWide?.statementEstimates as Array<Record<string, unknown>> | undefined;
+
+  assert.ok(Array.isArray(estimates));
+  assert.ok(estimates.length > 0);
+  assert.equal(estimates[0]?.sourceType, "bullet");
+  assert.equal(typeof estimates[0]?.estimatedTokens, "number");
+  assert.equal(typeof estimates[0]?.text, "string");
+
+  const textOutput = runCli([
+    "instructions-lint",
+    "fixtures/instructions/valid-repo",
+    "--verbose"
+  ]);
+  assert.match(textOutput, /Token Estimates:/);
+  assert.match(textOutput, /ceil\(chars \/ 4\) \+ ceil\(words \/ 20\)/);
 });
 
 test("cli instructions-lint supports --config and includes rollout controls in json output", () => {

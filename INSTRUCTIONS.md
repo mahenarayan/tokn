@@ -75,6 +75,11 @@ Preferred day-to-day loop:
 
 ## Change Rules
 
+- Follow the four Karpathy-inspired coding rules: think before coding, keep the implementation simple, make surgical changes, and define verifiable done criteria.
+- If a request is ambiguous, state the ambiguity and ask before choosing an interpretation that could materially change the implementation.
+- Do not add speculative abstractions, features, configurability, or broad error handling that the task does not require.
+- Touch only files needed for the requested change; avoid drive-by refactors, reformatting, or unrelated cleanup.
+- Before changing public API surface, exported types, CLI flags, JSON report shape, package exports, or documented behavior, ask whether the change must be backward compatible.
 - Keep the SDK read-only in behavior unless the project direction changes explicitly.
 - Optimize for minimalism before coverage. Prefer one clear supported path over several speculative edge-case paths.
 - Grow the CLI and SDK surface organically from repeated real usage, not from imagined future integrations.

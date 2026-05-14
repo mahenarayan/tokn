@@ -218,6 +218,47 @@ function formatInstructionFileText(file: InstructionLintReport["files"][number])
   return `- ${file.file}: ${details.join(", ")}`;
 }
 
+function appendInstructionStatementEstimateText(
+  lines: string[],
+  file: InstructionLintReport["files"][number]
+): void {
+  if (!file.statementEstimates || file.statementEstimates.length === 0) {
+    return;
+  }
+
+  lines.push(`- ${file.file}:`);
+  for (const statement of file.statementEstimates) {
+    lines.push(
+      `  - line ${statement.line}: ${statement.estimatedTokens} tokens, ${statement.words} words, ${statement.chars} chars (${statement.sourceType})`
+    );
+    lines.push(`    ${statement.text}`);
+  }
+}
+
+function appendInstructionStatementEstimateMarkdown(
+  lines: string[],
+  file: InstructionLintReport["files"][number]
+): void {
+  if (!file.statementEstimates || file.statementEstimates.length === 0) {
+    return;
+  }
+
+  lines.push("", `### ${file.file}`);
+  lines.push(
+    ...markdownTable(
+      ["Line", "Type", "Tokens", "Words", "Chars", "Statement"],
+      file.statementEstimates.map((statement) => [
+        String(statement.line),
+        statement.sourceType,
+        String(statement.estimatedTokens),
+        String(statement.words),
+        String(statement.chars),
+        statement.text.replaceAll("|", "\\|")
+      ])
+    )
+  );
+}
+
 function formatInstructionFindingEvidenceParts(evidence: InstructionFindingEvidence): string[] {
   const parts: string[] = [];
 
@@ -771,6 +812,15 @@ export function formatInstructionLintReport(report: InstructionLintReport): stri
     }
   }
 
+  const filesWithStatementEstimates = report.files.filter((file) => (file.statementEstimates?.length ?? 0) > 0);
+  if (filesWithStatementEstimates.length > 0) {
+    lines.push("", "Token Estimates:");
+    lines.push("- Method: heuristic estimate = max(1, ceil(chars / 4) + ceil(words / 20)).");
+    for (const file of filesWithStatementEstimates) {
+      appendInstructionStatementEstimateText(lines, file);
+    }
+  }
+
   if (report.warnings.length > 0) {
     lines.push("", "Warnings:");
     for (const warning of report.warnings) {
@@ -917,6 +967,15 @@ export function formatInstructionLintReportMarkdown(report: InstructionLintRepor
         lines.push("");
       }
       appendInstructionFindingMarkdown(lines, finding);
+    }
+  }
+
+  const filesWithStatementEstimates = report.files.filter((file) => (file.statementEstimates?.length ?? 0) > 0);
+  if (filesWithStatementEstimates.length > 0) {
+    lines.push("", "## Token Estimates");
+    lines.push("Method: heuristic estimate = `max(1, ceil(chars / 4) + ceil(words / 20))`.");
+    for (const file of filesWithStatementEstimates) {
+      appendInstructionStatementEstimateMarkdown(lines, file);
     }
   }
 

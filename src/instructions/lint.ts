@@ -1802,6 +1802,7 @@ export function lintInstructions(
   const surface = policy.surface;
   const budgets = policy.budgets;
   const model = policy.model;
+  const verbose = options.verbose === true;
   const modelLimit = getModelLimit(model);
   const candidates: CandidateFile[] = [];
   const warnings = new Set<string>();
@@ -2091,6 +2092,18 @@ export function lintInstructions(
       words: report.words,
       estimatedTokens: report.estimatedTokens,
       statementCount: report.statements.length,
+      ...(verbose
+        ? {
+            statementEstimates: report.statements.map((statement) => ({
+              line: statement.line,
+              sourceType: statement.sourceType,
+              chars: statement.text.length,
+              words: statement.wordCount,
+              estimatedTokens: estimateTextTokens(statement.text),
+              text: statement.text
+            }))
+          }
+        : {}),
       ...(report.kind !== "unsupported" ? { matchedFileCount: report.matchedFiles.length } : {}),
       findings: [...report.findings].sort(findingSort)
     }));

@@ -341,6 +341,32 @@ test("lintInstructions warns when a single target accumulates too many instructi
   assert.ok((finding?.evidence?.contributorFiles?.length ?? 0) > 0);
 });
 
+test("lintInstructions exposes statement token estimates only in verbose reports", () => {
+  const repoRoot = createInstructionRepo(
+    {
+      ".github/copilot-instructions.md": [
+        "# Repository Instructions",
+        "",
+        "- Prefer explicit return types on exported functions.",
+        "- Keep repository guidance concise and actionable."
+      ].join("\n"),
+      "src/index.ts": "export const value = 1;\n"
+    },
+    "tokn-instructions-verbose-"
+  );
+
+  const standard = lintInstructions(repoRoot);
+  const verbose = lintInstructions(repoRoot, { verbose: true });
+  const verboseFile = verbose.files.find((file) => file.file === ".github/copilot-instructions.md");
+
+  assert.equal(standard.files[0]?.statementEstimates, undefined);
+  assert.equal(verboseFile?.statementEstimates?.length, 2);
+  assert.equal(verboseFile?.statementEstimates?.[0]?.line, 3);
+  assert.equal(verboseFile?.statementEstimates?.[0]?.sourceType, "bullet");
+  assert.ok((verboseFile?.statementEstimates?.[0]?.estimatedTokens ?? 0) > 0);
+  assert.match(verboseFile?.statementEstimates?.[0]?.text ?? "", /explicit return types/);
+});
+
 test("lintInstructions emits a stable schema contract and discovers config defaults", () => {
   const repoRoot = createInstructionRepo(
     {
