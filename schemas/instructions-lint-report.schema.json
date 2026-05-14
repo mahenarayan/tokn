@@ -248,11 +248,30 @@
         "words": { "type": "number" },
         "estimatedTokens": { "type": "number" },
         "statementCount": { "type": "number" },
+        "statementEstimates": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/statementEstimate" }
+        },
         "matchedFileCount": { "type": "number" },
         "findings": {
           "type": "array",
           "items": { "$ref": "#/$defs/finding" }
         }
+      }
+    },
+    "statementEstimate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["line", "sourceType", "chars", "words", "estimatedTokens", "text"],
+      "properties": {
+        "line": { "type": "number" },
+        "sourceType": {
+          "enum": ["bullet", "numbered", "paragraph"]
+        },
+        "chars": { "type": "number" },
+        "words": { "type": "number" },
+        "estimatedTokens": { "type": "number" },
+        "text": { "type": "string" }
       }
     },
     "findingLocation": {
