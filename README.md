@@ -9,29 +9,54 @@
 
 Keep repository AI instructions small, scoped, and reviewable.
 
-Tokn is a TypeScript CLI + SDK centered on `instructions-lint`: a local linter for repository instruction files such as `.github/copilot-instructions.md`, `.github/instructions/*.instructions.md`, and `AGENTS.md`. It helps teams catch duplicated guidance, conflicting rules, vague wording, stale scope patterns, surface-specific limits, and wasted instruction context before those files spread across repositories. Once installed, the core CLI runs on local files without network access during analysis.
+Tokn is a TypeScript CLI + SDK centered on `instructions-lint`: a local linter for repository instruction files such as `.github/copilot-instructions.md`, `.github/instructions/*.instructions.md`, and `AGENTS.md`.
+
+Your AI coding assistant reads these files as recurring context. When they are stale, duplicated, vague, too broad, or too large, every coding session can inherit lower-signal guidance. Tokn makes that hidden instruction drift visible before it spreads across repositories or lands in CI.
+
+Once installed, the core CLI runs on local files without network access during analysis.
 The npm package is published as `@tokn-labs/tokn`, while the installed CLI command remains `tokn`.
 
 Tokn is also working on advanced diagnostics for prompts, traces, and context composition through `inspect`, `diff`, `budget`, `agent-report`, and `check`. That diagnostics surface is experimental today and is not part of the primary public contract.
 
 ## Why This Exists
 
-Instruction files are becoming part of the software supply chain for coding agents.
+Instruction files are becoming part of the software supply chain for coding agents, but they are still reviewed like prose.
 
 - GitHub Copilot documents repository and path-specific custom instruction files such as `.github/copilot-instructions.md` and `.github/instructions/*.instructions.md`.
 - VS Code Copilot combines multiple instruction files into chat context and notes that no specific order is guaranteed.
 - Anthropic Claude Code documents `CLAUDE.md` memory files for project and team instructions.
 - OpenAI Agents SDK treats instructions as the system prompt that configures an agent.
 
-That makes instruction text recurring model input, not just documentation. If it is duplicated, vague, stale, too broad, or too large, every assistant using it receives lower-signal context.
-
-Tokn gives those files a lightweight review loop:
+That makes instruction text recurring model input, not just documentation. Tokn gives those files a lightweight review loop:
 
 ```bash
 tokn instructions-lint .
 ```
 
 It is not a prompt generator. It is a linter for the instruction layer that already exists in modern AI-assisted development.
+
+## Before And After
+
+Before Tokn:
+
+- instruction files repeat similar rules in multiple places
+- one scoped rule no longer matches any files
+- global guidance quietly grows into a large always-on context load
+- pull requests can change agent behavior without an obvious review signal
+
+After Tokn:
+
+- duplicate, similar, and conflicting rules are reported
+- stale scopes are visible
+- instruction load is measured per file and per applicable target
+- teams can baseline existing findings and fail only on new drift
+
+## Who This Helps
+
+- Individual developers can see why an assistant may be receiving noisy, stale, or overly broad repository guidance.
+- Team maintainers can review AI instruction changes with the same discipline as source changes.
+- Platform and AI enablement teams can roll out instruction policy without rewriting files or blocking every existing issue on day one.
+- CI owners can turn instruction drift into deterministic text, JSON, Markdown, GitHub Actions, or Azure Pipelines output.
 
 ## Quick Start
 
@@ -59,6 +84,14 @@ Example:
 tokn instructions-lint ./fixtures/instructions/valid-repo
 ```
 
+Example finding:
+
+```text
+warning vague-instruction .github/copilot-instructions.md:12
+"Follow best practices" is too generic to guide repository-specific behavior.
+Suggestion: Replace it with a concrete project rule or remove it.
+```
+
 ## What It Finds
 
 - Duplicate or similar rules across overlapping instruction files.
@@ -79,6 +112,8 @@ Use Tokn like a code linter for the instruction layer:
 - move scoped guidance into scoped files
 - remove vague or duplicated rules
 - make CI show instruction drift before it becomes invisible context
+
+The goal is not style policing. The goal is to review recurring model input before it silently affects every assistant answer, avoid spending context budget on repeated or stale guidance, and make AI behavior changes visible in pull requests.
 
 Reference documentation for the stable lint surface lives in [docs/instructions-lint.md](https://github.com/mahenarayan/tokn/blob/main/docs/instructions-lint.md).
 
