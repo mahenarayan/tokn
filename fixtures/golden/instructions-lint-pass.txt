@@ -10,8 +10,8 @@ Scope:
 Summary:
 - Result: pass; no findings at or above fail threshold error
 - Instruction files: 2 loaded of 2 scanned
-- Active instruction text: 85 estimated tokens from 5 parsed statements
-- Largest target load: 85 estimated tokens on src/component.tsx
+- Active instruction text: 75 estimated tokens from 5 parsed statements
+- Largest target load: 75 estimated tokens on src/component.tsx
 - Target matches: 7 matched file references across instruction scopes
 - Findings: 0 errors, 0 warnings
 
@@ -31,7 +31,7 @@ Terms:
 
 Instruction Files:
 - .github/copilot-instructions.md: repository-wide, copilot, active, 46 tokens, 3 statements, 5 matched files, 0 findings
-- .github/instructions/typescript.instructions.md: path-specific, copilot, active, 39 tokens, 2 statements, 2 matched files, 0 findings, applyTo=**/*.ts,**/*.tsx
+- .github/instructions/typescript.instructions.md: path-specific, copilot, active, 29 tokens, 2 statements, 2 matched files, 0 findings, applyTo=**/*.ts,**/*.tsx
 
 Findings:
 - none

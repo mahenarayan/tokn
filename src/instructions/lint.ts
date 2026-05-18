@@ -719,6 +719,22 @@ function parseMarkdownBlocks(content: string, lineOffset: number): MarkdownBlock
   return blocks;
 }
 
+function instructionTokenText(
+  candidate: Pick<CandidateFile, "kind" | "preset">,
+  frontmatter: Pick<ParsedFrontmatter, "body" | "error" | "hasFrontmatter">,
+  rawText: string
+): string {
+  if (
+    candidate.preset === "copilot" &&
+    candidate.kind === "path-specific" &&
+    frontmatter.hasFrontmatter &&
+    !frontmatter.error
+  ) {
+    return frontmatter.body;
+  }
+  return rawText;
+}
+
 function statementFromBlock(block: MarkdownBlock): Statement | undefined {
   if (block.type !== "bullet" && block.type !== "numbered" && block.type !== "paragraph") {
     return undefined;
@@ -1913,6 +1929,7 @@ export function lintInstructions(
     const statements = blocks
       .map((block) => statementFromBlock(block))
       .filter((statement): statement is Statement => statement !== undefined);
+    const tokenText = instructionTokenText(candidate, frontmatter, rawText);
 
     const report: InternalFileReport = {
       absolutePath: candidate.absolutePath,
@@ -1925,7 +1942,7 @@ export function lintInstructions(
       appliesToSurface: candidate.kind !== "unsupported",
       chars: rawText.length,
       words: countWords(rawText),
-      estimatedTokens: estimateTextTokens(rawText),
+      estimatedTokens: estimateTextTokens(tokenText),
       applyTo: [],
       blocks,
       statements,

@@ -12,8 +12,8 @@ Status: **fail**
 ## Summary
 - Result: fail; 4 findings at or above fail threshold error
 - Instruction files: 6 loaded of 7 scanned, 1 unsupported
-- Active instruction text: 430 estimated tokens from 12 parsed statements
-- Largest target load: 392 estimated tokens on app/view.tsx
+- Active instruction text: 401 estimated tokens from 12 parsed statements
+- Largest target load: 369 estimated tokens on app/view.tsx
 - Target matches: 20 matched file references across instruction scopes
 - Findings: 4 errors, 9 warnings
 
@@ -35,12 +35,12 @@ Status: **fail**
 | File | Kind | Preset | Status | Tokens | Statements | Matched | Findings | Scope |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | .github/copilot-instructions.md | repository-wide | copilot | active | 323 | 7 | 12 | 8 | - |
-| .github/instructions/all.instructions.md | path-specific | copilot | active | 22 | 1 | 5 | 1 | applyTo=** |
+| .github/instructions/all.instructions.md | path-specific | copilot | active | 16 | 1 | 5 | 1 | applyTo=** |
 | .github/instructions/legacy.md | unsupported | unknown | not loaded | 11 | 1 | 0 | 1 | - |
 | .github/instructions/no-frontmatter.instructions.md | path-specific | copilot | active | 19 | 1 | 0 | 1 | - |
-| .github/instructions/rust.instructions.md | path-specific | copilot | active | 19 | 1 | 0 | 1 | applyTo=**/*.rs |
-| .github/instructions/semicolons.instructions.md | path-specific | copilot | active | 25 | 1 | 2 | 1 | applyTo=**/*.ts,**/*.tsx |
-| .github/instructions/style.instructions.md | path-specific | copilot | active | 22 | 1 | 1 | 0 | applyTo=app/**/*.tsx |
+| .github/instructions/rust.instructions.md | path-specific | copilot | active | 13 | 1 | 0 | 1 | applyTo=**/*.rs |
+| .github/instructions/semicolons.instructions.md | path-specific | copilot | active | 16 | 1 | 2 | 1 | applyTo=**/*.ts,**/*.tsx |
+| .github/instructions/style.instructions.md | path-specific | copilot | active | 14 | 1 | 1 | 0 | applyTo=app/**/*.tsx |
 
 ## Findings
 - **error** `order-dependent-wording` at `.github/copilot-instructions.md:10`

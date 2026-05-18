@@ -122,6 +122,36 @@ test("lintInstructions accepts common YAML frontmatter forms", () => {
   assert.ok(!report.findings.some((finding) => finding.ruleId === "missing-applyto"));
 });
 
+test("lintInstructions estimates path-specific token budgets from the instruction body", () => {
+  const repoRoot = createInstructionRepo(
+    {
+      ".github/instructions/metadata-heavy.instructions.md": [
+        "---",
+        'applyTo: "src/**/*.ts"',
+        `description: "${"metadata used for activation only ".repeat(80)}"`,
+        "---",
+        "",
+        "- Keep scoped guidance concrete."
+      ].join("\n"),
+      "src/index.ts": "export const value = 1;\n"
+    },
+    "tokn-instructions-body-token-budget-"
+  );
+
+  const report = lintInstructions(repoRoot, {
+    budgets: {
+      pathSpecificTokens: 20,
+      maxApplicableTokens: 20
+    }
+  });
+  const file = report.files.find((candidate) => candidate.file.endsWith("metadata-heavy.instructions.md"));
+
+  assert.ok(file);
+  assert.ok(file.estimatedTokens <= 20);
+  assert.ok(!report.findings.some((finding) => finding.ruleId === "path-specific-token-budget"));
+  assert.ok(!report.findings.some((finding) => finding.ruleId === "applicable-token-budget"));
+});
+
 test("lintInstructions reports invalid YAML frontmatter", () => {
   const repoRoot = createInstructionRepo(
     {
