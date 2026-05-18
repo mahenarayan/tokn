@@ -80,6 +80,7 @@ Preferred day-to-day loop:
 - Do not add speculative abstractions, features, configurability, or broad error handling that the task does not require.
 - Touch only files needed for the requested change; avoid drive-by refactors, reformatting, or unrelated cleanup.
 - Before changing public API surface, exported types, CLI flags, JSON report shape, package exports, or documented behavior, ask whether the change must be backward compatible.
+- Keep runtime dependencies rare, justified, and exact-pinned; prefer no dependency when a small local implementation is safer.
 - Keep the SDK read-only in behavior unless the project direction changes explicitly.
 - Optimize for minimalism before coverage. Prefer one clear supported path over several speculative edge-case paths.
 - Grow the CLI and SDK surface organically from repeated real usage, not from imagined future integrations.
