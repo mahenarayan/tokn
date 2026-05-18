@@ -4,6 +4,14 @@ All notable changes to Tokn should be recorded in this file.
 
 ## Unreleased
 
+## 0.4.1
+
+- add verbose statement token estimates for `instructions-lint`
+- parse Copilot instruction frontmatter with YAML for quoted globs, arrays, block descriptions, and inline comments
+- keep runtime dependency policy explicit by exact-pinning `yaml`
+- estimate path-specific Copilot token budgets from instruction body text instead of frontmatter activation metadata
+- clarify README positioning around the stable `instructions-lint` contract and experimental diagnostics
+
 ## 0.4.0
 
 - reduce false positives for description-triggered Copilot instruction files and non-code-review usage
