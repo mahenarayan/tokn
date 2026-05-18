@@ -76,6 +76,74 @@ test("lintInstructions accepts description-triggered Copilot instruction files",
   assert.ok(report.notes.some((note) => note.includes("description-only activation")));
 });
 
+test("lintInstructions accepts common YAML frontmatter forms", () => {
+  const repoRoot = createInstructionRepo(
+    {
+      ".github/instructions/array-inline.instructions.md": [
+        "---",
+        "# Comment-only lines should not invalidate frontmatter.",
+        'applyTo: ["src/**/*.ts", "web/**/*.tsx"] # inline comments are allowed',
+        'excludeAgent: ["code-review", "cloud-agent"]',
+        "---",
+        "",
+        "- Use explicit return types."
+      ].join("\n"),
+      ".github/instructions/array-block.instructions.md": [
+        "---",
+        "applyTo:",
+        '  - "src/**/*.ts"',
+        "  - 'web/**/*.tsx'",
+        "description: >",
+        "  Use when the request mentions:",
+        "  typed source files.",
+        "---",
+        "",
+        "- Keep scoped guidance concrete."
+      ].join("\n"),
+      "src/index.ts": "export const value = 1;\n",
+      "web/app.tsx": "export const app = 1;\n"
+    },
+    "tokn-instructions-yaml-frontmatter-"
+  );
+
+  const report = lintInstructions(repoRoot, { surface: "all" });
+  const inline = report.files.find((file) => file.file.endsWith("array-inline.instructions.md"));
+  const block = report.files.find((file) => file.file.endsWith("array-block.instructions.md"));
+
+  assert.ok(inline);
+  assert.ok(block);
+  assert.deepEqual(inline?.applyTo, ["src/**/*.ts", "web/**/*.tsx"]);
+  assert.deepEqual(inline?.excludeAgents, ["code-review", "coding-agent"]);
+  assert.deepEqual(block?.applyTo, ["src/**/*.ts", "web/**/*.tsx"]);
+  assert.equal(block?.description, "Use when the request mentions: typed source files.");
+  assert.equal(inline?.matchedFileCount, 2);
+  assert.equal(block?.matchedFileCount, 2);
+  assert.ok(!report.findings.some((finding) => finding.ruleId === "malformed-frontmatter"));
+  assert.ok(!report.findings.some((finding) => finding.ruleId === "missing-applyto"));
+});
+
+test("lintInstructions reports invalid YAML frontmatter", () => {
+  const repoRoot = createInstructionRepo(
+    {
+      ".github/instructions/broken.instructions.md": [
+        "---",
+        "applyTo: [\"src/**/*.ts\"",
+        "---",
+        "",
+        "- Use explicit return types."
+      ].join("\n"),
+      "src/index.ts": "export const value = 1;\n"
+    },
+    "tokn-instructions-invalid-yaml-"
+  );
+
+  const report = lintInstructions(repoRoot);
+  const finding = report.findings.find((candidate) => candidate.ruleId === "malformed-frontmatter");
+
+  assert.ok(finding);
+  assert.match(finding.message, /invalid YAML/);
+});
+
 test("lintInstructions keeps the real-world noise regression fixture focused", () => {
   const report = lintInstructions(instructionFixture("noise-regression-repo"), {
     failOnSeverity: "off"

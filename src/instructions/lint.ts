@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { parseDocument } from "yaml";
 
 import { readText } from "../helpers.js";
 import { getModelLimit } from "../models.js";
@@ -539,43 +540,54 @@ function parseFrontmatter(rawText: string): ParsedFrontmatter {
     };
   }
 
-  const data: Record<string, string> = {};
   const lineNumbers: Record<string, number> = {};
   for (let index = 1; index < closingIndex; index += 1) {
-    const line = lines[index]?.trim() ?? "";
-    if (!line) {
+    const match = (lines[index] ?? "").match(/^([A-Za-z][A-Za-z0-9_-]*)\s*:/);
+    if (match?.[1] && lineNumbers[match[1]] === undefined) {
+      lineNumbers[match[1]] = index + 1;
+    }
+  }
+
+  const frontmatterText = lines.slice(1, closingIndex).join("\n");
+  const document = parseDocument(frontmatterText, {
+    prettyErrors: false,
+    strict: false
+  });
+  if (document.errors.length > 0) {
+    return {
+      data: {},
+      lines: lineNumbers,
+      body: rawText,
+      endLine: closingIndex + 1,
+      hasFrontmatter: true,
+      error: `Frontmatter contains invalid YAML: ${document.errors[0]?.message ?? "unknown parse error"}.`,
+      errorLine: 1
+    };
+  }
+
+  const parsed = document.toJSON();
+  if (parsed !== null && (typeof parsed !== "object" || Array.isArray(parsed))) {
+    return {
+      data: {},
+      lines: lineNumbers,
+      body: rawText,
+      endLine: closingIndex + 1,
+      hasFrontmatter: true,
+      error: "Frontmatter must be a YAML object with top-level keys.",
+      errorLine: 1
+    };
+  }
+
+  const data: Record<string, string> = {};
+  for (const [key, value] of Object.entries(parsed ?? {})) {
+    if (Array.isArray(value)) {
+      data[key] = value.map((entry) => String(entry)).join(",");
       continue;
     }
-    const match = line.match(/^([A-Za-z][A-Za-z0-9_-]*)\s*:\s*(.+)$/);
-    if (!match) {
-      return {
-        data: {},
-        lines: {},
-        body: rawText,
-        endLine: closingIndex + 1,
-        hasFrontmatter: true,
-        error: "Frontmatter uses unsupported YAML syntax. Use simple key: value entries.",
-        errorLine: index + 1
-      };
+    if (value === null || value === undefined || typeof value === "object") {
+      continue;
     }
-
-    const key = match[1];
-    const rawValue = match[2];
-    if (!key || rawValue === undefined) {
-      return {
-        data: {},
-        lines: {},
-        body: rawText,
-        endLine: closingIndex + 1,
-        hasFrontmatter: true,
-        error: "Frontmatter uses unsupported YAML syntax. Use simple key: value entries.",
-        errorLine: index + 1
-      };
-    }
-
-    const value = rawValue.trim().replace(/^["']|["']$/g, "");
-    data[key] = value;
-    lineNumbers[key] = index + 1;
+    data[key] = String(value).trim();
   }
 
   return {

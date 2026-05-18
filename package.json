@@ -68,5 +68,8 @@
     "ci",
     "llm",
     "agents"
-  ]
+  ],
+  "dependencies": {
+    "yaml": "^2.9.0"
+  }
 }
