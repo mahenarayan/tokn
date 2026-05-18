@@ -10,8 +10,8 @@ Scope:
 Summary:
 - Result: fail; 4 findings at or above fail threshold error
 - Instruction files: 6 loaded of 7 scanned, 1 unsupported
-- Active instruction text: 430 estimated tokens from 12 parsed statements
-- Largest target load: 392 estimated tokens on app/view.tsx
+- Active instruction text: 401 estimated tokens from 12 parsed statements
+- Largest target load: 369 estimated tokens on app/view.tsx
 - Target matches: 20 matched file references across instruction scopes
 - Findings: 4 errors, 9 warnings
 
@@ -31,12 +31,12 @@ Terms:
 
 Instruction Files:
 - .github/copilot-instructions.md: repository-wide, copilot, active, 323 tokens, 7 statements, 12 matched files, 8 findings
-- .github/instructions/all.instructions.md: path-specific, copilot, active, 22 tokens, 1 statement, 5 matched files, 1 finding, applyTo=**
+- .github/instructions/all.instructions.md: path-specific, copilot, active, 16 tokens, 1 statement, 5 matched files, 1 finding, applyTo=**
 - .github/instructions/legacy.md: unsupported, not loaded, 11 tokens, 1 statement, 1 finding
 - .github/instructions/no-frontmatter.instructions.md: path-specific, copilot, active, 19 tokens, 1 statement, 0 matched files, 1 finding
-- .github/instructions/rust.instructions.md: path-specific, copilot, active, 19 tokens, 1 statement, 0 matched files, 1 finding, applyTo=**/*.rs
-- .github/instructions/semicolons.instructions.md: path-specific, copilot, active, 25 tokens, 1 statement, 2 matched files, 1 finding, applyTo=**/*.ts,**/*.tsx
-- .github/instructions/style.instructions.md: path-specific, copilot, active, 22 tokens, 1 statement, 1 matched file, 0 findings, applyTo=app/**/*.tsx
+- .github/instructions/rust.instructions.md: path-specific, copilot, active, 13 tokens, 1 statement, 0 matched files, 1 finding, applyTo=**/*.rs
+- .github/instructions/semicolons.instructions.md: path-specific, copilot, active, 16 tokens, 1 statement, 2 matched files, 1 finding, applyTo=**/*.ts,**/*.tsx
+- .github/instructions/style.instructions.md: path-specific, copilot, active, 14 tokens, 1 statement, 1 matched file, 0 findings, applyTo=app/**/*.tsx
 
 Findings:
 - [error] order-dependent-wording at .github/copilot-instructions.md:10
