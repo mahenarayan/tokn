@@ -337,7 +337,8 @@ test("lintInstructions discovers AGENTS.md files through the agents-md preset", 
   assert.equal(scoped?.kind, "path-specific");
   assert.equal(scoped?.preset, "agents-md");
   assert.equal(scoped?.scopePath, "frontend");
-  assert.ok((scoped?.matchedFileCount ?? 0) >= 2);
+  assert.equal(repoWide?.matchedFileCount, 5);
+  assert.equal(scoped?.matchedFileCount, 3);
 });
 
 test("lintInstructions discovers symlinked known agent instruction surfaces", () => {
@@ -613,6 +614,33 @@ test("lintInstructions emits a stable schema contract and discovers config defau
   assert.equal(report.stats.ignoredTargetFileCount, 1);
   assert.equal(finding?.severity, "error");
   assert.ok(!report.findings.some((candidate) => candidate.ruleId === "weak-modal-phrasing"));
+});
+
+test("lintInstructions normalizes Windows-style ignore glob separators", () => {
+  const repoRoot = createInstructionRepo(
+    {
+      ".github/instructions/generated.instructions.md": [
+        "---",
+        'applyTo: "generated/**/*.ts"',
+        "---",
+        "",
+        "- Keep generated code unchanged."
+      ].join("\n"),
+      "generated/out.ts": "export const generated = 1;\n",
+      "src/index.ts": "export const value = 1;\n"
+    },
+    "tokn-instructions-windows-ignore-"
+  );
+
+  const report = lintInstructions(repoRoot, {
+    ignore: ["generated\\**"]
+  });
+  const file = report.files.find((candidate) => candidate.file.endsWith("generated.instructions.md"));
+
+  assert.ok(file);
+  assert.equal(file.matchedFileCount, 0);
+  assert.equal(report.stats.ignoredTargetFileCount, 1);
+  assert.ok(report.findings.some((finding) => finding.ruleId === "stale-applyto"));
 });
 
 test("lintInstructions applies numeric budget overrides from config", () => {
