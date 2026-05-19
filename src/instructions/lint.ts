@@ -192,7 +192,7 @@ const CONCRETE_SURFACES = ["code-review", "chat", "coding-agent"] as const;
 type ConcreteInstructionLintSurface = typeof CONCRETE_SURFACES[number];
 
 function normalizePath(filePath: string): string {
-  return filePath.split(path.sep).join("/");
+  return filePath.replace(/\\/g, "/");
 }
 
 function countWords(text: string): number {
@@ -392,7 +392,11 @@ function displayPath(absolutePath: string, repoRoot?: string): string {
 }
 
 function matchesAnyGlob(filePath: string, patterns: string[]): boolean {
-  return patterns.some((pattern) => path.matchesGlob(filePath, pattern));
+  return patterns.some((pattern) => matchesGlob(filePath, pattern));
+}
+
+function matchesGlob(filePath: string, pattern: string): boolean {
+  return path.matchesGlob(normalizePath(filePath), normalizePath(pattern));
 }
 
 function pathHasDirectoryPair(filePath: string, parent: string, child: string): boolean {
@@ -1251,7 +1255,7 @@ function resolveMatchedFiles(report: InternalFileReport, repoFiles: string[]): s
       return [];
     }
     return repoFiles.filter((filePath) =>
-      report.applyTo.some((pattern) => path.matchesGlob(filePath, pattern))
+      report.applyTo.some((pattern) => matchesGlob(filePath, pattern))
     );
   }
 
