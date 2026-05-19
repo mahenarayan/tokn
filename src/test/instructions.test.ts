@@ -174,6 +174,97 @@ test("lintInstructions reports invalid YAML frontmatter", () => {
   assert.match(finding.message, /invalid YAML/);
 });
 
+test("lintInstructions reports unsupported YAML frontmatter value types", () => {
+  const repoRoot = createInstructionRepo(
+    {
+      ".github/instructions/object-applyto.instructions.md": [
+        "---",
+        "applyTo:",
+        "  glob: src/**/*.ts",
+        "---",
+        "",
+        "- Use explicit return types."
+      ].join("\n"),
+      ".github/instructions/boolean-description.instructions.md": [
+        "---",
+        "description: true",
+        "---",
+        "",
+        "- Keep architecture guidance concise."
+      ].join("\n"),
+      ".github/instructions/empty-exclude.instructions.md": [
+        "---",
+        'applyTo: "src/**/*.ts"',
+        "excludeAgent: []",
+        "---",
+        "",
+        "- Keep scoped guidance concrete."
+      ].join("\n"),
+      "src/index.ts": "export const value = 1;\n"
+    },
+    "tokn-instructions-invalid-frontmatter-types-"
+  );
+
+  const report = lintInstructions(repoRoot);
+  const malformed = report.findings.filter((finding) => finding.ruleId === "malformed-frontmatter");
+  const invalidExclude = report.findings.find((finding) => finding.ruleId === "invalid-exclude-agent");
+
+  assert.equal(malformed.length, 2);
+  assert.ok(malformed.some((finding) => finding.message.includes("applyTo must be")));
+  assert.ok(malformed.some((finding) => finding.message.includes("description must be")));
+  assert.ok(invalidExclude);
+  assert.match(invalidExclude.message, /excludeAgent must be/);
+  assert.ok(!report.findings.some((finding) => finding.ruleId === "missing-applyto"));
+});
+
+test("lintInstructions does not treat malformed applyTo as description-only activation", () => {
+  const repoRoot = createInstructionRepo(
+    {
+      ".github/instructions/mixed-activation.instructions.md": [
+        "---",
+        "applyTo:",
+        "  glob: src/**/*.ts",
+        'description: "Use when working on source files."',
+        "---",
+        "",
+        "- Keep scoped guidance concrete."
+      ].join("\n"),
+      "src/index.ts": "export const value = 1;\n"
+    },
+    "tokn-instructions-invalid-applyto-description-"
+  );
+
+  const report = lintInstructions(repoRoot);
+
+  assert.ok(report.findings.some((finding) => finding.ruleId === "malformed-frontmatter"));
+  assert.ok(!report.notes.some((note) => note.includes("description-only activation")));
+});
+
+test("lintInstructions ignores malformed excludeAgent values for surface applicability", () => {
+  const repoRoot = createInstructionRepo(
+    {
+      ".github/instructions/mixed-exclude.instructions.md": [
+        "---",
+        'applyTo: "src/**/*.ts"',
+        'excludeAgent: ["code-review", 123]',
+        "---",
+        "",
+        "- Keep scoped guidance concrete."
+      ].join("\n"),
+      "src/index.ts": "export const value = 1;\n"
+    },
+    "tokn-instructions-invalid-exclude-agent-"
+  );
+
+  const report = lintInstructions(repoRoot, { surface: "code-review" });
+  const file = report.files.find((candidate) => candidate.file.endsWith("mixed-exclude.instructions.md"));
+
+  assert.ok(file);
+  assert.equal(file.appliesToSurface, true);
+  assert.equal(file.excludeAgents, undefined);
+  assert.ok(report.findings.some((finding) => finding.ruleId === "invalid-exclude-agent"));
+});
+
 test("lintInstructions keeps the real-world noise regression fixture focused", () => {
   const report = lintInstructions(instructionFixture("noise-regression-repo"), {
     failOnSeverity: "off"

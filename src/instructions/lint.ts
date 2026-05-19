@@ -67,7 +67,7 @@ interface MarkdownBlock {
 }
 
 interface ParsedFrontmatter {
-  data: Record<string, string>;
+  data: Record<string, unknown>;
   lines: Record<string, number>;
   body: string;
   endLine: number;
@@ -578,20 +578,8 @@ function parseFrontmatter(rawText: string): ParsedFrontmatter {
     };
   }
 
-  const data: Record<string, string> = {};
-  for (const [key, value] of Object.entries(parsed ?? {})) {
-    if (Array.isArray(value)) {
-      data[key] = value.map((entry) => String(entry)).join(",");
-      continue;
-    }
-    if (value === null || value === undefined || typeof value === "object") {
-      continue;
-    }
-    data[key] = String(value).trim();
-  }
-
   return {
-    data,
+    data: parsed ?? {},
     lines: lineNumbers,
     body: lines.slice(closingIndex + 1).join("\n"),
     endLine: closingIndex + 1,
@@ -813,32 +801,77 @@ function addFinding(
   );
 }
 
-function parseApplyTo(value: string | undefined): string[] {
-  if (!value) {
-    return [];
+function splitFrontmatterList(value: unknown): {
+  entries: string[];
+  invalid: boolean;
+} {
+  if (value === undefined) {
+    return { entries: [], invalid: false };
   }
-  return value
-    .split(",")
-    .map((entry) => entry.trim())
-    .filter(Boolean);
+  if (typeof value === "string") {
+    return {
+      entries: value.split(",").map((entry) => entry.trim()).filter(Boolean),
+      invalid: value.trim().length === 0
+    };
+  }
+  if (Array.isArray(value)) {
+    const entries: string[] = [];
+    let invalid = value.length === 0;
+    for (const entry of value) {
+      if (typeof entry !== "string" || entry.trim().length === 0) {
+        invalid = true;
+        continue;
+      }
+      entries.push(entry.trim());
+    }
+    return { entries, invalid };
+  }
+  return { entries: [], invalid: true };
 }
 
-function parseFrontmatterText(value: string | undefined): string | undefined {
-  const trimmed = value?.trim();
-  return trimmed ? trimmed : undefined;
+function parseApplyTo(value: unknown): {
+  applyTo: string[];
+  invalid: boolean;
+} {
+  const parsed = splitFrontmatterList(value);
+  return {
+    applyTo: parsed.entries,
+    invalid: parsed.invalid
+  };
 }
 
-function parseExcludeAgents(value: string | undefined): {
+function parseFrontmatterText(value: unknown): {
+  text?: string;
+  invalid: boolean;
+} {
+  if (value === undefined) {
+    return { invalid: false };
+  }
+  if (typeof value !== "string") {
+    return { invalid: true };
+  }
+  const trimmed = value.trim();
+  return trimmed ? { text: trimmed, invalid: false } : { invalid: true };
+}
+
+function parseExcludeAgents(value: unknown): {
   excludeAgents: InstructionExcludeAgent[];
   invalidEntries: string[];
+  invalidType: boolean;
 } {
-  if (!value) {
-    return { excludeAgents: [], invalidEntries: [] };
-  }
+  const parsed = splitFrontmatterList(value);
 
   const excludeAgents: InstructionExcludeAgent[] = [];
   const invalidEntries: string[] = [];
-  for (const entry of value.split(",").map((item) => item.trim()).filter(Boolean)) {
+  if (parsed.invalid) {
+    return {
+      excludeAgents: [],
+      invalidEntries,
+      invalidType: true
+    };
+  }
+
+  for (const entry of parsed.entries) {
     if (entry === "cloud-agent") {
       excludeAgents.push("coding-agent");
       continue;
@@ -852,7 +885,8 @@ function parseExcludeAgents(value: string | undefined): {
 
   return {
     excludeAgents: [...new Set(excludeAgents)],
-    invalidEntries
+    invalidEntries,
+    invalidType: parsed.invalid
   };
 }
 
@@ -1975,18 +2009,43 @@ export function lintInstructions(
           )
         );
       } else {
-        report.applyTo = parseApplyTo(frontmatter.data.applyTo);
+        const applyTo = parseApplyTo(frontmatter.data.applyTo);
+        report.applyTo = applyTo.applyTo;
         if (frontmatter.lines.applyTo !== undefined) {
           report.applyToLine = frontmatter.lines.applyTo;
         }
+        if (applyTo.invalid) {
+          report.findings.push(
+            createFinding(
+              report.file,
+              "error",
+              "malformed-frontmatter",
+              "applyTo must be a non-empty string or an array of non-empty strings.",
+              report.applyToLine ?? 1,
+              'Use applyTo: "**/*.ts" or applyTo: ["src/**/*.ts", "web/**/*.tsx"].'
+            )
+          );
+        }
         const description = parseFrontmatterText(frontmatter.data.description);
-        if (description) {
-          report.description = description;
+        if (description.text) {
+          report.description = description.text;
         }
         if (frontmatter.lines.description !== undefined) {
           report.descriptionLine = frontmatter.lines.description;
         }
-        if (report.applyTo.length === 0 && !report.description) {
+        if (description.invalid) {
+          report.findings.push(
+            createFinding(
+              report.file,
+              "error",
+              "malformed-frontmatter",
+              "description must be a non-empty string.",
+              report.descriptionLine ?? 1,
+              'Use description: "Use when this instruction should be selected manually."'
+            )
+          );
+        }
+        if (report.applyTo.length === 0 && !report.description && !applyTo.invalid && !description.invalid) {
           report.findings.push(
             createFinding(
               report.file,
@@ -1998,7 +2057,7 @@ export function lintInstructions(
             )
           );
         }
-        if (report.applyTo.length === 0 && report.description) {
+        if (report.applyTo.length === 0 && report.description && !applyTo.invalid) {
           notes.add(
             `${report.file} uses description-only activation; target-file matching, stale applyTo checks, and overlap analysis are skipped for this file.`
           );
@@ -2009,13 +2068,16 @@ export function lintInstructions(
         if (frontmatter.lines.excludeAgent !== undefined) {
           report.excludeAgentsLine = frontmatter.lines.excludeAgent;
         }
-        if (excludeAgent.invalidEntries.length > 0) {
+        if (excludeAgent.invalidType || excludeAgent.invalidEntries.length > 0) {
+          const message = excludeAgent.invalidType
+            ? "excludeAgent must be a non-empty string or an array of non-empty strings."
+            : `excludeAgent contains unsupported value(s): ${excludeAgent.invalidEntries.join(", ")}.`;
           report.findings.push(
             createFinding(
               report.file,
               "error",
               "invalid-exclude-agent",
-              `excludeAgent contains unsupported value(s): ${excludeAgent.invalidEntries.join(", ")}.`,
+              message,
               report.excludeAgentsLine ?? 1,
               'Use "code-review" or "cloud-agent".'
             )
