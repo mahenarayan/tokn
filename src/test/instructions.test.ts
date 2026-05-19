@@ -100,7 +100,15 @@ test("lintInstructions accepts common YAML frontmatter forms", () => {
         "",
         "- Keep scoped guidance concrete."
       ].join("\n"),
+      ".github/instructions/brace-glob.instructions.md": [
+        "---",
+        'applyTo: ["src/**/*.{ts,tsx}"]',
+        "---",
+        "",
+        "- Preserve brace globs from YAML arrays."
+      ].join("\n"),
       "src/index.ts": "export const value = 1;\n",
+      "src/component.tsx": "export const Component = () => null;\n",
       "web/app.tsx": "export const app = 1;\n"
     },
     "tokn-instructions-yaml-frontmatter-"
@@ -116,10 +124,16 @@ test("lintInstructions accepts common YAML frontmatter forms", () => {
   assert.deepEqual(inline?.excludeAgents, ["code-review", "coding-agent"]);
   assert.deepEqual(block?.applyTo, ["src/**/*.ts", "web/**/*.tsx"]);
   assert.equal(block?.description, "Use when the request mentions: typed source files.");
+  const braceGlob = report.files.find((file) => file.file.endsWith("brace-glob.instructions.md"));
+
+  assert.ok(braceGlob);
+  assert.deepEqual(braceGlob?.applyTo, ["src/**/*.{ts,tsx}"]);
   assert.equal(inline?.matchedFileCount, 2);
   assert.equal(block?.matchedFileCount, 2);
+  assert.equal(braceGlob?.matchedFileCount, 2);
   assert.ok(!report.findings.some((finding) => finding.ruleId === "malformed-frontmatter"));
   assert.ok(!report.findings.some((finding) => finding.ruleId === "missing-applyto"));
+  assert.ok(!report.findings.some((finding) => finding.ruleId === "stale-applyto"));
 });
 
 test("lintInstructions estimates path-specific token budgets from the instruction body", () => {
