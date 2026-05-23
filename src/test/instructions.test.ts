@@ -420,6 +420,81 @@ test("lintInstructions accepts a single file path and still resolves applyTo ove
   assert.equal(report.files[0]?.findings.length, 0);
 });
 
+test("lintInstructions applies nested AGENTS.md scope when linting a single file", () => {
+  const report = lintInstructions(
+    path.join(instructionFixture("agents-repo"), "frontend", "AGENTS.md"),
+    {
+      preset: "agents-md"
+    }
+  );
+
+  assert.equal(report.files.length, 1);
+  assert.equal(report.files[0]?.kind, "path-specific");
+  assert.equal(report.files[0]?.preset, "agents-md");
+  assert.equal(report.files[0]?.scopePath, "frontend");
+  assert.equal(report.files[0]?.matchedFileCount, 3);
+  assert.deepEqual(report.warnings, []);
+});
+
+test("lintInstructions prefers package root over nested self marker fallback", () => {
+  const repoRoot = createInstructionRepo(
+    {
+      "package.json": JSON.stringify({ name: "demo" }),
+      "frontend/AGENTS.md": "# Frontend Agents\n\n- Keep frontend changes scoped.\n",
+      "frontend/app.tsx": "export const app = 1;\n",
+      "backend/service.ts": "export const service = 1;\n"
+    },
+    "tokn-instructions-single-agents-package-root-"
+  );
+
+  const report = lintInstructions(path.join(repoRoot, "frontend", "AGENTS.md"), {
+    preset: "agents-md"
+  });
+
+  assert.equal(report.files.length, 1);
+  assert.equal(report.files[0]?.kind, "path-specific");
+  assert.equal(report.files[0]?.scopePath, "frontend");
+  assert.equal(report.files[0]?.matchedFileCount, 2);
+});
+
+test("lintInstructions applies ignore policy to targets when linting a single file", () => {
+  const repoRoot = createInstructionRepo(
+    {
+      ".github/instructions/generated.instructions.md": [
+        "---",
+        'applyTo: "generated/**/*.ts"',
+        "---",
+        "",
+        "- Keep generated code unchanged."
+      ].join("\n"),
+      "generated/out.ts": "export const generated = 1;\n",
+      "src/index.ts": "export const value = 1;\n"
+    },
+    "tokn-instructions-single-file-ignore-"
+  );
+
+  const report = lintInstructions(
+    path.join(repoRoot, ".github", "instructions", "generated.instructions.md"),
+    {
+      ignore: ["generated/**"]
+    }
+  );
+
+  assert.equal(report.files.length, 1);
+  assert.equal(report.files[0]?.matchedFileCount, 0);
+  assert.equal(report.stats.ignoredTargetFileCount, 1);
+  assert.ok(report.findings.some((finding) => finding.ruleId === "stale-applyto"));
+});
+
+test("lintInstructions keeps unsupported single files visibility-only", () => {
+  const report = lintInstructions(path.join(instructionFixture("agents-repo"), "backend", "service.ts"));
+
+  assert.equal(report.files.length, 1);
+  assert.equal(report.files[0]?.kind, "unsupported");
+  assert.equal(report.files[0]?.matchedFileCount, undefined);
+  assert.ok(report.findings.some((finding) => finding.ruleId === "invalid-file-path"));
+});
+
 test("lintInstructions preset filtering keeps the engine generic without mixing presets implicitly", () => {
   const repoRoot = createInstructionRepo(
     {
