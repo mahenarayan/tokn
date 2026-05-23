@@ -356,15 +356,29 @@ function inferRepoRootFromFile(filePath: string): string | undefined {
   const normalized = path.resolve(filePath);
   let current = path.dirname(normalized);
   let fallback: string | undefined;
+  let selfMarkerFallback: string | undefined;
   while (true) {
+    const markerFiles = [
+      path.join(current, "AGENTS.md"),
+      path.join(current, "CLAUDE.md"),
+      path.join(current, "GEMINI.md"),
+      path.join(current, ".cursorrules")
+    ];
+    const hasMarkerFile = markerFiles.some((markerPath) => {
+      if (!fileExists(markerPath)) {
+        return false;
+      }
+      if (path.resolve(markerPath) === normalized) {
+        selfMarkerFallback ??= current;
+        return false;
+      }
+      return true;
+    });
     if (
       directoryExists(path.join(current, ".github")) ||
       directoryExists(path.join(current, ".claude")) ||
       directoryExists(path.join(current, ".cursor")) ||
-      fileExists(path.join(current, "AGENTS.md")) ||
-      fileExists(path.join(current, "CLAUDE.md")) ||
-      fileExists(path.join(current, "GEMINI.md")) ||
-      fileExists(path.join(current, ".cursorrules"))
+      hasMarkerFile
     ) {
       return current;
     }
@@ -376,7 +390,7 @@ function inferRepoRootFromFile(filePath: string): string | undefined {
     }
     const parent = path.dirname(current);
     if (parent === current) {
-      return fallback;
+      return fallback ?? selfMarkerFallback;
     }
     current = parent;
   }
