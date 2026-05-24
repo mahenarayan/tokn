@@ -38,6 +38,16 @@ Instruction Files:
 - .github/instructions/semicolons.instructions.md: path-specific, copilot, active, 16 tokens, 1 statement, 2 matched files, 1 finding, applyTo=**/*.ts,**/*.tsx
 - .github/instructions/style.instructions.md: path-specific, copilot, active, 14 tokens, 1 statement, 1 matched file, 0 findings, applyTo=app/**/*.tsx
 
+Coverage Map:
+- Targets covered: 12 of 12 repository files
+- Uncovered targets: 0
+- Top target loads:
+  - app/view.tsx: 369 tokens from 4 instruction files (.github/copilot-instructions.md, .github/instructions/all.instructions.md, .github/instructions/semicolons.instructions.md, +1 more)
+  - src/index.ts: 355 tokens from 3 instruction files (.github/copilot-instructions.md, .github/instructions/all.instructions.md, .github/instructions/semicolons.instructions.md)
+  - db/query.sql: 339 tokens from 2 instruction files (.github/copilot-instructions.md, .github/instructions/all.instructions.md)
+  - docs/readme.md: 339 tokens from 2 instruction files (.github/copilot-instructions.md, .github/instructions/all.instructions.md)
+  - scripts/tool.py: 339 tokens from 2 instruction files (.github/copilot-instructions.md, .github/instructions/all.instructions.md)
+
 Findings:
 - [error] order-dependent-wording at .github/copilot-instructions.md:10
   Problem: Instruction relies on relative ordering, but instruction runtimes do not guarantee file order across surfaces and presets.

@@ -15,6 +15,7 @@ Instruction files are part of the context supply chain for coding assistants and
 `instructions-lint` gives maintainers and teams a practical starting point for context and agent engineering:
 
 - measure always on instruction load before it becomes invisible context pressure
+- map which instruction files apply to each repository target and where target load concentrates
 - find duplicated or conflicting guidance across scoped instruction files
 - catch stale path scopes before instructions silently stop applying
 - separate limits that vary by platform from general context budget pressure
@@ -43,6 +44,7 @@ Report JSON includes:
 - `kind: "instructions-lint-report"`
 - `schemaVersion: "instructions-lint-report/v1"`
 - `schemaPath: "schemas/instructions-lint-report.schema.json"`
+- `coverage`: a deterministic target-to-instruction coverage map, sorted by largest target load first
 
 ## Config File
 
@@ -144,6 +146,12 @@ Important terms:
 - Applicable: loaded for the selected surface and eligible for matching target files.
 - Target load: total active instruction tokens that can apply to one repository file.
 - Estimated tokens: local approximation for context pressure, not provider billing.
+
+## Coverage Map
+
+Text and Markdown reports include a compact coverage map after the instruction-file inventory. It shows how many repository targets are covered, how many are uncovered, and the largest target loads. This helps teams see whether a small scoped file is becoming effectively always-on through overlap.
+
+JSON reports include the structured `coverage.coveredTargets` list. Each entry includes the target file, total estimated instruction tokens, instruction-file count, and the instruction files that apply to that target. Covered targets are sorted by highest estimated token load first so dashboards and CI summaries can focus on the most expensive paths.
 
 Profile budgets are Tokn compactness policies. `standard` is designed for practical team adoption without forcing every readable paragraph into a finding. `strict` is the aggressive context-economy profile for teams that want very small always-on instruction bundles.
 

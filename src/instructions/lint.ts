@@ -26,6 +26,7 @@ import {
 import type {
   InstructionExcludeAgent,
   InstructionActivationType,
+  InstructionCoverageMap,
   InstructionFileKind,
   InstructionFileReport,
   InstructionFinding,
@@ -120,6 +121,21 @@ interface PostProcessSummary {
 interface IgnoreSummary {
   ignoredInstructionFileCount: number;
   ignoredTargetFileCount: number;
+}
+
+interface TargetInstructionLoad {
+  repoRoot: string;
+  targetFile: string;
+  estimatedTokens: number;
+  instructionFiles: string[];
+  instructionReports: InternalFileReport[];
+}
+
+interface InstructionCoverageAnalysis {
+  targetFileCount: number;
+  coveredTargetFileCount: number;
+  uncoveredTargetFiles: string[];
+  targetLoads: TargetInstructionLoad[];
 }
 
 interface ResolvedLintPolicy {
@@ -1305,6 +1321,108 @@ function sampleItems(items: string[], limit = 3): string[] {
   return items.slice(0, limit);
 }
 
+function groupReportsByRepoRoot(reports: InternalFileReport[]): Map<string, InternalFileReport[]> {
+  const grouped = new Map<string, InternalFileReport[]>();
+
+  for (const report of reports) {
+    if (!report.repoRoot) {
+      continue;
+    }
+    const existing = grouped.get(report.repoRoot) ?? [];
+    existing.push(report);
+    grouped.set(report.repoRoot, existing);
+  }
+
+  return grouped;
+}
+
+function compareTargetLoads(left: TargetInstructionLoad, right: TargetInstructionLoad): number {
+  if (left.estimatedTokens !== right.estimatedTokens) {
+    return right.estimatedTokens - left.estimatedTokens;
+  }
+
+  const targetDiff = left.targetFile.localeCompare(right.targetFile);
+  if (targetDiff !== 0) {
+    return targetDiff;
+  }
+
+  const instructionDiff = left.instructionFiles.join("\0").localeCompare(right.instructionFiles.join("\0"));
+  if (instructionDiff !== 0) {
+    return instructionDiff;
+  }
+
+  return left.repoRoot.localeCompare(right.repoRoot);
+}
+
+function buildInstructionCoverageAnalysis(
+  reports: InternalFileReport[],
+  repoFilesByRoot: Map<string, string[]>
+): InstructionCoverageAnalysis {
+  const targetLoads: TargetInstructionLoad[] = [];
+  const uncoveredTargetFiles: string[] = [];
+  let targetFileCount = 0;
+
+  for (const [repoRoot, group] of groupReportsByRepoRoot(reports).entries()) {
+    const repoFiles = repoFilesByRoot.get(repoRoot) ?? [];
+    targetFileCount += repoFiles.length;
+
+    const eligible = group
+      .filter((report) => report.kind !== "unsupported" && report.appliesToSurface)
+      .sort((left, right) => left.file.localeCompare(right.file));
+
+    for (const repoFile of repoFiles) {
+      const matched = eligible.filter((report) => report.matchedFileSet.has(repoFile));
+      if (matched.length === 0) {
+        uncoveredTargetFiles.push(repoFile);
+        continue;
+      }
+
+      const instructionReports = matched.sort((left, right) => left.file.localeCompare(right.file));
+      const estimatedTokens = instructionReports.reduce((sum, report) => sum + report.estimatedTokens, 0);
+      const instructionFiles = instructionReports.map((report) => report.file);
+      targetLoads.push({
+        repoRoot,
+        targetFile: repoFile,
+        estimatedTokens,
+        instructionFiles,
+        instructionReports
+      });
+    }
+  }
+
+  return {
+    targetFileCount,
+    coveredTargetFileCount: targetLoads.length,
+    uncoveredTargetFiles,
+    targetLoads
+  };
+}
+
+function buildInstructionCoverageMap(analysis: InstructionCoverageAnalysis): InstructionCoverageMap {
+  const coveredTargets = analysis.targetLoads
+    .slice()
+    .sort(compareTargetLoads)
+    .map((load) => ({
+      targetFile: load.targetFile,
+      estimatedTokens: load.estimatedTokens,
+      instructionCount: load.instructionFiles.length,
+      instructionFiles: load.instructionFiles
+    }));
+
+  return {
+    targetFileCount: analysis.targetFileCount,
+    coveredTargetFileCount: analysis.coveredTargetFileCount,
+    uncoveredTargetFileCount: analysis.uncoveredTargetFiles.length,
+    coveredTargets,
+    uncoveredTargetFilesSample: sampleItems(
+      analysis.uncoveredTargetFiles
+        .slice()
+        .sort((left, right) => left.localeCompare(right)),
+      10
+    )
+  };
+}
+
 function overlapDetails(
   left: InternalFileReport,
   right: InternalFileReport,
@@ -1357,17 +1475,7 @@ function addCrossFileFinding(
 }
 
 function lintCrossFileRules(reports: InternalFileReport[]): void {
-  const grouped = new Map<string, InternalFileReport[]>();
-  for (const report of reports) {
-    if (!report.repoRoot) {
-      continue;
-    }
-    const existing = grouped.get(report.repoRoot) ?? [];
-    existing.push(report);
-    grouped.set(report.repoRoot, existing);
-  }
-
-  for (const group of grouped.values()) {
+  for (const group of groupReportsByRepoRoot(reports).values()) {
     const eligible = group
       .filter(
         (report) =>
@@ -1483,56 +1591,31 @@ function lintCrossFileRules(reports: InternalFileReport[]): void {
 }
 
 function addApplicableTokenBudgetFindings(
-  reports: InternalFileReport[],
-  repoFilesByRoot: Map<string, string[]>,
+  coverageAnalysis: InstructionCoverageAnalysis,
   profile: InstructionLintProfile,
   surface: InstructionLintSurface,
   budgets: InstructionBudgets
 ): { maxApplicableTokens: number; maxApplicableTargetFile?: string } {
-  const grouped = new Map<string, InternalFileReport[]>();
-
-  for (const report of reports) {
-    if (!report.repoRoot) {
-      continue;
-    }
-    const existing = grouped.get(report.repoRoot) ?? [];
-    existing.push(report);
-    grouped.set(report.repoRoot, existing);
-  }
+  const loadsByRoot = new Map<string, TargetInstructionLoad[]>();
 
   let overallMaxTokens = 0;
   let overallTargetFile: string | undefined;
 
-  for (const [repoRoot, group] of grouped.entries()) {
-    const repoFiles = repoFilesByRoot.get(repoRoot) ?? [];
-    if (repoFiles.length === 0) {
+  for (const load of coverageAnalysis.targetLoads) {
+    const existing = loadsByRoot.get(load.repoRoot) ?? [];
+    existing.push(load);
+    loadsByRoot.set(load.repoRoot, existing);
+  }
+
+  for (const loads of loadsByRoot.values()) {
+    const maxLoad = loads.slice().sort(compareTargetLoads)[0];
+    if (!maxLoad) {
       continue;
     }
 
-    const eligible = group.filter(
-      (report) => report.kind !== "unsupported" && report.appliesToSurface
-    );
-    if (eligible.length === 0) {
-      continue;
-    }
-
-    let maxTokens = 0;
-    let targetFile: string | undefined;
-    let contributors: InternalFileReport[] = [];
-
-    for (const repoFile of repoFiles) {
-      const matched = eligible.filter((report) => report.matchedFileSet.has(repoFile));
-      if (matched.length === 0) {
-        continue;
-      }
-
-      const totalTokens = matched.reduce((sum, report) => sum + report.estimatedTokens, 0);
-      if (totalTokens > maxTokens) {
-        maxTokens = totalTokens;
-        targetFile = repoFile;
-        contributors = matched;
-      }
-    }
+    const maxTokens = maxLoad.estimatedTokens;
+    const targetFile = maxLoad.targetFile;
+    const contributors = maxLoad.instructionReports;
 
     if (maxTokens > overallMaxTokens) {
       overallMaxTokens = maxTokens;
@@ -2177,9 +2260,10 @@ export function lintInstructions(
   }
 
   lintCrossFileRules(internalReports);
+  const coverageAnalysis = buildInstructionCoverageAnalysis(internalReports, repoFilesByRoot);
+  const coverage = buildInstructionCoverageMap(coverageAnalysis);
   const applicableTokenSummary = addApplicableTokenBudgetFindings(
-    internalReports,
-    repoFilesByRoot,
+    coverageAnalysis,
     profile,
     surface,
     budgets
@@ -2244,6 +2328,7 @@ export function lintInstructions(
     exitCode: passed ? 0 : 2,
     failOnSeverity,
     ...(policy.appliedConfig ? { config: policy.appliedConfig } : {}),
+    coverage,
     stats,
     files,
     findings,

@@ -37,5 +37,17 @@ Status: **pass**
 | .github/copilot-instructions.md | repository-wide | copilot | active | 46 | 3 | 5 | 0 | - |
 | .github/instructions/typescript.instructions.md | path-specific | copilot | active | 29 | 2 | 2 | 0 | applyTo=**/*.ts,**/*.tsx |
 
+## Coverage Map
+- Targets covered: 5 of 5 repository files
+- Uncovered targets: 0
+
+| Target | Tokens | Instruction files | Instructions |
+| --- | --- | --- | --- |
+| src/component.tsx | 75 | 2 | .github/copilot-instructions.md, .github/instructions/typescript.instructions.md |
+| src/index.ts | 75 | 2 | .github/copilot-instructions.md, .github/instructions/typescript.instructions.md |
+| .github/copilot-instructions.md | 46 | 1 | .github/copilot-instructions.md |
+| .github/instructions/typescript.instructions.md | 46 | 1 | .github/copilot-instructions.md |
+| docs/guide.md | 46 | 1 | .github/copilot-instructions.md |
+
 ## Findings
 - none
