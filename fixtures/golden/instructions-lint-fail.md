@@ -46,6 +46,8 @@ Status: **fail**
 - Targets covered: 12 of 12 repository files
 - Uncovered targets: 0
 
+Top non-instruction target loads:
+
 | Target | Tokens | Instruction files | Instructions |
 | --- | --- | --- | --- |
 | app/view.tsx | 369 | 4 | .github/copilot-instructions.md, .github/instructions/all.instructions.md, .github/instructions/semicolons.instructions.md, +1 more |

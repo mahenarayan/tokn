@@ -41,12 +41,12 @@ Status: **pass**
 - Targets covered: 5 of 5 repository files
 - Uncovered targets: 0
 
+Top non-instruction target loads:
+
 | Target | Tokens | Instruction files | Instructions |
 | --- | --- | --- | --- |
 | src/component.tsx | 75 | 2 | .github/copilot-instructions.md, .github/instructions/typescript.instructions.md |
 | src/index.ts | 75 | 2 | .github/copilot-instructions.md, .github/instructions/typescript.instructions.md |
-| .github/copilot-instructions.md | 46 | 1 | .github/copilot-instructions.md |
-| .github/instructions/typescript.instructions.md | 46 | 1 | .github/copilot-instructions.md |
 | docs/guide.md | 46 | 1 | .github/copilot-instructions.md |
 
 ## Findings

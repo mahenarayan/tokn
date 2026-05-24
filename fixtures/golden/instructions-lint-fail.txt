@@ -41,7 +41,7 @@ Instruction Files:
 Coverage Map:
 - Targets covered: 12 of 12 repository files
 - Uncovered targets: 0
-- Top target loads:
+- Top non-instruction target loads:
   - app/view.tsx: 369 tokens from 4 instruction files (.github/copilot-instructions.md, .github/instructions/all.instructions.md, .github/instructions/semicolons.instructions.md, +1 more)
   - src/index.ts: 355 tokens from 3 instruction files (.github/copilot-instructions.md, .github/instructions/all.instructions.md, .github/instructions/semicolons.instructions.md)
   - db/query.sql: 339 tokens from 2 instruction files (.github/copilot-instructions.md, .github/instructions/all.instructions.md)

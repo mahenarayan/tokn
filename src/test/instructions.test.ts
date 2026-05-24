@@ -4,7 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-import { lintInstructions } from "../index.js";
+import { formatInstructionLintReport, lintInstructions } from "../index.js";
 
 const rootDir = process.cwd();
 
@@ -385,6 +385,20 @@ test("lintInstructions discovers AGENTS.md files through the agents-md preset", 
   assert.equal(scoped?.scopePath, "frontend");
   assert.equal(repoWide?.matchedFileCount, 5);
   assert.equal(scoped?.matchedFileCount, 3);
+});
+
+test("formatInstructionLintReport prefers non-instruction targets in coverage summaries", () => {
+  const report = lintInstructions(instructionFixture("agents-repo"), {
+    preset: "agents-md"
+  });
+  const output = formatInstructionLintReport(report);
+
+  assert.match(
+    output,
+    /Largest non-instruction target load: 69 estimated tokens on frontend\/app\.tsx/
+  );
+  assert.match(output, /Top non-instruction target loads:/);
+  assert.doesNotMatch(output, /\n  - frontend\/AGENTS\.md:/);
 });
 
 test("lintInstructions discovers symlinked known agent instruction surfaces", () => {

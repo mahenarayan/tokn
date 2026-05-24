@@ -149,7 +149,7 @@ Important terms:
 
 ## Coverage Map
 
-Text and Markdown reports include a compact coverage map after the instruction-file inventory. It shows how many repository targets are covered, how many are uncovered, and the largest target loads. This helps teams see whether a small scoped file is becoming effectively always-on through overlap.
+Text and Markdown reports include a compact coverage map after the instruction-file inventory. It shows how many repository targets are covered, how many are uncovered, and the largest target loads. The human summary prefers non-instruction targets when they exist so source and documentation files stay visible. This helps teams see whether a small scoped file is becoming effectively always-on through overlap.
 
 JSON reports include the structured `coverage.coveredTargets` list. Each entry includes the target file, total estimated instruction tokens, instruction-file count, and the instruction files that apply to that target. Covered targets are sorted by highest estimated token load first so dashboards and CI summaries can focus on the most expensive paths.
 
