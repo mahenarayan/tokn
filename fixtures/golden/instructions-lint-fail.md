@@ -42,6 +42,18 @@ Status: **fail**
 | .github/instructions/semicolons.instructions.md | path-specific | copilot | active | 16 | 1 | 2 | 1 | applyTo=**/*.ts,**/*.tsx |
 | .github/instructions/style.instructions.md | path-specific | copilot | active | 14 | 1 | 1 | 0 | applyTo=app/**/*.tsx |
 
+## Coverage Map
+- Targets covered: 12 of 12 repository files
+- Uncovered targets: 0
+
+| Target | Tokens | Instruction files | Instructions |
+| --- | --- | --- | --- |
+| app/view.tsx | 369 | 4 | .github/copilot-instructions.md, .github/instructions/all.instructions.md, .github/instructions/semicolons.instructions.md, +1 more |
+| src/index.ts | 355 | 3 | .github/copilot-instructions.md, .github/instructions/all.instructions.md, .github/instructions/semicolons.instructions.md |
+| db/query.sql | 339 | 2 | .github/copilot-instructions.md, .github/instructions/all.instructions.md |
+| docs/readme.md | 339 | 2 | .github/copilot-instructions.md, .github/instructions/all.instructions.md |
+| scripts/tool.py | 339 | 2 | .github/copilot-instructions.md, .github/instructions/all.instructions.md |
+
 ## Findings
 - **error** `order-dependent-wording` at `.github/copilot-instructions.md:10`
   Problem: Instruction relies on relative ordering, but instruction runtimes do not guarantee file order across surfaces and presets.

@@ -49,6 +49,7 @@ After Tokn:
 - duplicate, similar, and conflicting rules are reported
 - stale scopes are visible
 - instruction load is measured per file and per applicable target
+- coverage maps show which instruction files apply to the highest-load targets
 - teams can baseline existing findings and fail only on new drift
 
 ## Who This Helps
@@ -99,6 +100,7 @@ Suggestion: Replace it with a concrete project rule or remove it.
 - Vague directives like "follow best practices" or "write clean code".
 - Stale `applyTo` patterns that match no repository files.
 - Large instruction bundles that create avoidable context pressure.
+- Target coverage maps that reveal overlapping instruction scopes.
 - Surface-specific compatibility issues, including Copilot code review limits.
 - Known external agent instruction files that are present but not fully linted yet.
 

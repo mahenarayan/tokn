@@ -33,5 +33,15 @@ Instruction Files:
 - .github/copilot-instructions.md: repository-wide, copilot, active, 46 tokens, 3 statements, 5 matched files, 0 findings
 - .github/instructions/typescript.instructions.md: path-specific, copilot, active, 29 tokens, 2 statements, 2 matched files, 0 findings, applyTo=**/*.ts,**/*.tsx
 
+Coverage Map:
+- Targets covered: 5 of 5 repository files
+- Uncovered targets: 0
+- Top target loads:
+  - src/component.tsx: 75 tokens from 2 instruction files (.github/copilot-instructions.md, .github/instructions/typescript.instructions.md)
+  - src/index.ts: 75 tokens from 2 instruction files (.github/copilot-instructions.md, .github/instructions/typescript.instructions.md)
+  - .github/copilot-instructions.md: 46 tokens from 1 instruction file (.github/copilot-instructions.md)
+  - .github/instructions/typescript.instructions.md: 46 tokens from 1 instruction file (.github/copilot-instructions.md)
+  - docs/guide.md: 46 tokens from 1 instruction file (.github/copilot-instructions.md)
+
 Findings:
 - none

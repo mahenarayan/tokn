@@ -48,6 +48,24 @@ test("lintInstructions discovers repository-wide and path-specific files from a 
   assert.equal(pathSpecific?.appliesToSurface, true);
   assert.equal(pathSpecific?.matchedFileCount, 2);
   assert.deepEqual(pathSpecific?.applyTo, ["**/*.ts", "**/*.tsx"]);
+  assert.equal(report.coverage?.targetFileCount, 5);
+  assert.equal(report.coverage?.coveredTargetFileCount, 5);
+  assert.equal(report.coverage?.uncoveredTargetFileCount, 0);
+
+  const componentCoverage = report.coverage?.coveredTargets.find(
+    (target) => target.targetFile === "src/component.tsx"
+  );
+
+  assert.ok(componentCoverage);
+  assert.equal(
+    componentCoverage?.estimatedTokens,
+    (repoWide?.estimatedTokens ?? 0) + (pathSpecific?.estimatedTokens ?? 0)
+  );
+  assert.equal(componentCoverage?.instructionCount, 2);
+  assert.deepEqual(componentCoverage?.instructionFiles, [
+    ".github/copilot-instructions.md",
+    ".github/instructions/typescript.instructions.md"
+  ]);
 });
 
 test("lintInstructions accepts description-triggered Copilot instruction files", () => {
@@ -74,6 +92,34 @@ test("lintInstructions accepts description-triggered Copilot instruction files",
   assert.equal(file?.matchedFileCount, 0);
   assert.ok(!report.findings.some((finding) => finding.ruleId === "missing-applyto"));
   assert.ok(report.notes.some((note) => note.includes("description-only activation")));
+});
+
+test("lintInstructions reports uncovered targets in the coverage map", () => {
+  const repoRoot = createInstructionRepo(
+    {
+      ".github/instructions/typescript.instructions.md": [
+        "---",
+        'applyTo: "src/**/*.ts"',
+        "---",
+        "",
+        "- Use explicit return types."
+      ].join("\n"),
+      "docs/guide.md": "# Guide\n",
+      "src/index.ts": "export const value = 1;\n"
+    },
+    "tokn-instructions-coverage-map-"
+  );
+
+  const report = lintInstructions(repoRoot);
+
+  assert.equal(report.coverage?.targetFileCount, 3);
+  assert.equal(report.coverage?.coveredTargetFileCount, 1);
+  assert.equal(report.coverage?.uncoveredTargetFileCount, 2);
+  assert.deepEqual(report.coverage?.uncoveredTargetFilesSample, [
+    ".github/instructions/typescript.instructions.md",
+    "docs/guide.md"
+  ]);
+  assert.deepEqual(report.coverage?.coveredTargets.map((target) => target.targetFile), ["src/index.ts"]);
 });
 
 test("lintInstructions accepts common YAML frontmatter forms", () => {

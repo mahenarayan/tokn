@@ -8,12 +8,16 @@ import type {
   CheckResult,
   ContextReport,
   DiffReport,
+  InstructionCoverageTarget,
   InstructionFileKind,
   InstructionFinding,
   InstructionFindingEvidence,
   InstructionLintPreset,
   InstructionLintReport
 } from "./types.js";
+
+const INSTRUCTION_COVERAGE_DISPLAY_LIMIT = 5;
+const INSTRUCTION_COVERAGE_INSTRUCTION_FILE_LIMIT = 3;
 
 function markdownTable(headers: string[], rows: string[][]): string[] {
   return [
@@ -216,6 +220,86 @@ function formatInstructionFileText(file: InstructionLintReport["files"][number])
   }
 
   return `- ${file.file}: ${details.join(", ")}`;
+}
+
+function topInstructionCoverageTargets(report: InstructionLintReport): InstructionCoverageTarget[] {
+  return report.coverage?.coveredTargets.slice(0, INSTRUCTION_COVERAGE_DISPLAY_LIMIT) ?? [];
+}
+
+function formatInstructionCoverageFiles(target: InstructionCoverageTarget): string {
+  const visibleFiles = target.instructionFiles.slice(0, INSTRUCTION_COVERAGE_INSTRUCTION_FILE_LIMIT);
+  const remainingCount = target.instructionFiles.length - visibleFiles.length;
+  const suffix = remainingCount > 0 ? `, +${remainingCount} more` : "";
+  return `${visibleFiles.join(", ")}${suffix}`;
+}
+
+function appendInstructionCoverageText(lines: string[], report: InstructionLintReport): void {
+  if (!report.coverage) {
+    return;
+  }
+
+  lines.push(
+    "",
+    "Coverage Map:",
+    `- Targets covered: ${report.coverage.coveredTargetFileCount} of ${report.coverage.targetFileCount} repository files`,
+    `- Uncovered targets: ${report.coverage.uncoveredTargetFileCount}`
+  );
+
+  if (report.coverage.uncoveredTargetFilesSample.length > 0) {
+    lines.push(`- Uncovered sample: ${report.coverage.uncoveredTargetFilesSample.join(", ")}`);
+  }
+
+  const topTargets = topInstructionCoverageTargets(report);
+  if (topTargets.length === 0) {
+    lines.push("- Top target loads: none");
+    return;
+  }
+
+  lines.push("- Top target loads:");
+  for (const target of topTargets) {
+    lines.push(
+      `  - ${target.targetFile}: ${target.estimatedTokens} tokens from ${pluralize(
+        target.instructionCount,
+        "instruction file"
+      )} (${formatInstructionCoverageFiles(target)})`
+    );
+  }
+}
+
+function appendInstructionCoverageMarkdown(lines: string[], report: InstructionLintReport): void {
+  if (!report.coverage) {
+    return;
+  }
+
+  lines.push(
+    "",
+    "## Coverage Map",
+    `- Targets covered: ${report.coverage.coveredTargetFileCount} of ${report.coverage.targetFileCount} repository files`,
+    `- Uncovered targets: ${report.coverage.uncoveredTargetFileCount}`
+  );
+
+  if (report.coverage.uncoveredTargetFilesSample.length > 0) {
+    lines.push(`- Uncovered sample: ${report.coverage.uncoveredTargetFilesSample.join(", ")}`);
+  }
+
+  const topTargets = topInstructionCoverageTargets(report);
+  if (topTargets.length === 0) {
+    lines.push("", "- none");
+    return;
+  }
+
+  lines.push(
+    "",
+    ...markdownTable(
+      ["Target", "Tokens", "Instruction files", "Instructions"],
+      topTargets.map((target) => [
+        target.targetFile.replaceAll("|", "\\|"),
+        String(target.estimatedTokens),
+        String(target.instructionCount),
+        formatInstructionCoverageFiles(target).replaceAll("|", "\\|")
+      ])
+    )
+  );
 }
 
 function appendInstructionStatementEstimateText(
@@ -800,6 +884,8 @@ export function formatInstructionLintReport(report: InstructionLintReport): stri
     }
   }
 
+  appendInstructionCoverageText(lines, report);
+
   lines.push("", "Findings:");
   if (report.findings.length === 0) {
     lines.push("- none");
@@ -957,6 +1043,8 @@ export function formatInstructionLintReportMarkdown(report: InstructionLintRepor
       )
     );
   }
+
+  appendInstructionCoverageMarkdown(lines, report);
 
   lines.push("", "## Findings");
   if (report.findings.length === 0) {

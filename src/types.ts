@@ -299,6 +299,21 @@ export interface InstructionStatementEstimate {
   text: string;
 }
 
+export interface InstructionCoverageTarget {
+  targetFile: string;
+  estimatedTokens: number;
+  instructionCount: number;
+  instructionFiles: string[];
+}
+
+export interface InstructionCoverageMap {
+  targetFileCount: number;
+  coveredTargetFileCount: number;
+  uncoveredTargetFileCount: number;
+  coveredTargets: InstructionCoverageTarget[];
+  uncoveredTargetFilesSample: string[];
+}
+
 export interface InstructionLintStats {
   totalFiles: number;
   repositoryFiles: number;
@@ -336,6 +351,7 @@ export interface InstructionLintReport {
   exitCode: 0 | 2;
   failOnSeverity: InstructionLintFailOnSeverity;
   config?: InstructionLintAppliedConfig;
+  coverage?: InstructionCoverageMap;
   stats: InstructionLintStats;
   files: InstructionFileReport[];
   findings: InstructionFinding[];
