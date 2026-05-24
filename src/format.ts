@@ -19,6 +19,11 @@ import type {
 const INSTRUCTION_COVERAGE_DISPLAY_LIMIT = 5;
 const INSTRUCTION_COVERAGE_INSTRUCTION_FILE_LIMIT = 3;
 
+interface InstructionCoverageDisplayTargets {
+  label: string;
+  targets: InstructionCoverageTarget[];
+}
+
 function markdownTable(headers: string[], rows: string[][]): string[] {
   return [
     `| ${headers.join(" | ")} |`,
@@ -63,11 +68,39 @@ function hasInstructionContextBudget(report: InstructionLintReport): boolean {
     (report.maxApplicableContextPercent !== undefined && !Number.isNaN(report.maxApplicableContextPercent));
 }
 
-function formatInstructionMaxApplicableLoad(report: InstructionLintReport): string {
-  const tokens = `${report.stats.maxApplicableTokens} estimated tokens`;
-  return report.stats.maxApplicableTargetFile
-    ? `${tokens} on ${report.stats.maxApplicableTargetFile}`
-    : tokens;
+function instructionFilePathSet(report: InstructionLintReport): Set<string> {
+  return new Set(report.files.map((file) => file.file));
+}
+
+function formatInstructionTargetLoad(estimatedTokens: number, targetFile?: string): string {
+  const tokenText = `${estimatedTokens} estimated tokens`;
+  return targetFile ? `${tokenText} on ${targetFile}` : tokenText;
+}
+
+function formatInstructionLargestTargetLoadLine(report: InstructionLintReport): string {
+  const strictTargetLoad = formatInstructionTargetLoad(
+    report.stats.maxApplicableTokens,
+    report.stats.maxApplicableTargetFile
+  );
+  const instructionFiles = instructionFilePathSet(report);
+  if (
+    !report.stats.maxApplicableTargetFile ||
+    !instructionFiles.has(report.stats.maxApplicableTargetFile)
+  ) {
+    return `- Largest target load: ${strictTargetLoad}`;
+  }
+
+  const nonInstructionTarget = report.coverage?.coveredTargets.find(
+    (target) => !instructionFiles.has(target.targetFile)
+  );
+  if (!nonInstructionTarget) {
+    return `- Largest target load: ${strictTargetLoad}`;
+  }
+
+  return `- Largest non-instruction target load: ${formatInstructionTargetLoad(
+    nonInstructionTarget.estimatedTokens,
+    nonInstructionTarget.targetFile
+  )}`;
 }
 
 function instructionSeverityRank(severity: "warning" | "error"): number {
@@ -113,7 +146,7 @@ function instructionSummaryLines(report: InstructionLintReport): string[] {
     `- Result: ${formatInstructionResultReason(report)}`,
     `- Instruction files: ${formatInstructionFileLoad(report)}`,
     `- Active instruction text: ${formatInstructionActiveText(report)}`,
-    `- Largest target load: ${formatInstructionMaxApplicableLoad(report)}`,
+    formatInstructionLargestTargetLoadLine(report),
     `- Target matches: ${report.stats.totalMatchedFiles} matched file references across instruction scopes`,
     `- Findings: ${formatInstructionFindingTotals(report)}`
   ];
@@ -222,8 +255,16 @@ function formatInstructionFileText(file: InstructionLintReport["files"][number])
   return `- ${file.file}: ${details.join(", ")}`;
 }
 
-function topInstructionCoverageTargets(report: InstructionLintReport): InstructionCoverageTarget[] {
-  return report.coverage?.coveredTargets.slice(0, INSTRUCTION_COVERAGE_DISPLAY_LIMIT) ?? [];
+function topInstructionCoverageTargets(report: InstructionLintReport): InstructionCoverageDisplayTargets {
+  const coveredTargets = report.coverage?.coveredTargets ?? [];
+  const instructionFiles = instructionFilePathSet(report);
+  const nonInstructionTargets = coveredTargets.filter((target) => !instructionFiles.has(target.targetFile));
+  const displayTargets = nonInstructionTargets.length > 0 ? nonInstructionTargets : coveredTargets;
+
+  return {
+    label: nonInstructionTargets.length > 0 ? "Top non-instruction target loads" : "Top target loads",
+    targets: displayTargets.slice(0, INSTRUCTION_COVERAGE_DISPLAY_LIMIT)
+  };
 }
 
 function formatInstructionCoverageFiles(target: InstructionCoverageTarget): string {
@@ -250,13 +291,13 @@ function appendInstructionCoverageText(lines: string[], report: InstructionLintR
   }
 
   const topTargets = topInstructionCoverageTargets(report);
-  if (topTargets.length === 0) {
+  if (topTargets.targets.length === 0) {
     lines.push("- Top target loads: none");
     return;
   }
 
-  lines.push("- Top target loads:");
-  for (const target of topTargets) {
+  lines.push(`- ${topTargets.label}:`);
+  for (const target of topTargets.targets) {
     lines.push(
       `  - ${target.targetFile}: ${target.estimatedTokens} tokens from ${pluralize(
         target.instructionCount,
@@ -283,16 +324,18 @@ function appendInstructionCoverageMarkdown(lines: string[], report: InstructionL
   }
 
   const topTargets = topInstructionCoverageTargets(report);
-  if (topTargets.length === 0) {
+  if (topTargets.targets.length === 0) {
     lines.push("", "- none");
     return;
   }
 
   lines.push(
     "",
+    `${topTargets.label}:`,
+    "",
     ...markdownTable(
       ["Target", "Tokens", "Instruction files", "Instructions"],
-      topTargets.map((target) => [
+      topTargets.targets.map((target) => [
         target.targetFile.replaceAll("|", "\\|"),
         String(target.estimatedTokens),
         String(target.instructionCount),
