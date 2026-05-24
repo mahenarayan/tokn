@@ -4,6 +4,15 @@ All notable changes to Tokn should be recorded in this file.
 
 ## Unreleased
 
+## 0.5.0
+
+- add an instruction coverage map to `instructions-lint` JSON reports, showing target files, applicable instruction files, and estimated target load
+- render compact coverage summaries in text and Markdown reports, preferring source and documentation targets for human readability
+- reuse coverage target-load analysis for the applicable-token budget check so budget findings and coverage reporting stay aligned
+- validate unsupported YAML frontmatter value types for `applyTo`, `description`, and `excludeAgent`
+- preserve YAML array brace globs and normalize instruction glob paths before matching repository files
+- fix single-file instruction linting so repository roots and `applyTo` matching resolve consistently
+
 ## 0.4.1
 
 - add verbose statement token estimates for `instructions-lint`
