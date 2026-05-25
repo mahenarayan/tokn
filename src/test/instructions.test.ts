@@ -122,6 +122,55 @@ test("lintInstructions reports uncovered targets in the coverage map", () => {
   assert.deepEqual(report.coverage?.coveredTargets.map((target) => target.targetFile), ["src/index.ts"]);
 });
 
+test("lintInstructions reports uncovered coverage when no instruction files are discovered", () => {
+  const repoRoot = createInstructionRepo(
+    {
+      "README.md": "# Project\n",
+      "src/index.ts": "export const value = 1;\n"
+    },
+    "tokn-instructions-no-coverage-"
+  );
+
+  const report = lintInstructions(repoRoot);
+
+  assert.equal(report.files.length, 0);
+  assert.equal(report.coverage?.targetFileCount, 2);
+  assert.equal(report.coverage?.coveredTargetFileCount, 0);
+  assert.equal(report.coverage?.uncoveredTargetFileCount, 2);
+  assert.deepEqual(report.coverage?.coveredTargets, []);
+  assert.deepEqual(report.coverage?.uncoveredTargetFilesSample, [
+    "README.md",
+    "src/index.ts"
+  ]);
+});
+
+test("lintInstructions reports uncovered coverage when all instruction files are ignored", () => {
+  const repoRoot = createInstructionRepo(
+    {
+      ".github/copilot-instructions.md": "- Keep repository guidance concise.\n",
+      "README.md": "# Project\n",
+      "src/index.ts": "export const value = 1;\n"
+    },
+    "tokn-instructions-ignored-coverage-"
+  );
+
+  const report = lintInstructions(repoRoot, {
+    ignore: [".github/**"]
+  });
+
+  assert.equal(report.files.length, 0);
+  assert.equal(report.stats.ignoredInstructionFileCount, 1);
+  assert.equal(report.stats.ignoredTargetFileCount, 1);
+  assert.equal(report.coverage?.targetFileCount, 2);
+  assert.equal(report.coverage?.coveredTargetFileCount, 0);
+  assert.equal(report.coverage?.uncoveredTargetFileCount, 2);
+  assert.deepEqual(report.coverage?.coveredTargets, []);
+  assert.deepEqual(report.coverage?.uncoveredTargetFilesSample, [
+    "README.md",
+    "src/index.ts"
+  ]);
+});
+
 test("lintInstructions accepts common YAML frontmatter forms", () => {
   const repoRoot = createInstructionRepo(
     {
