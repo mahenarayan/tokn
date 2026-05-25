@@ -4,6 +4,11 @@ All notable changes to Tokn should be recorded in this file.
 
 ## Unreleased
 
+## 0.5.1
+
+- fix instruction coverage maps for repositories with no discovered instruction files so visible files are reported as uncovered targets instead of zero targets
+- fix coverage maps when all instruction files are ignored so remaining visible repository files are still counted as uncovered targets
+
 ## 0.5.0
 
 - add an instruction coverage map to `instructions-lint` JSON reports, showing target files, applicable instruction files, and estimated target load
