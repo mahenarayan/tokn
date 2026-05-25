@@ -1361,10 +1361,11 @@ function buildInstructionCoverageAnalysis(
   const targetLoads: TargetInstructionLoad[] = [];
   const uncoveredTargetFiles: string[] = [];
   let targetFileCount = 0;
+  const reportsByRoot = groupReportsByRepoRoot(reports);
 
-  for (const [repoRoot, group] of groupReportsByRepoRoot(reports).entries()) {
-    const repoFiles = repoFilesByRoot.get(repoRoot) ?? [];
+  for (const [repoRoot, repoFiles] of repoFilesByRoot.entries()) {
     targetFileCount += repoFiles.length;
+    const group = reportsByRoot.get(repoRoot) ?? [];
 
     const eligible = group
       .filter((report) => report.kind !== "unsupported" && report.appliesToSurface)
