@@ -4,85 +4,29 @@
 [![npm](https://img.shields.io/npm/v/%40tokn-labs%2Ftokn?logo=npm)](https://www.npmjs.com/package/@tokn-labs/tokn)
 [![License: MIT](https://img.shields.io/badge/license-MIT-97ca00)](https://github.com/mahenarayan/tokn/blob/main/LICENSE)
 [![Node >=22](https://img.shields.io/badge/node-%3E%3D22-339933?logo=node.js&logoColor=white)](https://github.com/mahenarayan/tokn/blob/main/package.json)
-[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/mahenarayan/tokn/badge)](https://scorecard.dev/viewer/?uri=github.com/mahenarayan/tokn)
 [![Status: public alpha](https://img.shields.io/badge/status-public%20alpha-0a7ea4)](https://github.com/mahenarayan/tokn)
 
 Keep repository AI instructions small, scoped, and reviewable.
 
-Tokn is a TypeScript CLI + SDK centered on `instructions-lint`: a local linter for repository instruction files such as `.github/copilot-instructions.md`, `.github/instructions/*.instructions.md`, and `AGENTS.md`.
+Tokn is a deterministic TypeScript CLI and SDK for linting repository instruction files used by coding assistants and agents. It focuses on `instructions-lint`, a local analyzer for files such as `.github/copilot-instructions.md`, `.github/instructions/*.instructions.md`, and `AGENTS.md`.
 
-Your AI coding assistant reads these files as recurring context. When they are stale, duplicated, vague, too broad, or too large, every coding session can inherit lower-signal guidance. Tokn makes that hidden instruction drift visible before it spreads across repositories or lands in CI.
+Instruction files are recurring model input. When they become stale, duplicated, vague, too broad, or too large, every assistant session can inherit lower-signal guidance. Tokn makes that drift visible in local development and CI.
 
-Once installed, the core CLI runs on local files without network access during analysis.
-The npm package is published as `@tokn-labs/tokn`, while the installed CLI command remains `tokn`.
-
-Tokn is also working on advanced diagnostics for prompts, traces, and context composition through `inspect`, `diff`, `budget`, `agent-report`, and `check`. That diagnostics surface is experimental today and is not part of the primary public contract.
-
-## Why This Exists
-
-Instruction files are becoming part of the software supply chain for coding agents, but they are still reviewed like prose.
-
-- GitHub Copilot documents repository and path-specific custom instruction files such as `.github/copilot-instructions.md` and `.github/instructions/*.instructions.md`.
-- VS Code Copilot combines multiple instruction files into chat context and notes that no specific order is guaranteed.
-- Anthropic Claude Code documents `CLAUDE.md` memory files for project and team instructions.
-- OpenAI Agents SDK treats instructions as the system prompt that configures an agent.
-
-That makes instruction text recurring model input, not just documentation. Tokn gives those files a lightweight review loop:
-
-```bash
-tokn instructions-lint .
-```
-
-It is not a prompt generator. It is a linter for the instruction layer that already exists in modern AI-assisted development.
-
-## Before And After
-
-Before Tokn:
-
-- instruction files repeat similar rules in multiple places
-- one scoped rule no longer matches any files
-- global guidance quietly grows into a large always-on context load
-- pull requests can change agent behavior without an obvious review signal
-
-After Tokn:
-
-- duplicate, similar, and conflicting rules are reported
-- stale scopes are visible
-- instruction load is measured per file and per applicable target
-- coverage maps show which instruction files apply to the highest-load targets
-- teams can baseline existing findings and fail only on new drift
-
-## Who This Helps
-
-- Individual developers can see why an assistant may be receiving noisy, stale, or overly broad repository guidance.
-- Team maintainers can review AI instruction changes with the same discipline as source changes.
-- Platform and AI enablement teams can roll out instruction policy without rewriting files or blocking every existing issue on day one.
-- CI owners can turn instruction drift into deterministic text, JSON, Markdown, GitHub Actions, or Azure Pipelines output.
+Tokn reads files from disk, reports findings, and does not rewrite files or call AI models during lint analysis.
 
 ## Quick Start
 
-Install from npm:
+Run without installing:
+
+```bash
+npm exec --yes --package @tokn-labs/tokn -- tokn instructions-lint .
+```
+
+Or install globally:
 
 ```bash
 npm install -g @tokn-labs/tokn
 tokn instructions-lint /path/to/repository
-```
-
-From source:
-
-```bash
-git clone https://github.com/mahenarayan/tokn.git
-cd tokn
-npm install --cache .npm-cache
-npm run build
-npm link
-tokn instructions-lint /path/to/repository
-```
-
-Example:
-
-```bash
-tokn instructions-lint ./fixtures/instructions/valid-repo
 ```
 
 Example finding:
@@ -93,172 +37,103 @@ warning vague-instruction .github/copilot-instructions.md:12
 Suggestion: Replace it with a concrete project rule or remove it.
 ```
 
-## What It Finds
+## What Tokn Checks
 
-- Duplicate or similar rules across overlapping instruction files.
-- Conflicting guidance for the same paths or surfaces.
-- Vague directives like "follow best practices" or "write clean code".
-- Stale `applyTo` patterns that match no repository files.
-- Large instruction bundles that create avoidable context pressure.
-- Target coverage maps that reveal overlapping instruction scopes.
-- Surface-specific compatibility issues, including Copilot code review limits.
-- Known external agent instruction files that are present but not fully linted yet.
+- duplicated or similar rules across overlapping instruction files
+- conflicting guidance for the same paths or assistant surfaces
+- vague directives like "follow best practices" or "write clean code"
+- stale `applyTo` patterns that match no repository files
+- large instruction files and high per-target instruction load
+- coverage maps showing which instruction files apply to each repository target
+- platform-specific compatibility issues, including Copilot code review limits
+- known external agent instruction files that are visible but not fully linted yet
 
-Tokn emits deterministic text, JSON, Markdown, GitHub Actions, and Azure Pipelines output. It does not modify files.
+Output formats include text, JSON, Markdown, GitHub Actions annotations, and Azure Pipelines logging commands.
 
-## How To Think About It
+## Why Teams Use It
 
 Use Tokn like a code linter for the instruction layer:
 
-- keep global rules small
-- move scoped guidance into scoped files
-- remove vague or duplicated rules
-- make CI show instruction drift before it becomes invisible context
+- review instruction changes before they silently affect assistant behavior
+- keep global guidance small and move path-specific rules closer to the files they affect
+- measure instruction load as context pressure, not just prose length
+- baseline existing findings and fail CI only on new drift
+- make AI instruction policy visible without asking a model to judge the repository
 
-The goal is not style policing. The goal is to review recurring model input before it silently affects every assistant answer, avoid spending context budget on repeated or stale guidance, and make AI behavior changes visible in pull requests.
+## Common Commands
 
-Reference documentation for the stable lint surface lives in [docs/instructions-lint.md](https://github.com/mahenarayan/tokn/blob/main/docs/instructions-lint.md).
+```bash
+tokn instructions-lint .
+tokn instructions-lint . --format markdown
+tokn instructions-lint . --format json
+tokn instructions-lint . --baseline ./.tokn/instructions-baseline.json
+tokn instructions-lint . --preset agents-md
+tokn init . > tokn.config.json
+```
 
-## References
+Add `--verbose` when optimizing instruction budget. Verbose output includes statement-level token estimates so you can see where the load comes from.
 
-- [GitHub Copilot repository custom instructions](https://docs.github.com/en/copilot/how-tos/configure-custom-instructions/add-repository-instructions)
-- [VS Code custom instructions](https://code.visualstudio.com/docs/copilot/customization/custom-instructions)
-- [Anthropic Claude Code memory](https://docs.anthropic.com/en/docs/claude-code/memory)
-- [OpenAI Agents SDK agents](https://openai.github.io/openai-agents-js/guides/agents/)
+For CI, the simplest GitHub Actions step is:
 
-## Status
-
-Tokn is in public alpha.
-
-- stable public surface: `instructions-lint`, instruction lint report types, stable rule IDs, and deterministic text/json/markdown/github/azure lint output
-- stable preset: `copilot`
-- supported preset: `agents-md`
-- experimental diagnostics surface: `inspect`, `diff`, `budget`, `agent-report`, and `check`
-- file analysis only; Tokn does not rewrite instruction files
-- intended for repository review, CI checks, and engineering diagnostics, not runtime enforcement
+```yaml
+- name: Lint repository instructions
+  run: npm exec --yes --package @tokn-labs/tokn -- tokn instructions-lint . --format github --fail-on-severity warning
+```
 
 ## Stable Surface
 
-Primary command:
+Tokn is in public alpha. The stable public surface is intentionally narrow:
 
-```bash
-tokn instructions-lint ./fixtures/instructions/valid-repo
-```
-
-Common variants:
-
-```bash
-tokn init ./fixtures/instructions/valid-repo
-tokn calibrate ./fixtures/instructions/valid-repo
-tokn instructions-lint ./fixtures/instructions/valid-repo --config ./tokn.config.json
-tokn instructions-lint ./fixtures/instructions/invalid-repo --baseline ./tokn-baseline.json
-tokn instructions-lint ./fixtures/instructions/valid-repo --surface coding-agent --model gpt-4o
-tokn instructions-lint ./fixtures/instructions/agents-repo --preset agents-md
-tokn instructions-lint ./fixtures/instructions/invalid-repo --format markdown
-tokn instructions-lint ./fixtures/instructions/invalid-repo --format json
-tokn instructions-lint ./fixtures/instructions/invalid-repo --format github
-tokn instructions-lint ./fixtures/instructions/invalid-repo --format azure
-```
-
-Stable inputs:
-
-- GitHub Copilot instruction repositories and files
-- root or nested `AGENTS.md` files
-- repository roots containing a mix of supported instruction presets
-- visibility only detection for known external agent surfaces such as `CLAUDE.md`, `GEMINI.md`, `.cursor/rules/*.mdc`, and `.cursorrules`
-
-Stable SDK entry points:
+- `tokn instructions-lint`
+- `tokn init` and `tokn calibrate`
+- stable instruction lint rule IDs
+- deterministic text, JSON, Markdown, GitHub Actions, and Azure Pipelines output
+- versioned instruction lint report and config schemas
+- `lintInstructions` and `formatInstructionLintReport` SDK entry points
 
 ```ts
 import { formatInstructionLintReport, lintInstructions } from "@tokn-labs/tokn";
 
-const report = lintInstructions("./fixtures/instructions/valid-repo");
+const report = lintInstructions(".");
 console.log(formatInstructionLintReport(report));
 ```
 
+## Supported Instruction Files
+
+| Surface | Status |
+| --- | --- |
+| `.github/copilot-instructions.md` | linted |
+| `.github/instructions/*.instructions.md` | linted |
+| `AGENTS.md` | linted with the `agents-md` preset |
+| `CLAUDE.md`, `GEMINI.md`, `.cursor/rules/*.mdc`, `.cursorrules` | detected for visibility, not fully linted yet |
+
 ## Experimental Diagnostics
 
-These commands remain useful, but they are not the primary stable surface for the public alpha:
+Tokn also includes experimental commands for prompt, trace, budget, and context diagnostics:
 
-- `inspect`
-- `diff`
-- `budget`
-- `agent-report`
-- `check`
+```bash
+tokn inspect <file>
+tokn diff <before> <after>
+tokn budget <file>
+tokn agent-report <file>
+tokn check <file>
+```
 
-They normalize OpenAI style payloads, OpenAI compatible request logs, OpenAI Responses style payloads, Anthropic messages, transcripts, agent snapshots, OpenInference exports, and Langfuse full traces into a common context report. This diagnostics surface may move into a separate package once usage justifies a cleaner boundary.
+These commands are useful, but they are not the primary stable public contract and may change more freely than `instructions-lint`.
 
 ## Current Limits
 
-- `instructions-lint` uses explicit presets today with `copilot` and `agents-md`
-- Claude, Gemini, and Cursor files are detected for visibility but are not fully linted yet
-- model context budgets are local registry data, so model context reporting stays conservative
-- prompt and trace diagnostics are still experimental and broader in scope than the stable lint contract
-- v1 intentionally avoids file rewrites
+- Token counts are local estimates for context pressure, not provider billing numbers.
+- Model context data comes from Tokn's local registry, so budget reporting stays conservative.
+- Claude, Gemini, and Cursor instruction files are detected for rollout visibility but are not fully linted yet.
+- Tokn reports issues only; it does not rewrite instruction files.
 
-## Commands
+## Documentation
 
-Stable command:
-
-```bash
-tokn instructions-lint <path> [--init-config] [--config <file>] [--baseline <file>] [--ignore <glob>] [--preset <auto|copilot|agents-md>] [--profile <lite|standard|strict>] [--surface <all|auto|code-review|chat|coding-agent>] [--model <id>] [--fail-on-severity <off|warning|error>] [--verbose] [--format <text|json|markdown|github|azure>]
-tokn init <path> [--config <file>] [--baseline <file>] [--ignore <glob>] [--preset <auto|copilot|agents-md>] [--profile <lite|standard|strict>] [--surface <all|auto|code-review|chat|coding-agent>] [--model <id>]
-tokn calibrate <path> [same options as init]
-```
-
-Experimental diagnostics:
-
-```bash
-tokn inspect <file> [--format <text|json|markdown>]
-tokn diff <before> <after> [--format <text|json|markdown>]
-tokn budget <file> [--model <id>] [--format <text|json|markdown>]
-tokn agent-report <file> [--format <text|json|markdown>]
-tokn check <file> [--model <id>] [--max-usage-percent <n>] [--max-total-tokens <n>] [--max-segment-tokens <type=n>] [--fail-on-risk <low|medium|high>] [--baseline <file>] [--format <text|json|markdown>]
-```
-
-## Release Integrity
-
-The public release posture is intentionally conservative and suitable for teams that need repeatable supply chain checks:
-
-- GitHub Actions are pinned to full commit SHAs
-- CI uses least privilege workflow permissions
-- pull requests get dependency review and code scanning
-- public publishing is configured for npm trusted publishing and provenance
-- package verification stays part of the default verification loop
-
-See [docs/releasing.md](https://github.com/mahenarayan/tokn/blob/main/docs/releasing.md) for the release workflow and required repository setup.
-The npm package itself is intentionally lean: runtime artifacts and public support documents ship, while compiled tests and internal planning documents stay outside the package.
-
-## Support And Governance
-
-- usage and support routing: [SUPPORT.md](https://github.com/mahenarayan/tokn/blob/main/SUPPORT.md)
-- vulnerability reporting: [SECURITY.md](https://github.com/mahenarayan/tokn/blob/main/SECURITY.md)
-- contribution rules: [CONTRIBUTING.md](https://github.com/mahenarayan/tokn/blob/main/CONTRIBUTING.md)
-- maintainer and decision boundaries: [GOVERNANCE.md](https://github.com/mahenarayan/tokn/blob/main/GOVERNANCE.md)
-
-## Development
-
-```bash
-npm install --cache .npm-cache
-npm run check
-npm run pack:check
-```
-
-Useful local commands:
-
-```bash
-npm run check
-npm run dev
-npm run pack:check
-npm run smoke
-```
-
-Maintainer and agent context:
-
-- [docs/architecture.md](https://github.com/mahenarayan/tokn/blob/main/docs/architecture.md)
-- [docs/spec-driven-development.md](https://github.com/mahenarayan/tokn/blob/main/docs/spec-driven-development.md)
-- [docs/adr/README.md](https://github.com/mahenarayan/tokn/blob/main/docs/adr/README.md)
-
-## Why Tokn
-
-Tokn is named for the token, the smallest unit a model actually consumes. The missing `e` reflects the project's bias toward compression, signal, and instruction sets that stay small enough to remain useful.
+- [Instructions lint guide](https://github.com/mahenarayan/tokn/blob/main/docs/instructions-lint.md)
+- [Examples](https://github.com/mahenarayan/tokn/tree/main/docs/examples)
+- [Architecture](https://github.com/mahenarayan/tokn/blob/main/docs/architecture.md)
+- [Contributing](https://github.com/mahenarayan/tokn/blob/main/CONTRIBUTING.md)
+- [Release integrity and publishing](https://github.com/mahenarayan/tokn/blob/main/docs/releasing.md)
+- [Support](https://github.com/mahenarayan/tokn/blob/main/SUPPORT.md)
+- [Security](https://github.com/mahenarayan/tokn/blob/main/SECURITY.md)

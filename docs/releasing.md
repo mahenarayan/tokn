@@ -78,9 +78,10 @@ gh release create v<version> --target main --title "Tokn v<version>" --notes-fil
 npm view @tokn-labs/tokn version dist-tags --cache .npm-cache
 ```
 
-## Supply Chain Posture
+## Release Integrity
 
-The public repository baseline is:
+The public release posture is intentionally conservative and suitable for teams that need repeatable supply chain checks.
+The repository baseline is:
 
 - GitHub Actions pinned to full commit SHAs
 - least privilege workflow permissions
@@ -89,6 +90,8 @@ The public repository baseline is:
 - OSSF Scorecards on the default branch and on a schedule
 - npm trusted publishing instead of long lived publish tokens
 - a lean published tarball that contains runtime artifacts plus public support metadata only
+
+The npm package itself is intentionally lean: runtime artifacts and public support documents ship, while compiled tests and internal planning documents stay outside the package.
 
 ## Notes
 
