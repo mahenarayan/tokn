@@ -123,6 +123,13 @@ interface IgnoreSummary {
   ignoredTargetFileCount: number;
 }
 
+interface InstructionInputCollection {
+  candidates: CandidateFile[];
+  repoFilesByRoot: Map<string, string[]>;
+  ignoreSummary: IgnoreSummary;
+  warnings: Set<string>;
+}
+
 interface TargetInstructionLoad {
   repoRoot: string;
   targetFile: string;
@@ -206,6 +213,14 @@ const SCOPED_TOPIC_RE =
 
 const CONCRETE_SURFACES = ["code-review", "chat", "coding-agent"] as const;
 type ConcreteInstructionLintSurface = typeof CONCRETE_SURFACES[number];
+
+/*
+ * Instruction lint is a deterministic pipeline, not a model-judged rule engine:
+ * collect candidate files, parse instruction text, run local file rules, resolve
+ * file-scope composition, run cross-file rules, then apply policy and render a
+ * stable report. `rules.ts` is the public rule registry; executable checks live
+ * here so they can share parsed statements, path scopes, and coverage data.
+ */
 
 function normalizePath(filePath: string): string {
   return filePath.replace(/\\/g, "/");
@@ -1954,32 +1969,30 @@ function postProcessFindings(
   };
 }
 
-export function lintInstructions(
-  pathOrFiles: string | string[],
-  options: InstructionLintOptions = {}
-): InstructionLintReport {
-  const inputs = Array.isArray(pathOrFiles) ? pathOrFiles : [pathOrFiles];
-  const policy = resolveLintPolicy(inputs, options);
-  const preset = policy.preset;
-  const profile = policy.profile;
-  const failOnSeverity = policy.failOnSeverity;
-  const surface = policy.surface;
-  const budgets = policy.budgets;
-  const model = policy.model;
-  const verbose = options.verbose === true;
-  const modelLimit = getModelLimit(model);
+function collectVisibleRepoFiles(
+  repoRoot: string,
+  ignore: string[],
+  ignoreSummary: IgnoreSummary
+): string[] {
+  const repoFiles = walkFiles(repoRoot).map((filePath) =>
+    normalizePath(path.relative(repoRoot, filePath))
+  );
+  const visibleRepoFiles = repoFiles.filter((filePath) => !matchesAnyGlob(filePath, ignore));
+  ignoreSummary.ignoredTargetFileCount += repoFiles.length - visibleRepoFiles.length;
+  return visibleRepoFiles;
+}
+
+function collectInstructionInputs(
+  inputs: string[],
+  policy: ResolvedLintPolicy
+): InstructionInputCollection {
   const candidates: CandidateFile[] = [];
   const warnings = new Set<string>();
-  const notes = new Set<string>();
   const repoFilesByRoot = new Map<string, string[]>();
   const ignoreSummary: IgnoreSummary = {
     ignoredInstructionFileCount: 0,
     ignoredTargetFileCount: 0
   };
-
-  if (model && !modelLimit) {
-    warnings.add(`Model limits are unknown for ${model}; context-window share metrics are unavailable.`);
-  }
 
   for (const input of inputs) {
     const absoluteInput = path.resolve(input);
@@ -1989,24 +2002,22 @@ export function lintInstructions(
 
     const stat = fs.statSync(absoluteInput);
     if (stat.isDirectory()) {
-      const discovered = discoverDirectoryCandidates(absoluteInput, preset);
+      const discovered = discoverDirectoryCandidates(absoluteInput, policy.preset);
       const visibleCandidates = discovered.filter((candidate) => !matchesAnyGlob(candidate.file, policy.ignore));
       ignoreSummary.ignoredInstructionFileCount += discovered.length - visibleCandidates.length;
       if (visibleCandidates.length === 0) {
         const message =
-          preset === "auto"
+          policy.preset === "auto"
             ? `No supported instruction files were found under ${normalizePath(input)}.`
-            : `No ${preset} instruction files were found under ${normalizePath(input)}.`;
+            : `No ${policy.preset} instruction files were found under ${normalizePath(input)}.`;
         warnings.add(message);
       }
       candidates.push(...visibleCandidates);
       if (!repoFilesByRoot.has(absoluteInput)) {
-        const repoFiles = walkFiles(absoluteInput).map((filePath) =>
-          normalizePath(path.relative(absoluteInput, filePath))
+        repoFilesByRoot.set(
+          absoluteInput,
+          collectVisibleRepoFiles(absoluteInput, policy.ignore, ignoreSummary)
         );
-        const visibleRepoFiles = repoFiles.filter((filePath) => !matchesAnyGlob(filePath, policy.ignore));
-        ignoreSummary.ignoredTargetFileCount += repoFiles.length - visibleRepoFiles.length;
-        repoFilesByRoot.set(absoluteInput, visibleRepoFiles);
       }
       continue;
     }
@@ -2017,7 +2028,7 @@ export function lintInstructions(
 
     const repoRoot = inferRepoRootFromFile(absoluteInput);
     const candidate = classifyCandidate(absoluteInput, repoRoot);
-    if (preset === "auto" || candidate.preset === preset) {
+    if (policy.preset === "auto" || candidate.preset === policy.preset) {
       if (matchesAnyGlob(candidate.file, policy.ignore)) {
         ignoreSummary.ignoredInstructionFileCount += 1;
       } else {
@@ -2034,172 +2045,196 @@ export function lintInstructions(
         candidates.push(unsupportedCandidate);
       }
     }
+
     if (repoRoot && !repoFilesByRoot.has(repoRoot)) {
-      const repoFiles = walkFiles(repoRoot).map((filePath) =>
-        normalizePath(path.relative(repoRoot, filePath))
-      );
-      const visibleRepoFiles = repoFiles.filter((filePath) => !matchesAnyGlob(filePath, policy.ignore));
-      ignoreSummary.ignoredTargetFileCount += repoFiles.length - visibleRepoFiles.length;
-      repoFilesByRoot.set(repoRoot, visibleRepoFiles);
+      repoFilesByRoot.set(repoRoot, collectVisibleRepoFiles(repoRoot, policy.ignore, ignoreSummary));
     }
     if (!repoRoot) {
       warnings.add(`Repository root could not be inferred for ${normalizePath(input)}; overlap resolution is limited.`);
     }
   }
 
-  const internalReports: InternalFileReport[] = [];
-  for (const candidate of candidates.sort((left, right) => left.file.localeCompare(right.file))) {
-    const rawText = readText(candidate.absolutePath, { maxBytes: MAX_INSTRUCTION_FILE_BYTES });
-    const frontmatter =
-      candidate.preset === "copilot" && candidate.kind === "path-specific"
-      ? parseFrontmatter(rawText)
-      : {
-          data: {},
-          lines: {},
-          body: rawText,
-          endLine: 0,
-          hasFrontmatter: false
-        };
+  return {
+    candidates,
+    repoFilesByRoot,
+    ignoreSummary,
+    warnings
+  };
+}
 
-    const blocks = parseMarkdownBlocks(frontmatter.body, frontmatter.endLine);
-    const statements = blocks
-      .map((block) => statementFromBlock(block))
-      .filter((statement): statement is Statement => statement !== undefined);
-    const tokenText = instructionTokenText(candidate, frontmatter, rawText);
+function buildInternalFileReport(
+  candidate: CandidateFile,
+  policy: ResolvedLintPolicy,
+  notes: Set<string>
+): InternalFileReport {
+  const rawText = readText(candidate.absolutePath, { maxBytes: MAX_INSTRUCTION_FILE_BYTES });
+  const frontmatter =
+    candidate.preset === "copilot" && candidate.kind === "path-specific"
+    ? parseFrontmatter(rawText)
+    : {
+        data: {},
+        lines: {},
+        body: rawText,
+        endLine: 0,
+        hasFrontmatter: false
+      };
 
-    const report: InternalFileReport = {
-      absolutePath: candidate.absolutePath,
-      file: candidate.file,
-      kind: candidate.kind,
-      ...(candidate.preset ? { preset: candidate.preset } : {}),
-      ...(candidate.repoRoot ? { repoRoot: candidate.repoRoot } : {}),
-      ...(candidate.scopePath ? { scopePath: candidate.scopePath } : {}),
-      excludeAgents: [],
-      appliesToSurface: candidate.kind !== "unsupported",
-      chars: rawText.length,
-      words: countWords(rawText),
-      estimatedTokens: estimateTextTokens(tokenText),
-      applyTo: [],
-      blocks,
-      statements,
-      matchedFiles: [],
-      matchedFileSet: new Set<string>(),
-      findings: []
-    };
+  const blocks = parseMarkdownBlocks(frontmatter.body, frontmatter.endLine);
+  const statements = blocks
+    .map((block) => statementFromBlock(block))
+    .filter((statement): statement is Statement => statement !== undefined);
+  const tokenText = instructionTokenText(candidate, frontmatter, rawText);
 
-    if (candidate.preset === "copilot" && candidate.kind === "path-specific") {
-      if (frontmatter.error) {
+  const report: InternalFileReport = {
+    absolutePath: candidate.absolutePath,
+    file: candidate.file,
+    kind: candidate.kind,
+    ...(candidate.preset ? { preset: candidate.preset } : {}),
+    ...(candidate.repoRoot ? { repoRoot: candidate.repoRoot } : {}),
+    ...(candidate.scopePath ? { scopePath: candidate.scopePath } : {}),
+    excludeAgents: [],
+    appliesToSurface: candidate.kind !== "unsupported",
+    chars: rawText.length,
+    words: countWords(rawText),
+    estimatedTokens: estimateTextTokens(tokenText),
+    applyTo: [],
+    blocks,
+    statements,
+    matchedFiles: [],
+    matchedFileSet: new Set<string>(),
+    findings: []
+  };
+
+  if (candidate.preset === "copilot" && candidate.kind === "path-specific") {
+    if (frontmatter.error) {
+      report.findings.push(
+        createFinding(
+          report.file,
+          "error",
+          "malformed-frontmatter",
+          frontmatter.error,
+          frontmatter.errorLine ?? 1,
+          "Use simple YAML frontmatter with applyTo: \"glob\" or description: \"when to use this file\"."
+        )
+      );
+    } else if (!frontmatter.hasFrontmatter) {
+      report.findings.push(
+        createFinding(
+          report.file,
+          "error",
+          "missing-frontmatter",
+          "Path-specific instruction files must start with YAML frontmatter containing applyTo or description.",
+          1,
+          "Add frontmatter like --- applyTo: \"**/*.ts\" --- or --- description: \"Use for architecture questions\" --- at the top of the file."
+        )
+      );
+    } else {
+      const applyTo = parseApplyTo(frontmatter.data.applyTo);
+      report.applyTo = applyTo.applyTo;
+      if (frontmatter.lines.applyTo !== undefined) {
+        report.applyToLine = frontmatter.lines.applyTo;
+      }
+      if (applyTo.invalid) {
         report.findings.push(
           createFinding(
             report.file,
             "error",
             "malformed-frontmatter",
-            frontmatter.error,
-            frontmatter.errorLine ?? 1,
-            "Use simple YAML frontmatter with applyTo: \"glob\" or description: \"when to use this file\"."
+            "applyTo must be a non-empty string or an array of non-empty strings.",
+            report.applyToLine ?? 1,
+            'Use applyTo: "**/*.ts" or applyTo: ["src/**/*.ts", "web/**/*.tsx"].'
           )
         );
-      } else if (!frontmatter.hasFrontmatter) {
+      }
+
+      const description = parseFrontmatterText(frontmatter.data.description);
+      if (description.text) {
+        report.description = description.text;
+      }
+      if (frontmatter.lines.description !== undefined) {
+        report.descriptionLine = frontmatter.lines.description;
+      }
+      if (description.invalid) {
         report.findings.push(
           createFinding(
             report.file,
             "error",
-            "missing-frontmatter",
-            "Path-specific instruction files must start with YAML frontmatter containing applyTo or description.",
-            1,
-            "Add frontmatter like --- applyTo: \"**/*.ts\" --- or --- description: \"Use for architecture questions\" --- at the top of the file."
+            "malformed-frontmatter",
+            "description must be a non-empty string.",
+            report.descriptionLine ?? 1,
+            'Use description: "Use when this instruction should be selected manually."'
           )
         );
-      } else {
-        const applyTo = parseApplyTo(frontmatter.data.applyTo);
-        report.applyTo = applyTo.applyTo;
-        if (frontmatter.lines.applyTo !== undefined) {
-          report.applyToLine = frontmatter.lines.applyTo;
-        }
-        if (applyTo.invalid) {
-          report.findings.push(
-            createFinding(
-              report.file,
-              "error",
-              "malformed-frontmatter",
-              "applyTo must be a non-empty string or an array of non-empty strings.",
-              report.applyToLine ?? 1,
-              'Use applyTo: "**/*.ts" or applyTo: ["src/**/*.ts", "web/**/*.tsx"].'
-            )
-          );
-        }
-        const description = parseFrontmatterText(frontmatter.data.description);
-        if (description.text) {
-          report.description = description.text;
-        }
-        if (frontmatter.lines.description !== undefined) {
-          report.descriptionLine = frontmatter.lines.description;
-        }
-        if (description.invalid) {
-          report.findings.push(
-            createFinding(
-              report.file,
-              "error",
-              "malformed-frontmatter",
-              "description must be a non-empty string.",
-              report.descriptionLine ?? 1,
-              'Use description: "Use when this instruction should be selected manually."'
-            )
-          );
-        }
-        if (report.applyTo.length === 0 && !report.description && !applyTo.invalid && !description.invalid) {
-          report.findings.push(
-            createFinding(
-              report.file,
-              "error",
-              "missing-applyto",
-              "Path-specific instruction file is missing a valid applyTo or description value.",
-              report.applyToLine ?? report.descriptionLine ?? 2,
-              "Set applyTo for automatic path matching, or set description for manual/task-triggered activation."
-            )
-          );
-        }
-        if (report.applyTo.length === 0 && report.description && !applyTo.invalid) {
-          notes.add(
-            `${report.file} uses description-only activation; target-file matching, stale applyTo checks, and overlap analysis are skipped for this file.`
-          );
-        }
+      }
 
-        const excludeAgent = parseExcludeAgents(frontmatter.data.excludeAgent);
-        report.excludeAgents = excludeAgent.excludeAgents;
-        if (frontmatter.lines.excludeAgent !== undefined) {
-          report.excludeAgentsLine = frontmatter.lines.excludeAgent;
-        }
-        if (excludeAgent.invalidType || excludeAgent.invalidEntries.length > 0) {
-          const message = excludeAgent.invalidType
-            ? "excludeAgent must be a non-empty string or an array of non-empty strings."
-            : `excludeAgent contains unsupported value(s): ${excludeAgent.invalidEntries.join(", ")}.`;
-          report.findings.push(
-            createFinding(
-              report.file,
-              "error",
-              "invalid-exclude-agent",
-              message,
-              report.excludeAgentsLine ?? 1,
-              'Use "code-review" or "cloud-agent".'
-            )
-          );
-        }
+      if (report.applyTo.length === 0 && !report.description && !applyTo.invalid && !description.invalid) {
+        report.findings.push(
+          createFinding(
+            report.file,
+            "error",
+            "missing-applyto",
+            "Path-specific instruction file is missing a valid applyTo or description value.",
+            report.applyToLine ?? report.descriptionLine ?? 2,
+            "Set applyTo for automatic path matching, or set description for manual/task-triggered activation."
+          )
+        );
+      }
+      if (report.applyTo.length === 0 && report.description && !applyTo.invalid) {
+        notes.add(
+          `${report.file} uses description-only activation; target-file matching, stale applyTo checks, and overlap analysis are skipped for this file.`
+        );
+      }
+
+      const excludeAgent = parseExcludeAgents(frontmatter.data.excludeAgent);
+      report.excludeAgents = excludeAgent.excludeAgents;
+      if (frontmatter.lines.excludeAgent !== undefined) {
+        report.excludeAgentsLine = frontmatter.lines.excludeAgent;
+      }
+      if (excludeAgent.invalidType || excludeAgent.invalidEntries.length > 0) {
+        const message = excludeAgent.invalidType
+          ? "excludeAgent must be a non-empty string or an array of non-empty strings."
+          : `excludeAgent contains unsupported value(s): ${excludeAgent.invalidEntries.join(", ")}.`;
+        report.findings.push(
+          createFinding(
+            report.file,
+            "error",
+            "invalid-exclude-agent",
+            message,
+            report.excludeAgentsLine ?? 1,
+            'Use "code-review" or "cloud-agent".'
+          )
+        );
       }
     }
-
-    report.appliesToSurface = appliesToSurface(report, surface);
-    lintLocalRules(report, profile, surface, budgets);
-    internalReports.push(report);
   }
 
+  report.appliesToSurface = appliesToSurface(report, policy.surface);
+  lintLocalRules(report, policy.profile, policy.surface, policy.budgets);
+  return report;
+}
+
+function buildInternalFileReports(
+  candidates: CandidateFile[],
+  policy: ResolvedLintPolicy,
+  notes: Set<string>
+): InternalFileReport[] {
+  return candidates
+    .sort((left, right) => left.file.localeCompare(right.file))
+    .map((candidate) => buildInternalFileReport(candidate, policy, notes));
+}
+
+function resolveInstructionScopeFindings(
+  reports: InternalFileReport[],
+  repoFilesByRoot: Map<string, string[]>,
+  warnings: Set<string>
+): void {
   const repoWideRoots = new Set(
-    internalReports
+    reports
       .filter((report) => report.preset === "copilot" && report.kind === "repository" && report.repoRoot)
       .map((report) => report.repoRoot as string)
   );
 
-  for (const report of internalReports) {
+  for (const report of reports) {
     const repoFiles = report.repoRoot ? repoFilesByRoot.get(report.repoRoot) ?? [] : [];
     report.matchedFiles = resolveMatchedFiles(report, repoFiles);
     report.matchedFileSet = new Set(report.matchedFiles);
@@ -2259,6 +2294,36 @@ export function lintInstructions(
       );
     }
   }
+}
+
+export function lintInstructions(
+  pathOrFiles: string | string[],
+  options: InstructionLintOptions = {}
+): InstructionLintReport {
+  const inputs = Array.isArray(pathOrFiles) ? pathOrFiles : [pathOrFiles];
+  const policy = resolveLintPolicy(inputs, options);
+  const preset = policy.preset;
+  const profile = policy.profile;
+  const failOnSeverity = policy.failOnSeverity;
+  const surface = policy.surface;
+  const budgets = policy.budgets;
+  const model = policy.model;
+  const verbose = options.verbose === true;
+  const modelLimit = getModelLimit(model);
+  const notes = new Set<string>();
+  const {
+    candidates,
+    repoFilesByRoot,
+    ignoreSummary,
+    warnings
+  } = collectInstructionInputs(inputs, policy);
+
+  if (model && !modelLimit) {
+    warnings.add(`Model limits are unknown for ${model}; context-window share metrics are unavailable.`);
+  }
+
+  const internalReports = buildInternalFileReports(candidates, policy, notes);
+  resolveInstructionScopeFindings(internalReports, repoFilesByRoot, warnings);
 
   lintCrossFileRules(internalReports);
   const coverageAnalysis = buildInstructionCoverageAnalysis(internalReports, repoFilesByRoot);

@@ -1,0 +1,726 @@
+{
+  "kind": "instructions-lint-report",
+  "schemaVersion": "instructions-lint-report/v1",
+  "schemaPath": "schemas/instructions-lint-report.schema.json",
+  "preset": "auto",
+  "detectedPresets": [
+    "copilot"
+  ],
+  "profile": "standard",
+  "surface": "all",
+  "passed": false,
+  "exitCode": 2,
+  "failOnSeverity": "error",
+  "coverage": {
+    "targetFileCount": 12,
+    "coveredTargetFileCount": 12,
+    "uncoveredTargetFileCount": 0,
+    "coveredTargets": [
+      {
+        "targetFile": "app/view.tsx",
+        "estimatedTokens": 369,
+        "instructionCount": 4,
+        "instructionFiles": [
+          ".github/copilot-instructions.md",
+          ".github/instructions/all.instructions.md",
+          ".github/instructions/semicolons.instructions.md",
+          ".github/instructions/style.instructions.md"
+        ]
+      },
+      {
+        "targetFile": "src/index.ts",
+        "estimatedTokens": 355,
+        "instructionCount": 3,
+        "instructionFiles": [
+          ".github/copilot-instructions.md",
+          ".github/instructions/all.instructions.md",
+          ".github/instructions/semicolons.instructions.md"
+        ]
+      },
+      {
+        "targetFile": "db/query.sql",
+        "estimatedTokens": 339,
+        "instructionCount": 2,
+        "instructionFiles": [
+          ".github/copilot-instructions.md",
+          ".github/instructions/all.instructions.md"
+        ]
+      },
+      {
+        "targetFile": "docs/readme.md",
+        "estimatedTokens": 339,
+        "instructionCount": 2,
+        "instructionFiles": [
+          ".github/copilot-instructions.md",
+          ".github/instructions/all.instructions.md"
+        ]
+      },
+      {
+        "targetFile": "scripts/tool.py",
+        "estimatedTokens": 339,
+        "instructionCount": 2,
+        "instructionFiles": [
+          ".github/copilot-instructions.md",
+          ".github/instructions/all.instructions.md"
+        ]
+      },
+      {
+        "targetFile": ".github/copilot-instructions.md",
+        "estimatedTokens": 323,
+        "instructionCount": 1,
+        "instructionFiles": [
+          ".github/copilot-instructions.md"
+        ]
+      },
+      {
+        "targetFile": ".github/instructions/all.instructions.md",
+        "estimatedTokens": 323,
+        "instructionCount": 1,
+        "instructionFiles": [
+          ".github/copilot-instructions.md"
+        ]
+      },
+      {
+        "targetFile": ".github/instructions/legacy.md",
+        "estimatedTokens": 323,
+        "instructionCount": 1,
+        "instructionFiles": [
+          ".github/copilot-instructions.md"
+        ]
+      },
+      {
+        "targetFile": ".github/instructions/no-frontmatter.instructions.md",
+        "estimatedTokens": 323,
+        "instructionCount": 1,
+        "instructionFiles": [
+          ".github/copilot-instructions.md"
+        ]
+      },
+      {
+        "targetFile": ".github/instructions/rust.instructions.md",
+        "estimatedTokens": 323,
+        "instructionCount": 1,
+        "instructionFiles": [
+          ".github/copilot-instructions.md"
+        ]
+      },
+      {
+        "targetFile": ".github/instructions/semicolons.instructions.md",
+        "estimatedTokens": 323,
+        "instructionCount": 1,
+        "instructionFiles": [
+          ".github/copilot-instructions.md"
+        ]
+      },
+      {
+        "targetFile": ".github/instructions/style.instructions.md",
+        "estimatedTokens": 323,
+        "instructionCount": 1,
+        "instructionFiles": [
+          ".github/copilot-instructions.md"
+        ]
+      }
+    ],
+    "uncoveredTargetFilesSample": []
+  },
+  "stats": {
+    "totalFiles": 7,
+    "repositoryFiles": 1,
+    "pathSpecificFiles": 5,
+    "unsupportedFiles": 1,
+    "totalStatements": 13,
+    "applicableStatements": 12,
+    "totalChars": 1729,
+    "totalEstimatedTokens": 412,
+    "applicableFiles": 6,
+    "applicableEstimatedTokens": 401,
+    "totalMatchedFiles": 20,
+    "maxApplicableTokens": 369,
+    "maxApplicableTargetFile": "app/view.tsx",
+    "ignoredInstructionFileCount": 0,
+    "ignoredTargetFileCount": 0,
+    "suppressedFindingCount": 0,
+    "baselineMatchedFindingCount": 0,
+    "warningCount": 9,
+    "errorCount": 4
+  },
+  "files": [
+    {
+      "file": ".github/copilot-instructions.md",
+      "kind": "repository",
+      "preset": "copilot",
+      "appliesToSurface": true,
+      "chars": 1281,
+      "words": 154,
+      "estimatedTokens": 323,
+      "statementCount": 7,
+      "matchedFileCount": 12,
+      "findings": [
+        {
+          "file": ".github/copilot-instructions.md",
+          "severity": "error",
+          "category": "compatibility",
+          "confidence": "high",
+          "surfaceApplicability": [
+            "code-review",
+            "chat",
+            "coding-agent"
+          ],
+          "activationType": "repository",
+          "ruleId": "order-dependent-wording",
+          "message": "Instruction relies on relative ordering, but instruction runtimes do not guarantee file order across surfaces and presets.",
+          "line": 10,
+          "suggestion": "Rewrite the instruction so it stands alone without referring to rules above or below."
+        },
+        {
+          "file": ".github/copilot-instructions.md",
+          "severity": "warning",
+          "category": "economy",
+          "confidence": "high",
+          "ruleId": "exact-duplicate-statement",
+          "message": "Instruction duplicates .github/instructions/all.instructions.md:6 across overlapping scope.",
+          "line": 3,
+          "suggestion": "Keep the rule in one file or narrow applyTo so the same instruction is not sent twice.",
+          "evidence": {
+            "relatedLocation": {
+              "file": ".github/instructions/all.instructions.md",
+              "line": 6
+            },
+            "overlapFileCount": 5,
+            "overlapFilesSample": [
+              "app/view.tsx",
+              "db/query.sql",
+              "docs/readme.md"
+            ],
+            "similarityScore": 1
+          }
+        },
+        {
+          "file": ".github/copilot-instructions.md",
+          "severity": "warning",
+          "category": "economy",
+          "confidence": "medium",
+          "ruleId": "high-similarity-statement",
+          "message": "Instruction is highly similar to .github/instructions/style.instructions.md:6 across overlapping scope.",
+          "line": 4,
+          "suggestion": "Merge the rules or remove the lower-signal variant.",
+          "evidence": {
+            "relatedLocation": {
+              "file": ".github/instructions/style.instructions.md",
+              "line": 6
+            },
+            "overlapFileCount": 1,
+            "overlapFilesSample": [
+              "app/view.tsx"
+            ],
+            "similarityScore": 1
+          }
+        },
+        {
+          "file": ".github/copilot-instructions.md",
+          "severity": "warning",
+          "category": "economy",
+          "confidence": "medium",
+          "ruleId": "possible-conflict",
+          "message": "Instruction may conflict with .github/instructions/semicolons.instructions.md:6 because overlapping files express opposite polarity for the same subject.",
+          "line": 4,
+          "suggestion": "Consolidate the rule or make the scope separation explicit.",
+          "evidence": {
+            "relatedLocation": {
+              "file": ".github/instructions/semicolons.instructions.md",
+              "line": 6
+            },
+            "overlapFileCount": 2,
+            "overlapFilesSample": [
+              "app/view.tsx",
+              "src/index.ts"
+            ],
+            "similarityScore": 1
+          }
+        },
+        {
+          "file": ".github/copilot-instructions.md",
+          "severity": "warning",
+          "category": "economy",
+          "confidence": "high",
+          "surfaceApplicability": [
+            "code-review",
+            "chat",
+            "coding-agent"
+          ],
+          "activationType": "repository",
+          "ruleId": "repo-wide-scoped-topics",
+          "message": "Repository-scoped instructions mix in multiple scoped topics that likely belong in narrower instruction files.",
+          "line": 4,
+          "suggestion": "Move language-, path-, or subsystem-specific rules into narrower scoped instruction files."
+        },
+        {
+          "file": ".github/copilot-instructions.md",
+          "severity": "warning",
+          "category": "clarity",
+          "confidence": "medium",
+          "surfaceApplicability": [
+            "code-review",
+            "chat",
+            "coding-agent"
+          ],
+          "activationType": "repository",
+          "ruleId": "vague-instruction",
+          "message": "Instruction is too generic to add repository-specific value.",
+          "line": 10,
+          "suggestion": "Replace generic quality advice with concrete repository rules, preferred tools, or explicit examples."
+        },
+        {
+          "file": ".github/copilot-instructions.md",
+          "severity": "warning",
+          "category": "clarity",
+          "confidence": "high",
+          "surfaceApplicability": [
+            "code-review",
+            "chat",
+            "coding-agent"
+          ],
+          "activationType": "repository",
+          "ruleId": "weak-modal-phrasing",
+          "message": "Instruction uses weak modal phrasing that is easy for assistants to ignore or interpret loosely.",
+          "line": 10,
+          "suggestion": "Use direct imperative wording instead of try to, should consider, or best effort language."
+        },
+        {
+          "file": ".github/copilot-instructions.md",
+          "severity": "warning",
+          "category": "economy",
+          "confidence": "high",
+          "surfaceApplicability": [
+            "code-review",
+            "chat",
+            "coding-agent"
+          ],
+          "activationType": "repository",
+          "groupId": "example-budget:.github/copilot-instructions.md",
+          "ruleId": "oversized-code-example",
+          "message": "Code example is large enough to crowd out higher-signal instruction text.",
+          "line": 12,
+          "suggestion": "Keep examples minimal and only show the pattern that Copilot must prefer or avoid.",
+          "evidence": {
+            "actual": 13,
+            "expected": 12
+          }
+        }
+      ]
+    },
+    {
+      "file": ".github/instructions/all.instructions.md",
+      "kind": "path-specific",
+      "preset": "copilot",
+      "applyTo": [
+        "**"
+      ],
+      "appliesToSurface": true,
+      "chars": 83,
+      "words": 14,
+      "estimatedTokens": 16,
+      "statementCount": 1,
+      "matchedFileCount": 5,
+      "findings": [
+        {
+          "file": ".github/instructions/all.instructions.md",
+          "severity": "error",
+          "category": "compatibility",
+          "confidence": "high",
+          "ruleId": "global-applyto-overlap",
+          "message": "Path-specific instruction file uses applyTo: \"**\" even though a repository-wide copilot-instructions.md file already exists.",
+          "line": 2,
+          "suggestion": "Keep repository-wide guidance in .github/copilot-instructions.md and narrow applyTo to a real subset.",
+          "evidence": {
+            "relatedLocation": {
+              "file": ".github/copilot-instructions.md",
+              "line": 1
+            },
+            "patterns": [
+              "**"
+            ],
+            "matchedFileCount": 5,
+            "matchedFilesSample": [
+              "app/view.tsx",
+              "db/query.sql",
+              "docs/readme.md"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "file": ".github/instructions/legacy.md",
+      "kind": "unsupported",
+      "appliesToSurface": false,
+      "chars": 39,
+      "words": 8,
+      "estimatedTokens": 11,
+      "statementCount": 1,
+      "findings": [
+        {
+          "file": ".github/instructions/legacy.md",
+          "severity": "error",
+          "category": "compatibility",
+          "confidence": "high",
+          "surfaceApplicability": [],
+          "activationType": "unsupported",
+          "ruleId": "invalid-file-path",
+          "message": "Instruction file path does not match a supported instruction preset location.",
+          "line": 1,
+          "suggestion": "Use .github/copilot-instructions.md, .github/instructions/*.instructions.md, or AGENTS.md."
+        }
+      ]
+    },
+    {
+      "file": ".github/instructions/no-frontmatter.instructions.md",
+      "kind": "path-specific",
+      "preset": "copilot",
+      "appliesToSurface": true,
+      "chars": 74,
+      "words": 11,
+      "estimatedTokens": 19,
+      "statementCount": 1,
+      "matchedFileCount": 0,
+      "findings": [
+        {
+          "file": ".github/instructions/no-frontmatter.instructions.md",
+          "severity": "error",
+          "category": "compatibility",
+          "confidence": "high",
+          "ruleId": "missing-frontmatter",
+          "message": "Path-specific instruction files must start with YAML frontmatter containing applyTo or description.",
+          "line": 1,
+          "suggestion": "Add frontmatter like --- applyTo: \"**/*.ts\" --- or --- description: \"Use for architecture questions\" --- at the top of the file."
+        }
+      ]
+    },
+    {
+      "file": ".github/instructions/rust.instructions.md",
+      "kind": "path-specific",
+      "preset": "copilot",
+      "applyTo": [
+        "**/*.rs"
+      ],
+      "appliesToSurface": true,
+      "chars": 74,
+      "words": 12,
+      "estimatedTokens": 13,
+      "statementCount": 1,
+      "matchedFileCount": 0,
+      "findings": [
+        {
+          "file": ".github/instructions/rust.instructions.md",
+          "severity": "warning",
+          "category": "compatibility",
+          "confidence": "high",
+          "ruleId": "stale-applyto",
+          "message": "applyTo patterns do not match any repository files.",
+          "line": 2,
+          "suggestion": "Update the glob patterns or delete the file if the scope no longer exists.",
+          "evidence": {
+            "patterns": [
+              "**/*.rs"
+            ],
+            "matchedFileCount": 0
+          }
+        }
+      ]
+    },
+    {
+      "file": ".github/instructions/semicolons.instructions.md",
+      "kind": "path-specific",
+      "preset": "copilot",
+      "applyTo": [
+        "**/*.ts",
+        "**/*.tsx"
+      ],
+      "appliesToSurface": true,
+      "chars": 95,
+      "words": 14,
+      "estimatedTokens": 16,
+      "statementCount": 1,
+      "matchedFileCount": 2,
+      "findings": [
+        {
+          "file": ".github/instructions/semicolons.instructions.md",
+          "severity": "warning",
+          "category": "economy",
+          "confidence": "medium",
+          "ruleId": "possible-conflict",
+          "message": "Instruction may conflict with .github/instructions/style.instructions.md:6 because overlapping files express opposite polarity for the same subject.",
+          "line": 6,
+          "suggestion": "Consolidate the rule or make the scope separation explicit.",
+          "evidence": {
+            "relatedLocation": {
+              "file": ".github/instructions/style.instructions.md",
+              "line": 6
+            },
+            "overlapFileCount": 1,
+            "overlapFilesSample": [
+              "app/view.tsx"
+            ],
+            "similarityScore": 1
+          }
+        }
+      ]
+    },
+    {
+      "file": ".github/instructions/style.instructions.md",
+      "kind": "path-specific",
+      "preset": "copilot",
+      "applyTo": [
+        "app/**/*.tsx"
+      ],
+      "appliesToSurface": true,
+      "chars": 83,
+      "words": 13,
+      "estimatedTokens": 14,
+      "statementCount": 1,
+      "matchedFileCount": 1,
+      "findings": []
+    }
+  ],
+  "findings": [
+    {
+      "file": ".github/copilot-instructions.md",
+      "severity": "error",
+      "category": "compatibility",
+      "confidence": "high",
+      "surfaceApplicability": [
+        "code-review",
+        "chat",
+        "coding-agent"
+      ],
+      "activationType": "repository",
+      "ruleId": "order-dependent-wording",
+      "message": "Instruction relies on relative ordering, but instruction runtimes do not guarantee file order across surfaces and presets.",
+      "line": 10,
+      "suggestion": "Rewrite the instruction so it stands alone without referring to rules above or below."
+    },
+    {
+      "file": ".github/instructions/all.instructions.md",
+      "severity": "error",
+      "category": "compatibility",
+      "confidence": "high",
+      "ruleId": "global-applyto-overlap",
+      "message": "Path-specific instruction file uses applyTo: \"**\" even though a repository-wide copilot-instructions.md file already exists.",
+      "line": 2,
+      "suggestion": "Keep repository-wide guidance in .github/copilot-instructions.md and narrow applyTo to a real subset.",
+      "evidence": {
+        "relatedLocation": {
+          "file": ".github/copilot-instructions.md",
+          "line": 1
+        },
+        "patterns": [
+          "**"
+        ],
+        "matchedFileCount": 5,
+        "matchedFilesSample": [
+          "app/view.tsx",
+          "db/query.sql",
+          "docs/readme.md"
+        ]
+      }
+    },
+    {
+      "file": ".github/instructions/legacy.md",
+      "severity": "error",
+      "category": "compatibility",
+      "confidence": "high",
+      "surfaceApplicability": [],
+      "activationType": "unsupported",
+      "ruleId": "invalid-file-path",
+      "message": "Instruction file path does not match a supported instruction preset location.",
+      "line": 1,
+      "suggestion": "Use .github/copilot-instructions.md, .github/instructions/*.instructions.md, or AGENTS.md."
+    },
+    {
+      "file": ".github/instructions/no-frontmatter.instructions.md",
+      "severity": "error",
+      "category": "compatibility",
+      "confidence": "high",
+      "ruleId": "missing-frontmatter",
+      "message": "Path-specific instruction files must start with YAML frontmatter containing applyTo or description.",
+      "line": 1,
+      "suggestion": "Add frontmatter like --- applyTo: \"**/*.ts\" --- or --- description: \"Use for architecture questions\" --- at the top of the file."
+    },
+    {
+      "file": ".github/copilot-instructions.md",
+      "severity": "warning",
+      "category": "economy",
+      "confidence": "high",
+      "ruleId": "exact-duplicate-statement",
+      "message": "Instruction duplicates .github/instructions/all.instructions.md:6 across overlapping scope.",
+      "line": 3,
+      "suggestion": "Keep the rule in one file or narrow applyTo so the same instruction is not sent twice.",
+      "evidence": {
+        "relatedLocation": {
+          "file": ".github/instructions/all.instructions.md",
+          "line": 6
+        },
+        "overlapFileCount": 5,
+        "overlapFilesSample": [
+          "app/view.tsx",
+          "db/query.sql",
+          "docs/readme.md"
+        ],
+        "similarityScore": 1
+      }
+    },
+    {
+      "file": ".github/copilot-instructions.md",
+      "severity": "warning",
+      "category": "economy",
+      "confidence": "medium",
+      "ruleId": "high-similarity-statement",
+      "message": "Instruction is highly similar to .github/instructions/style.instructions.md:6 across overlapping scope.",
+      "line": 4,
+      "suggestion": "Merge the rules or remove the lower-signal variant.",
+      "evidence": {
+        "relatedLocation": {
+          "file": ".github/instructions/style.instructions.md",
+          "line": 6
+        },
+        "overlapFileCount": 1,
+        "overlapFilesSample": [
+          "app/view.tsx"
+        ],
+        "similarityScore": 1
+      }
+    },
+    {
+      "file": ".github/copilot-instructions.md",
+      "severity": "warning",
+      "category": "economy",
+      "confidence": "medium",
+      "ruleId": "possible-conflict",
+      "message": "Instruction may conflict with .github/instructions/semicolons.instructions.md:6 because overlapping files express opposite polarity for the same subject.",
+      "line": 4,
+      "suggestion": "Consolidate the rule or make the scope separation explicit.",
+      "evidence": {
+        "relatedLocation": {
+          "file": ".github/instructions/semicolons.instructions.md",
+          "line": 6
+        },
+        "overlapFileCount": 2,
+        "overlapFilesSample": [
+          "app/view.tsx",
+          "src/index.ts"
+        ],
+        "similarityScore": 1
+      }
+    },
+    {
+      "file": ".github/copilot-instructions.md",
+      "severity": "warning",
+      "category": "economy",
+      "confidence": "high",
+      "surfaceApplicability": [
+        "code-review",
+        "chat",
+        "coding-agent"
+      ],
+      "activationType": "repository",
+      "ruleId": "repo-wide-scoped-topics",
+      "message": "Repository-scoped instructions mix in multiple scoped topics that likely belong in narrower instruction files.",
+      "line": 4,
+      "suggestion": "Move language-, path-, or subsystem-specific rules into narrower scoped instruction files."
+    },
+    {
+      "file": ".github/copilot-instructions.md",
+      "severity": "warning",
+      "category": "clarity",
+      "confidence": "medium",
+      "surfaceApplicability": [
+        "code-review",
+        "chat",
+        "coding-agent"
+      ],
+      "activationType": "repository",
+      "ruleId": "vague-instruction",
+      "message": "Instruction is too generic to add repository-specific value.",
+      "line": 10,
+      "suggestion": "Replace generic quality advice with concrete repository rules, preferred tools, or explicit examples."
+    },
+    {
+      "file": ".github/copilot-instructions.md",
+      "severity": "warning",
+      "category": "clarity",
+      "confidence": "high",
+      "surfaceApplicability": [
+        "code-review",
+        "chat",
+        "coding-agent"
+      ],
+      "activationType": "repository",
+      "ruleId": "weak-modal-phrasing",
+      "message": "Instruction uses weak modal phrasing that is easy for assistants to ignore or interpret loosely.",
+      "line": 10,
+      "suggestion": "Use direct imperative wording instead of try to, should consider, or best effort language."
+    },
+    {
+      "file": ".github/copilot-instructions.md",
+      "severity": "warning",
+      "category": "economy",
+      "confidence": "high",
+      "surfaceApplicability": [
+        "code-review",
+        "chat",
+        "coding-agent"
+      ],
+      "activationType": "repository",
+      "groupId": "example-budget:.github/copilot-instructions.md",
+      "ruleId": "oversized-code-example",
+      "message": "Code example is large enough to crowd out higher-signal instruction text.",
+      "line": 12,
+      "suggestion": "Keep examples minimal and only show the pattern that Copilot must prefer or avoid.",
+      "evidence": {
+        "actual": 13,
+        "expected": 12
+      }
+    },
+    {
+      "file": ".github/instructions/rust.instructions.md",
+      "severity": "warning",
+      "category": "compatibility",
+      "confidence": "high",
+      "ruleId": "stale-applyto",
+      "message": "applyTo patterns do not match any repository files.",
+      "line": 2,
+      "suggestion": "Update the glob patterns or delete the file if the scope no longer exists.",
+      "evidence": {
+        "patterns": [
+          "**/*.rs"
+        ],
+        "matchedFileCount": 0
+      }
+    },
+    {
+      "file": ".github/instructions/semicolons.instructions.md",
+      "severity": "warning",
+      "category": "economy",
+      "confidence": "medium",
+      "ruleId": "possible-conflict",
+      "message": "Instruction may conflict with .github/instructions/style.instructions.md:6 because overlapping files express opposite polarity for the same subject.",
+      "line": 6,
+      "suggestion": "Consolidate the rule or make the scope separation explicit.",
+      "evidence": {
+        "relatedLocation": {
+          "file": ".github/instructions/style.instructions.md",
+          "line": 6
+        },
+        "overlapFileCount": 1,
+        "overlapFilesSample": [
+          "app/view.tsx"
+        ],
+        "similarityScore": 1
+      }
+    }
+  ],
+  "warnings": [
+    ".github/instructions/rust.instructions.md applyTo patterns do not match any repository files."
+  ],
+  "notes": []
+}

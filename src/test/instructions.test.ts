@@ -12,6 +12,14 @@ function instructionFixture(name: string): string {
   return path.join(rootDir, "fixtures", "instructions", name);
 }
 
+function readInstructionGolden(name: string): string {
+  return fs.readFileSync(path.join(rootDir, "fixtures", "golden", name), "utf8");
+}
+
+function formatJsonSnapshot(value: unknown): string {
+  return `${JSON.stringify(value, null, 2)}\n`;
+}
+
 function createInstructionRepo(
   files: Record<string, string>,
   prefix: string
@@ -24,6 +32,34 @@ function createInstructionRepo(
   }
   return repoRoot;
 }
+
+test("lintInstructions JSON reports match stable regression snapshots", () => {
+  const cases = [
+    {
+      name: "valid Copilot repository",
+      report: lintInstructions(instructionFixture("valid-repo")),
+      golden: "instructions-lint-valid.json"
+    },
+    {
+      name: "invalid Copilot repository",
+      report: lintInstructions(instructionFixture("invalid-repo")),
+      golden: "instructions-lint-invalid.json"
+    },
+    {
+      name: "AGENTS.md repository",
+      report: lintInstructions(instructionFixture("agents-repo"), { preset: "agents-md" }),
+      golden: "instructions-lint-agents.json"
+    }
+  ];
+
+  for (const entry of cases) {
+    assert.equal(
+      formatJsonSnapshot(entry.report),
+      readInstructionGolden(entry.golden),
+      entry.name
+    );
+  }
+});
 
 test("lintInstructions discovers repository-wide and path-specific files from a repo root", () => {
   const report = lintInstructions(instructionFixture("valid-repo"));

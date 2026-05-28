@@ -59,7 +59,7 @@ flowchart LR
   This is heuristic infrastructure, not a source of exact truth.
 
 - `src/instructions/`
-  Instruction lint discovery, parsing, scope matching, and rule evaluation for GitHub Copilot instruction files.
+  Instruction lint discovery, parsing, scope matching, and rule evaluation for repository instruction files.
   This is a second report family and should not be forced into `ContextReport`.
 
 - `src/format.ts`
@@ -101,6 +101,23 @@ Instruction linting uses a separate report family because the source objects are
 
 - `InstructionFileReport`
 - `InstructionLintReport`
+
+## Instruction Lint Engine
+
+`instructions-lint` is centered on `src/instructions/lint.ts`. That file is the executable lint engine. `src/instructions/rules.ts` is the rule registry: it defines stable rule IDs, categories, default severities, and applicability metadata, but it does not run checks by itself.
+
+The engine is a deterministic pipeline:
+
+1. Resolve lint policy from CLI options and config.
+2. Collect candidate instruction files and visible repository target files.
+3. Parse frontmatter, Markdown blocks, and instruction statements into an internal file report.
+4. Run local file rules such as malformed frontmatter, file budgets, statement clarity, and code example size.
+5. Resolve path scopes and target coverage.
+6. Run composition rules such as stale scopes, duplicate statements, possible conflicts, overlap, and per-target instruction load.
+7. Apply suppressions, rule overrides, and baselines.
+8. Build the stable `InstructionLintReport` for formatters, CI, and SDK consumers.
+
+This boundary matters because Tokn's value comes from composed static analysis, not from one regex rule list. New lint behavior should normally fit one of these passes instead of adding logic to the CLI or formatter.
 
 ## Supported Input Classes
 
