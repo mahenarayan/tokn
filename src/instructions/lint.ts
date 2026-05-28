@@ -1,6 +1,5 @@
 import fs from "node:fs";
 import path from "node:path";
-import { parseDocument } from "yaml";
 
 import { readText } from "../helpers.js";
 import { getModelLimit } from "../models.js";
@@ -12,10 +11,32 @@ import {
   type ResolvedInstructionLintConfig
 } from "./config.js";
 import {
+  type CandidateFile,
+  classifyCandidate,
+  discoverDirectoryCandidates,
+  displayPath,
+  inferRepoRootFromDirectory,
+  inferRepoRootFromFile,
+  knownUnsupportedAgentSurface,
+  matchesAnyGlob,
+  matchesGlob,
+  normalizePath,
+  walkFiles
+} from "./discovery.js";
+import {
   COPILOT_CODE_REVIEW_CHAR_LIMIT,
   type InstructionBudgets,
   resolveInstructionBudgets
 } from "./limits.js";
+import {
+  type MarkdownBlock,
+  type ParsedFrontmatter,
+  type Statement,
+  instructionTokenText,
+  parseFrontmatter,
+  parseMarkdownBlocks,
+  statementFromBlock
+} from "./markdown.js";
 import {
   getInstructionRuleCategory,
   getInstructionRuleDefaultSeverity,
@@ -23,6 +44,10 @@ import {
   INSTRUCTION_LINT_REPORT_SCHEMA_VERSION,
   isInstructionRuleId
 } from "./rules.js";
+import {
+  countWords,
+  jaccardSimilarity
+} from "./text.js";
 import type {
   InstructionExcludeAgent,
   InstructionActivationType,
@@ -48,46 +73,6 @@ import type {
   InstructionSuppression,
   InstructionLintStats
 } from "../types.js";
-
-interface CandidateFile {
-  absolutePath: string;
-  file: string;
-  kind: InstructionFileKind;
-  preset?: InstructionLintPreset;
-  repoRoot?: string;
-  scopePath?: string;
-}
-
-type MarkdownBlockType = "heading" | "bullet" | "numbered" | "paragraph" | "code";
-
-interface MarkdownBlock {
-  type: MarkdownBlockType;
-  line: number;
-  text: string;
-  lines: number;
-}
-
-interface ParsedFrontmatter {
-  data: Record<string, unknown>;
-  lines: Record<string, number>;
-  body: string;
-  endLine: number;
-  hasFrontmatter: boolean;
-  error?: string;
-  errorLine?: number;
-}
-
-interface Statement {
-  text: string;
-  line: number;
-  sourceType: "bullet" | "numbered" | "paragraph";
-  normalized: string;
-  tokens: string[];
-  tokensSansNegation: string[];
-  wordCount: number;
-  sentenceCount: number;
-  isNegative: boolean;
-}
 
 interface InternalFileReport {
   absolutePath: string;
@@ -167,40 +152,6 @@ const DEFAULT_SURFACE: InstructionLintSurface = "all";
 const DEFAULT_PRESET: InstructionLintPresetSelector = "auto";
 const MAX_INSTRUCTION_FILE_BYTES = 1024 * 1024;
 const MAX_BASELINE_FILE_BYTES = 10 * 1024 * 1024;
-const IGNORED_DIRECTORIES = new Set([".git", "node_modules", "dist", ".npm-cache"]);
-const FRONTMATTER_DELIMITER = "---";
-const NEGATION_WORDS = new Set(["do", "no", "not", "never", "avoid", "dont", "don't", "without"]);
-const STOP_WORDS = new Set([
-  "a",
-  "an",
-  "and",
-  "are",
-  "as",
-  "at",
-  "be",
-  "by",
-  "for",
-  "from",
-  "if",
-  "in",
-  "into",
-  "is",
-  "it",
-  "of",
-  "on",
-  "or",
-  "that",
-  "the",
-  "their",
-  "then",
-  "this",
-  "to",
-  "use",
-  "when",
-  "with",
-  "you",
-  "your"
-]);
 
 const ORDER_DEPENDENT_RE =
   /\b(earlier rule|later rule|next rule|previous rule|following rule|as described above|mentioned above|see above|see below|rules? above|rules? below|instructions? above|instructions? below|above rules?|below rules?|above instructions?|below instructions?)\b/i;
@@ -221,20 +172,6 @@ type ConcreteInstructionLintSurface = typeof CONCRETE_SURFACES[number];
  * stable report. `rules.ts` is the public rule registry; executable checks live
  * here so they can share parsed statements, path scopes, and coverage data.
  */
-
-function normalizePath(filePath: string): string {
-  return filePath.replace(/\\/g, "/");
-}
-
-function countWords(text: string): number {
-  const words = text.trim().split(/\s+/).filter(Boolean);
-  return words.length;
-}
-
-function countSentences(text: string): number {
-  const matches = text.match(/[.!?](?:\s|$)/g);
-  return matches?.length ?? 1;
-}
 
 function compareSeverity(left: InstructionLintSeverity, right: InstructionLintSeverity): number {
   const rank = { warning: 1, error: 2 } as const;
@@ -258,536 +195,6 @@ function findingSort(left: InstructionFinding, right: InstructionFinding): numbe
   }
 
   return left.ruleId.localeCompare(right.ruleId);
-}
-
-function normalizeStatementText(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/`/g, "")
-    .replace(/[^a-z0-9./_-]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function tokenSet(text: string, { removeNegation = false }: { removeNegation?: boolean } = {}): string[] {
-  const tokens = normalizeStatementText(text)
-    .split(" ")
-    .filter((token) => token.length > 1)
-    .filter((token) => !STOP_WORDS.has(token))
-    .filter((token) => !(removeNegation && NEGATION_WORDS.has(token)));
-
-  return [...new Set(tokens)];
-}
-
-function isNegative(text: string): boolean {
-  return /\b(do not|don't|never|avoid|without|no)\b/i.test(text);
-}
-
-function jaccardSimilarity(left: string[], right: string[]): number {
-  if (left.length === 0 || right.length === 0) {
-    return 0;
-  }
-
-  const leftSet = new Set(left);
-  const rightSet = new Set(right);
-  let intersection = 0;
-  for (const token of leftSet) {
-    if (rightSet.has(token)) {
-      intersection += 1;
-    }
-  }
-
-  const union = new Set([...leftSet, ...rightSet]).size;
-  return union === 0 ? 0 : intersection / union;
-}
-
-function isBlockBoundary(line: string): boolean {
-  return (
-    line.trim() === "" ||
-    /^(```|~~~)/.test(line.trim()) ||
-    /^#{1,6}\s+/.test(line) ||
-    /^\s*[-*+]\s+/.test(line) ||
-    /^\s*\d+\.\s+/.test(line)
-  );
-}
-
-function walkFiles(directory: string): string[] {
-  if (!fs.existsSync(directory)) {
-    return [];
-  }
-
-  const entries = fs.readdirSync(directory, { withFileTypes: true });
-  const files: string[] = [];
-
-  for (const entry of entries.sort((left, right) => left.name.localeCompare(right.name))) {
-    const absolutePath = path.join(directory, entry.name);
-    if (entry.isDirectory()) {
-      if (IGNORED_DIRECTORIES.has(entry.name)) {
-        continue;
-      }
-      files.push(...walkFiles(absolutePath));
-      continue;
-    }
-    if (entry.isFile()) {
-      files.push(absolutePath);
-      continue;
-    }
-    if (entry.isSymbolicLink()) {
-      try {
-        if (fs.statSync(absolutePath).isFile()) {
-          files.push(absolutePath);
-        }
-      } catch {
-        continue;
-      }
-    }
-  }
-
-  return files;
-}
-
-function fileExists(filePath: string): boolean {
-  return fs.existsSync(filePath) && fs.statSync(filePath).isFile();
-}
-
-function directoryExists(directoryPath: string): boolean {
-  return fs.existsSync(directoryPath) && fs.statSync(directoryPath).isDirectory();
-}
-
-function inferRepoRootFromDirectory(directoryPath: string): string | undefined {
-  let current = path.resolve(directoryPath);
-  let fallback: string | undefined;
-  while (true) {
-    if (
-      directoryExists(path.join(current, ".github")) ||
-      directoryExists(path.join(current, ".claude")) ||
-      directoryExists(path.join(current, ".cursor")) ||
-      fileExists(path.join(current, "AGENTS.md")) ||
-      fileExists(path.join(current, "CLAUDE.md")) ||
-      fileExists(path.join(current, "GEMINI.md")) ||
-      fileExists(path.join(current, ".cursorrules"))
-    ) {
-      return current;
-    }
-    if (!fallback && fileExists(path.join(current, "package.json"))) {
-      fallback = current;
-    }
-    if (directoryExists(path.join(current, ".git"))) {
-      return fallback ?? current;
-    }
-    const parent = path.dirname(current);
-    if (parent === current) {
-      return fallback;
-    }
-    current = parent;
-  }
-}
-
-function inferRepoRootFromFile(filePath: string): string | undefined {
-  const normalized = path.resolve(filePath);
-  let current = path.dirname(normalized);
-  let fallback: string | undefined;
-  let selfMarkerFallback: string | undefined;
-  while (true) {
-    const markerFiles = [
-      path.join(current, "AGENTS.md"),
-      path.join(current, "CLAUDE.md"),
-      path.join(current, "GEMINI.md"),
-      path.join(current, ".cursorrules")
-    ];
-    const hasMarkerFile = markerFiles.some((markerPath) => {
-      if (!fileExists(markerPath)) {
-        return false;
-      }
-      if (path.resolve(markerPath) === normalized) {
-        selfMarkerFallback ??= current;
-        return false;
-      }
-      return true;
-    });
-    if (
-      directoryExists(path.join(current, ".github")) ||
-      directoryExists(path.join(current, ".claude")) ||
-      directoryExists(path.join(current, ".cursor")) ||
-      hasMarkerFile
-    ) {
-      return current;
-    }
-    if (!fallback && fileExists(path.join(current, "package.json"))) {
-      fallback = current;
-    }
-    if (directoryExists(path.join(current, ".git"))) {
-      return fallback ?? current;
-    }
-    const parent = path.dirname(current);
-    if (parent === current) {
-      return fallback ?? selfMarkerFallback;
-    }
-    current = parent;
-  }
-}
-
-function displayPath(absolutePath: string, repoRoot?: string): string {
-  if (repoRoot) {
-    return normalizePath(path.relative(repoRoot, absolutePath));
-  }
-
-  const relativeToCwd = path.relative(process.cwd(), absolutePath);
-  return relativeToCwd.startsWith("..") ? normalizePath(absolutePath) : normalizePath(relativeToCwd);
-}
-
-function matchesAnyGlob(filePath: string, patterns: string[]): boolean {
-  return patterns.some((pattern) => matchesGlob(filePath, pattern));
-}
-
-function matchesGlob(filePath: string, pattern: string): boolean {
-  return path.matchesGlob(normalizePath(filePath), normalizePath(pattern));
-}
-
-function pathHasDirectoryPair(filePath: string, parent: string, child: string): boolean {
-  const parts = normalizePath(filePath).split("/");
-  return parts.some((part, index) => part === parent && parts[index + 1] === child);
-}
-
-function knownUnsupportedAgentSurface(filePath: string): string | undefined {
-  const normalized = normalizePath(filePath);
-  const baseName = normalized.split("/").at(-1) ?? normalized;
-
-  if (
-    baseName === "CLAUDE.md" ||
-    baseName === "CLAUDE.local.md" ||
-    (pathHasDirectoryPair(normalized, ".claude", "rules") && normalized.endsWith(".md"))
-  ) {
-    return "Claude Code";
-  }
-  if (baseName === "GEMINI.md") {
-    return "Gemini CLI";
-  }
-  if (
-    baseName === ".cursorrules" ||
-    (pathHasDirectoryPair(normalized, ".cursor", "rules") && normalized.endsWith(".mdc"))
-  ) {
-    return "Cursor";
-  }
-
-  return undefined;
-}
-
-function classifyCandidate(absolutePath: string, repoRoot?: string): CandidateFile {
-  const kindRelativePath = repoRoot
-    ? normalizePath(path.relative(repoRoot, absolutePath))
-    : normalizePath(absolutePath);
-
-  let kind: InstructionFileKind = "unsupported";
-  let preset: InstructionLintPreset | undefined;
-  let scopePath: string | undefined;
-  if (kindRelativePath === ".github/copilot-instructions.md") {
-    kind = "repository";
-    preset = "copilot";
-  } else if (
-    kindRelativePath.startsWith(".github/instructions/") &&
-    kindRelativePath.endsWith(".instructions.md")
-  ) {
-    kind = "path-specific";
-    preset = "copilot";
-  } else if (path.basename(absolutePath) === "AGENTS.md") {
-    preset = "agents-md";
-    if (!repoRoot) {
-      kind = "repository";
-    } else {
-      const relativeDirectory = normalizePath(path.dirname(kindRelativePath));
-      kind = relativeDirectory === "." ? "repository" : "path-specific";
-      if (relativeDirectory !== ".") {
-        scopePath = relativeDirectory;
-      }
-    }
-  }
-
-  return {
-    absolutePath,
-    file: displayPath(absolutePath, repoRoot),
-    kind,
-    ...(preset ? { preset } : {}),
-    ...(repoRoot ? { repoRoot } : {}),
-    ...(scopePath ? { scopePath } : {})
-  };
-}
-
-function discoverAgentsCandidates(root: string): CandidateFile[] {
-  return walkFiles(root)
-    .filter((filePath) => path.basename(filePath) === "AGENTS.md")
-    .map((filePath) => classifyCandidate(filePath, root))
-    .sort((left, right) => left.file.localeCompare(right.file));
-}
-
-function discoverKnownUnsupportedAgentCandidates(root: string): CandidateFile[] {
-  return walkFiles(root)
-    .filter((filePath) => knownUnsupportedAgentSurface(path.relative(root, filePath)) !== undefined)
-    .map((filePath) => classifyCandidate(filePath, root))
-    .sort((left, right) => left.file.localeCompare(right.file));
-}
-
-function discoverDirectoryCandidates(
-  root: string,
-  preset: InstructionLintPresetSelector
-): CandidateFile[] {
-  const candidates: CandidateFile[] = [];
-  if (preset === "auto" || preset === "copilot") {
-    const repoWidePath = path.join(root, ".github", "copilot-instructions.md");
-    if (fileExists(repoWidePath)) {
-      candidates.push(classifyCandidate(repoWidePath, root));
-    }
-
-    const instructionDirectory = path.join(root, ".github", "instructions");
-    if (directoryExists(instructionDirectory)) {
-      for (const filePath of walkFiles(instructionDirectory)) {
-        candidates.push(classifyCandidate(filePath, root));
-      }
-    }
-  }
-
-  if (preset === "auto" || preset === "agents-md") {
-    candidates.push(...discoverAgentsCandidates(root));
-  }
-
-  if (preset === "auto") {
-    candidates.push(...discoverKnownUnsupportedAgentCandidates(root));
-  }
-
-  return candidates.sort((left, right) => left.file.localeCompare(right.file));
-}
-
-function parseFrontmatter(rawText: string): ParsedFrontmatter {
-  const lines = rawText.split(/\r?\n/);
-  if (lines[0]?.trim() !== FRONTMATTER_DELIMITER) {
-    return {
-      data: {},
-      lines: {},
-      body: rawText,
-      endLine: 0,
-      hasFrontmatter: false
-    };
-  }
-
-  let closingIndex = -1;
-  for (let index = 1; index < lines.length; index += 1) {
-    if (lines[index]?.trim() === FRONTMATTER_DELIMITER) {
-      closingIndex = index;
-      break;
-    }
-  }
-
-  if (closingIndex === -1) {
-    return {
-      data: {},
-      lines: {},
-      body: rawText,
-      endLine: 0,
-      hasFrontmatter: true,
-      error: "Frontmatter is missing a closing --- delimiter.",
-      errorLine: 1
-    };
-  }
-
-  const lineNumbers: Record<string, number> = {};
-  for (let index = 1; index < closingIndex; index += 1) {
-    const match = (lines[index] ?? "").match(/^([A-Za-z][A-Za-z0-9_-]*)\s*:/);
-    if (match?.[1] && lineNumbers[match[1]] === undefined) {
-      lineNumbers[match[1]] = index + 1;
-    }
-  }
-
-  const frontmatterText = lines.slice(1, closingIndex).join("\n");
-  const document = parseDocument(frontmatterText, {
-    prettyErrors: false,
-    strict: false
-  });
-  if (document.errors.length > 0) {
-    return {
-      data: {},
-      lines: lineNumbers,
-      body: rawText,
-      endLine: closingIndex + 1,
-      hasFrontmatter: true,
-      error: `Frontmatter contains invalid YAML: ${document.errors[0]?.message ?? "unknown parse error"}.`,
-      errorLine: 1
-    };
-  }
-
-  const parsed = document.toJSON();
-  if (parsed !== null && (typeof parsed !== "object" || Array.isArray(parsed))) {
-    return {
-      data: {},
-      lines: lineNumbers,
-      body: rawText,
-      endLine: closingIndex + 1,
-      hasFrontmatter: true,
-      error: "Frontmatter must be a YAML object with top-level keys.",
-      errorLine: 1
-    };
-  }
-
-  return {
-    data: parsed ?? {},
-    lines: lineNumbers,
-    body: lines.slice(closingIndex + 1).join("\n"),
-    endLine: closingIndex + 1,
-    hasFrontmatter: true
-  };
-}
-
-function parseMarkdownBlocks(content: string, lineOffset: number): MarkdownBlock[] {
-  const lines = content.split(/\r?\n/);
-  const blocks: MarkdownBlock[] = [];
-
-  let index = 0;
-  while (index < lines.length) {
-    const line = lines[index] ?? "";
-    const trimmed = line.trim();
-
-    if (!trimmed) {
-      index += 1;
-      continue;
-    }
-
-    const lineNumber = lineOffset + index + 1;
-
-    if (/^(```|~~~)/.test(trimmed)) {
-      const fence = trimmed.slice(0, 3);
-      let endIndex = index + 1;
-      while (endIndex < lines.length && !(lines[endIndex] ?? "").trim().startsWith(fence)) {
-        endIndex += 1;
-      }
-      if (endIndex < lines.length) {
-        endIndex += 1;
-      }
-
-      const blockLines = lines.slice(index, Math.min(endIndex, lines.length));
-      blocks.push({
-        type: "code",
-        line: lineNumber,
-        text: blockLines.join("\n"),
-        lines: blockLines.length
-      });
-      index = Math.max(endIndex, index + 1);
-      continue;
-    }
-
-    const headingMatch = line.match(/^#{1,6}\s+(.*)$/);
-    if (headingMatch) {
-      blocks.push({
-        type: "heading",
-        line: lineNumber,
-        text: headingMatch[1]?.trim() ?? "",
-        lines: 1
-      });
-      index += 1;
-      continue;
-    }
-
-    const bulletMatch = line.match(/^\s*[-*+]\s+(.*)$/);
-    if (bulletMatch) {
-      const parts = [bulletMatch[1]?.trim() ?? ""];
-      let endIndex = index + 1;
-      while (
-        endIndex < lines.length &&
-        (lines[endIndex] ?? "").trim() !== "" &&
-        !/^(```|~~~)/.test((lines[endIndex] ?? "").trim()) &&
-        !/^#{1,6}\s+/.test(lines[endIndex] ?? "") &&
-        !/^\s*[-*+]\s+/.test(lines[endIndex] ?? "") &&
-        !/^\s*\d+\.\s+/.test(lines[endIndex] ?? "")
-      ) {
-        parts.push((lines[endIndex] ?? "").trim());
-        endIndex += 1;
-      }
-
-      blocks.push({
-        type: "bullet",
-        line: lineNumber,
-        text: parts.join(" ").trim(),
-        lines: endIndex - index
-      });
-      index = endIndex;
-      continue;
-    }
-
-    const numberedMatch = line.match(/^\s*\d+\.\s+(.*)$/);
-    if (numberedMatch) {
-      const parts = [numberedMatch[1]?.trim() ?? ""];
-      let endIndex = index + 1;
-      while (
-        endIndex < lines.length &&
-        (lines[endIndex] ?? "").trim() !== "" &&
-        !/^(```|~~~)/.test((lines[endIndex] ?? "").trim()) &&
-        !/^#{1,6}\s+/.test(lines[endIndex] ?? "") &&
-        !/^\s*[-*+]\s+/.test(lines[endIndex] ?? "") &&
-        !/^\s*\d+\.\s+/.test(lines[endIndex] ?? "")
-      ) {
-        parts.push((lines[endIndex] ?? "").trim());
-        endIndex += 1;
-      }
-
-      blocks.push({
-        type: "numbered",
-        line: lineNumber,
-        text: parts.join(" ").trim(),
-        lines: endIndex - index
-      });
-      index = endIndex;
-      continue;
-    }
-
-    const paragraphLines = [trimmed];
-    let endIndex = index + 1;
-    while (endIndex < lines.length && !isBlockBoundary(lines[endIndex] ?? "")) {
-      paragraphLines.push((lines[endIndex] ?? "").trim());
-      endIndex += 1;
-    }
-
-    blocks.push({
-      type: "paragraph",
-      line: lineNumber,
-      text: paragraphLines.join(" ").trim(),
-      lines: endIndex - index
-    });
-    index = endIndex;
-  }
-
-  return blocks;
-}
-
-function instructionTokenText(
-  candidate: Pick<CandidateFile, "kind" | "preset">,
-  frontmatter: Pick<ParsedFrontmatter, "body" | "error" | "hasFrontmatter">,
-  rawText: string
-): string {
-  if (
-    candidate.preset === "copilot" &&
-    candidate.kind === "path-specific" &&
-    frontmatter.hasFrontmatter &&
-    !frontmatter.error
-  ) {
-    return frontmatter.body;
-  }
-  return rawText;
-}
-
-function statementFromBlock(block: MarkdownBlock): Statement | undefined {
-  if (block.type !== "bullet" && block.type !== "numbered" && block.type !== "paragraph") {
-    return undefined;
-  }
-
-  return {
-    text: block.text,
-    line: block.line,
-    sourceType: block.type,
-    normalized: normalizeStatementText(block.text),
-    tokens: tokenSet(block.text),
-    tokensSansNegation: tokenSet(block.text, { removeNegation: true }),
-    wordCount: countWords(block.text),
-    sentenceCount: countSentences(block.text),
-    isNegative: isNegative(block.text)
-  };
 }
 
 function createFinding(

@@ -4,7 +4,11 @@ This directory contains the stable `instructions-lint` engine.
 
 ## Files
 
-- `lint.ts`: executable lint pipeline, discovery, parsing, scope matching, rule evaluation, coverage, policy post-processing, and report assembly
+- `lint.ts`: executable lint pipeline, rule evaluation, coverage, policy post-processing, and report assembly
+- `discovery.ts`: path normalization, repository-root inference, candidate discovery, and preset classification
+- `markdown.ts`: frontmatter parsing, Markdown block parsing, and statement extraction
+- `text.ts`: shared word counting, statement tokenization, negation detection, and similarity helpers
+- `limits.ts`: profile budgets and platform limits
 - `rules.ts`: stable rule registry with IDs, categories, default severities, preset metadata, and surface metadata
 - `config.ts`: config discovery and normalization for `tokn.config.json` and `.toknrc.json`
 
