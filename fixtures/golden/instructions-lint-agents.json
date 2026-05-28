@@ -1,0 +1,116 @@
+{
+  "kind": "instructions-lint-report",
+  "schemaVersion": "instructions-lint-report/v1",
+  "schemaPath": "schemas/instructions-lint-report.schema.json",
+  "preset": "agents-md",
+  "detectedPresets": [
+    "agents-md"
+  ],
+  "profile": "standard",
+  "surface": "all",
+  "passed": true,
+  "exitCode": 0,
+  "failOnSeverity": "error",
+  "coverage": {
+    "targetFileCount": 5,
+    "coveredTargetFileCount": 5,
+    "uncoveredTargetFileCount": 0,
+    "coveredTargets": [
+      {
+        "targetFile": "frontend/AGENTS.md",
+        "estimatedTokens": 69,
+        "instructionCount": 2,
+        "instructionFiles": [
+          "AGENTS.md",
+          "frontend/AGENTS.md"
+        ]
+      },
+      {
+        "targetFile": "frontend/app.tsx",
+        "estimatedTokens": 69,
+        "instructionCount": 2,
+        "instructionFiles": [
+          "AGENTS.md",
+          "frontend/AGENTS.md"
+        ]
+      },
+      {
+        "targetFile": "frontend/theme.css",
+        "estimatedTokens": 69,
+        "instructionCount": 2,
+        "instructionFiles": [
+          "AGENTS.md",
+          "frontend/AGENTS.md"
+        ]
+      },
+      {
+        "targetFile": "AGENTS.md",
+        "estimatedTokens": 42,
+        "instructionCount": 1,
+        "instructionFiles": [
+          "AGENTS.md"
+        ]
+      },
+      {
+        "targetFile": "backend/service.ts",
+        "estimatedTokens": 42,
+        "instructionCount": 1,
+        "instructionFiles": [
+          "AGENTS.md"
+        ]
+      }
+    ],
+    "uncoveredTargetFilesSample": []
+  },
+  "stats": {
+    "totalFiles": 2,
+    "repositoryFiles": 1,
+    "pathSpecificFiles": 1,
+    "unsupportedFiles": 0,
+    "totalStatements": 5,
+    "applicableStatements": 5,
+    "totalChars": 263,
+    "totalEstimatedTokens": 69,
+    "applicableFiles": 2,
+    "applicableEstimatedTokens": 69,
+    "totalMatchedFiles": 8,
+    "maxApplicableTokens": 69,
+    "maxApplicableTargetFile": "frontend/AGENTS.md",
+    "ignoredInstructionFileCount": 0,
+    "ignoredTargetFileCount": 0,
+    "suppressedFindingCount": 0,
+    "baselineMatchedFindingCount": 0,
+    "warningCount": 0,
+    "errorCount": 0
+  },
+  "files": [
+    {
+      "file": "AGENTS.md",
+      "kind": "repository",
+      "preset": "agents-md",
+      "appliesToSurface": true,
+      "chars": 160,
+      "words": 25,
+      "estimatedTokens": 42,
+      "statementCount": 3,
+      "matchedFileCount": 5,
+      "findings": []
+    },
+    {
+      "file": "frontend/AGENTS.md",
+      "kind": "path-specific",
+      "preset": "agents-md",
+      "scopePath": "frontend",
+      "appliesToSurface": true,
+      "chars": 103,
+      "words": 16,
+      "estimatedTokens": 27,
+      "statementCount": 2,
+      "matchedFileCount": 3,
+      "findings": []
+    }
+  ],
+  "findings": [],
+  "warnings": [],
+  "notes": []
+}

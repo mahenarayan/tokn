@@ -1,0 +1,118 @@
+{
+  "kind": "instructions-lint-report",
+  "schemaVersion": "instructions-lint-report/v1",
+  "schemaPath": "schemas/instructions-lint-report.schema.json",
+  "preset": "auto",
+  "detectedPresets": [
+    "copilot"
+  ],
+  "profile": "standard",
+  "surface": "all",
+  "passed": true,
+  "exitCode": 0,
+  "failOnSeverity": "error",
+  "coverage": {
+    "targetFileCount": 5,
+    "coveredTargetFileCount": 5,
+    "uncoveredTargetFileCount": 0,
+    "coveredTargets": [
+      {
+        "targetFile": "src/component.tsx",
+        "estimatedTokens": 75,
+        "instructionCount": 2,
+        "instructionFiles": [
+          ".github/copilot-instructions.md",
+          ".github/instructions/typescript.instructions.md"
+        ]
+      },
+      {
+        "targetFile": "src/index.ts",
+        "estimatedTokens": 75,
+        "instructionCount": 2,
+        "instructionFiles": [
+          ".github/copilot-instructions.md",
+          ".github/instructions/typescript.instructions.md"
+        ]
+      },
+      {
+        "targetFile": ".github/copilot-instructions.md",
+        "estimatedTokens": 46,
+        "instructionCount": 1,
+        "instructionFiles": [
+          ".github/copilot-instructions.md"
+        ]
+      },
+      {
+        "targetFile": ".github/instructions/typescript.instructions.md",
+        "estimatedTokens": 46,
+        "instructionCount": 1,
+        "instructionFiles": [
+          ".github/copilot-instructions.md"
+        ]
+      },
+      {
+        "targetFile": "docs/guide.md",
+        "estimatedTokens": 46,
+        "instructionCount": 1,
+        "instructionFiles": [
+          ".github/copilot-instructions.md"
+        ]
+      }
+    ],
+    "uncoveredTargetFilesSample": []
+  },
+  "stats": {
+    "totalFiles": 2,
+    "repositoryFiles": 1,
+    "pathSpecificFiles": 1,
+    "unsupportedFiles": 0,
+    "totalStatements": 5,
+    "applicableStatements": 5,
+    "totalChars": 324,
+    "totalEstimatedTokens": 75,
+    "applicableFiles": 2,
+    "applicableEstimatedTokens": 75,
+    "totalMatchedFiles": 7,
+    "maxApplicableTokens": 75,
+    "maxApplicableTargetFile": "src/component.tsx",
+    "ignoredInstructionFileCount": 0,
+    "ignoredTargetFileCount": 0,
+    "suppressedFindingCount": 0,
+    "baselineMatchedFindingCount": 0,
+    "warningCount": 0,
+    "errorCount": 0
+  },
+  "files": [
+    {
+      "file": ".github/copilot-instructions.md",
+      "kind": "repository",
+      "preset": "copilot",
+      "appliesToSurface": true,
+      "chars": 176,
+      "words": 24,
+      "estimatedTokens": 46,
+      "statementCount": 3,
+      "matchedFileCount": 5,
+      "findings": []
+    },
+    {
+      "file": ".github/instructions/typescript.instructions.md",
+      "kind": "path-specific",
+      "preset": "copilot",
+      "applyTo": [
+        "**/*.ts",
+        "**/*.tsx"
+      ],
+      "appliesToSurface": true,
+      "chars": 148,
+      "words": 21,
+      "estimatedTokens": 29,
+      "statementCount": 2,
+      "matchedFileCount": 2,
+      "findings": []
+    }
+  ],
+  "findings": [],
+  "warnings": [],
+  "notes": []
+}
