@@ -4,7 +4,10 @@ This directory contains the stable `instructions-lint` engine.
 
 ## Files
 
-- `lint.ts`: executable lint pipeline, rule evaluation, coverage, policy post-processing, and report assembly
+- `lint.ts`: executable lint pipeline, coverage, policy post-processing, and report assembly
+- `internal.ts`: shared internal report model, surface helpers, grouping, and deterministic sort helpers
+- `findings.ts`: finding construction, default confidence, and sorting
+- `rule-checks.ts`: deterministic local, cross-file, and target-load rule execution
 - `discovery.ts`: path normalization, repository-root inference, candidate discovery, and preset classification
 - `markdown.ts`: frontmatter parsing, Markdown block parsing, and statement extraction
 - `text.ts`: shared word counting, statement tokenization, negation detection, and similarity helpers
@@ -30,6 +33,7 @@ This directory contains the stable `instructions-lint` engine.
 Rule metadata and executable rule logic are intentionally separate.
 
 `rules.ts` answers "what public rule IDs exist?".
-`lint.ts` answers "which parsed facts make a rule fire?".
+`rule-checks.ts` answers "which parsed facts make a rule fire?".
+`lint.ts` answers "which deterministic passes run, in what order?".
 
 Local rules should use only one parsed instruction file. Cross-file and target-load rules should run after scope resolution because they depend on matched repository files and instruction overlap.

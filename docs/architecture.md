@@ -104,7 +104,7 @@ Instruction linting uses a separate report family because the source objects are
 
 ## Instruction Lint Engine
 
-`instructions-lint` is centered on `src/instructions/lint.ts`. That file is the executable lint engine. `src/instructions/rules.ts` is the rule registry: it defines stable rule IDs, categories, default severities, and applicability metadata, but it does not run checks by itself.
+`instructions-lint` is centered on `src/instructions/lint.ts`. That file is the deterministic pipeline orchestrator. `src/instructions/rules.ts` is the rule registry: it defines stable rule IDs, categories, default severities, and applicability metadata, but it does not run checks by itself. Executable rule checks live in `src/instructions/rule-checks.ts`.
 
 The engine is a deterministic pipeline:
 

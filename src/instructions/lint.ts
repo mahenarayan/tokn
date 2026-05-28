@@ -7,8 +7,7 @@ import { estimateTextTokens } from "../tokenizer.js";
 import {
   discoverInstructionLintConfigPath,
   loadInstructionLintConfig,
-  type NormalizedInstructionSuppression,
-  type ResolvedInstructionLintConfig
+  type NormalizedInstructionSuppression
 } from "./config.js";
 import {
   type CandidateFile,
@@ -17,20 +16,15 @@ import {
   displayPath,
   inferRepoRootFromDirectory,
   inferRepoRootFromFile,
-  knownUnsupportedAgentSurface,
   matchesAnyGlob,
   matchesGlob,
   normalizePath,
   walkFiles
 } from "./discovery.js";
 import {
-  COPILOT_CODE_REVIEW_CHAR_LIMIT,
-  type InstructionBudgets,
   resolveInstructionBudgets
 } from "./limits.js";
 import {
-  type MarkdownBlock,
-  type ParsedFrontmatter,
   type Statement,
   instructionTokenText,
   parseFrontmatter,
@@ -38,113 +32,58 @@ import {
   statementFromBlock
 } from "./markdown.js";
 import {
-  getInstructionRuleCategory,
   getInstructionRuleDefaultSeverity,
   INSTRUCTION_LINT_REPORT_SCHEMA_PATH,
   INSTRUCTION_LINT_REPORT_SCHEMA_VERSION,
   isInstructionRuleId
 } from "./rules.js";
 import {
-  countWords,
-  jaccardSimilarity
+  addApplicableTokenBudgetFindings,
+  lintCrossFileRules,
+  lintLocalRules
+} from "./rule-checks.js";
+import {
+  countWords
 } from "./text.js";
+import {
+  type IgnoreSummary,
+  type InstructionCoverageAnalysis,
+  type InstructionInputCollection,
+  type InternalFileReport,
+  type PostProcessSummary,
+  type ResolvedLintPolicy,
+  type TargetInstructionLoad,
+  compareTargetLoads,
+  appliesToSurface,
+  groupReportsByRepoRoot,
+  isCopilotInstruction,
+  isPathSpecificInstruction,
+  isRepositoryInstruction,
+  sampleItems
+} from "./internal.js";
+import {
+  compareSeverity,
+  createFinding,
+  findingSort
+} from "./findings.js";
 import type {
-  InstructionExcludeAgent,
-  InstructionActivationType,
   InstructionCoverageMap,
-  InstructionFileKind,
+  InstructionExcludeAgent,
   InstructionFileReport,
   InstructionFinding,
-  InstructionFindingEvidence,
-  InstructionFindingConfidence,
-  InstructionLintBudgetOverrides,
   InstructionLintFailOnSeverity,
-  InstructionLintAppliedConfig,
   InstructionLintOptions,
-  InstructionLintPreset,
   InstructionLintPresetSelector,
   InstructionLintProfile,
   InstructionLintReport,
+  InstructionLintSurface,
   InstructionRuleId,
   InstructionRuleOverride,
   InstructionRuleSelector,
   InstructionLintSeverity,
-  InstructionLintSurface,
   InstructionSuppression,
   InstructionLintStats
 } from "../types.js";
-
-interface InternalFileReport {
-  absolutePath: string;
-  file: string;
-  kind: InstructionFileKind;
-  preset?: InstructionLintPreset;
-  repoRoot?: string;
-  scopePath?: string;
-  excludeAgents: InstructionExcludeAgent[];
-  excludeAgentsLine?: number;
-  appliesToSurface: boolean;
-  chars: number;
-  words: number;
-  estimatedTokens: number;
-  applyTo: string[];
-  applyToLine?: number;
-  description?: string;
-  descriptionLine?: number;
-  blocks: MarkdownBlock[];
-  statements: Statement[];
-  matchedFiles: string[];
-  matchedFileSet: Set<string>;
-  findings: InstructionFinding[];
-}
-
-interface PostProcessSummary {
-  suppressedFindingCount: number;
-  baselineMatchedFindingCount: number;
-}
-
-interface IgnoreSummary {
-  ignoredInstructionFileCount: number;
-  ignoredTargetFileCount: number;
-}
-
-interface InstructionInputCollection {
-  candidates: CandidateFile[];
-  repoFilesByRoot: Map<string, string[]>;
-  ignoreSummary: IgnoreSummary;
-  warnings: Set<string>;
-}
-
-interface TargetInstructionLoad {
-  repoRoot: string;
-  targetFile: string;
-  estimatedTokens: number;
-  instructionFiles: string[];
-  instructionReports: InternalFileReport[];
-}
-
-interface InstructionCoverageAnalysis {
-  targetFileCount: number;
-  coveredTargetFileCount: number;
-  uncoveredTargetFiles: string[];
-  targetLoads: TargetInstructionLoad[];
-}
-
-interface ResolvedLintPolicy {
-  config?: ResolvedInstructionLintConfig;
-  appliedConfig?: InstructionLintAppliedConfig;
-  preset: InstructionLintPresetSelector;
-  profile: InstructionLintProfile;
-  failOnSeverity: InstructionLintFailOnSeverity;
-  surface: InstructionLintSurface;
-  budgets: InstructionBudgets;
-  budgetOverrides: InstructionLintBudgetOverrides;
-  model?: string;
-  baselinePath?: string;
-  ignore: string[];
-  suppressions: NormalizedInstructionSuppression[];
-  ruleOverrides: Partial<Record<InstructionRuleId, InstructionRuleOverride>>;
-}
 
 const DEFAULT_PROFILE: InstructionLintProfile = "standard";
 const DEFAULT_FAIL_ON_SEVERITY: InstructionLintFailOnSeverity = "error";
@@ -153,109 +92,13 @@ const DEFAULT_PRESET: InstructionLintPresetSelector = "auto";
 const MAX_INSTRUCTION_FILE_BYTES = 1024 * 1024;
 const MAX_BASELINE_FILE_BYTES = 10 * 1024 * 1024;
 
-const ORDER_DEPENDENT_RE =
-  /\b(earlier rule|later rule|next rule|previous rule|following rule|as described above|mentioned above|see above|see below|rules? above|rules? below|instructions? above|instructions? below|above rules?|below rules?|above instructions?|below instructions?)\b/i;
-const WEAK_MODAL_RE =
-  /\b(try to|should consider|best effort|ideally|if possible|where possible|as appropriate)\b/i;
-const VAGUE_RE =
-  /\b(follow best practices|write clean code|use clean code|write readable code|ensure high quality|do the right thing|be thoughtful)\b/i;
-const SCOPED_TOPIC_RE =
-  /(\*\*\/|\.[a-z0-9]{1,5}\b|\/[A-Za-z0-9._-]+\/|typescript|javascript|python|ruby|react|frontend|backend|docs\/|tests?\/|tsx|jsx|sql|api|schema)/i;
-
-const CONCRETE_SURFACES = ["code-review", "chat", "coding-agent"] as const;
-type ConcreteInstructionLintSurface = typeof CONCRETE_SURFACES[number];
-
 /*
  * Instruction lint is a deterministic pipeline, not a model-judged rule engine:
  * collect candidate files, parse instruction text, run local file rules, resolve
- * file-scope composition, run cross-file rules, then apply policy and render a
- * stable report. `rules.ts` is the public rule registry; executable checks live
- * here so they can share parsed statements, path scopes, and coverage data.
+ * file-scope composition, run executable checks, then apply policy and render a
+ * stable report. `rules.ts` is the public rule registry; `rule-checks.ts`
+ * contains the deterministic checks that make those rules fire.
  */
-
-function compareSeverity(left: InstructionLintSeverity, right: InstructionLintSeverity): number {
-  const rank = { warning: 1, error: 2 } as const;
-  return rank[left] - rank[right];
-}
-
-function findingSort(left: InstructionFinding, right: InstructionFinding): number {
-  const severityDiff = compareSeverity(right.severity, left.severity);
-  if (severityDiff !== 0) {
-    return severityDiff;
-  }
-
-  const fileDiff = left.file.localeCompare(right.file);
-  if (fileDiff !== 0) {
-    return fileDiff;
-  }
-
-  const lineDiff = left.line - right.line;
-  if (lineDiff !== 0) {
-    return lineDiff;
-  }
-
-  return left.ruleId.localeCompare(right.ruleId);
-}
-
-function createFinding(
-  file: string,
-  severity: InstructionLintSeverity,
-  ruleId: InstructionRuleId,
-  message: string,
-  line: number,
-  suggestion?: string,
-  evidence?: InstructionFindingEvidence,
-  metadata: {
-    confidence?: InstructionFindingConfidence;
-    surfaceApplicability?: InstructionLintSurface[];
-    activationType?: InstructionActivationType;
-    groupId?: string;
-  } = {}
-): InstructionFinding {
-  return {
-    file,
-    severity,
-    category: getInstructionRuleCategory(ruleId),
-    confidence: metadata.confidence ?? defaultFindingConfidence(ruleId),
-    ...(metadata.surfaceApplicability ? { surfaceApplicability: metadata.surfaceApplicability } : {}),
-    ...(metadata.activationType ? { activationType: metadata.activationType } : {}),
-    ...(metadata.groupId ? { groupId: metadata.groupId } : {}),
-    ruleId,
-    message,
-    line,
-    ...(suggestion ? { suggestion } : {}),
-    ...(evidence ? { evidence } : {})
-  };
-}
-
-function addFinding(
-  report: InternalFileReport,
-  seen: Set<string>,
-  severity: InstructionLintSeverity,
-  ruleId: InstructionRuleId,
-  message: string,
-  line: number,
-  suggestion?: string,
-  evidence?: InstructionFindingEvidence,
-  metadata: {
-    confidence?: InstructionFindingConfidence;
-    surfaceApplicability?: InstructionLintSurface[];
-    groupId?: string;
-  } = {}
-): void {
-  const key = `${severity}|${ruleId}|${report.file}|${line}|${message}`;
-  if (seen.has(key)) {
-    return;
-  }
-  seen.add(key);
-  report.findings.push(
-    createFinding(report.file, severity, ruleId, message, line, suggestion, evidence, {
-      activationType: instructionActivationType(report),
-      surfaceApplicability: surfaceApplicabilityForReport(report),
-      ...metadata
-    })
-  );
-}
 
 function splitFrontmatterList(value: unknown): {
   entries: string[];
@@ -346,353 +189,6 @@ function parseExcludeAgents(value: unknown): {
   };
 }
 
-function isRepositoryInstruction(report: Pick<InternalFileReport, "kind">): boolean {
-  return report.kind === "repository";
-}
-
-function isPathSpecificInstruction(report: Pick<InternalFileReport, "kind">): boolean {
-  return report.kind === "path-specific";
-}
-
-function isCopilotInstruction(report: Pick<InternalFileReport, "preset">): boolean {
-  return report.preset === "copilot";
-}
-
-function isAllSurface(surface: InstructionLintSurface): boolean {
-  return surface === "all" || surface === "auto";
-}
-
-function concreteSurfaceApplies(
-  report: Pick<InternalFileReport, "kind" | "excludeAgents">,
-  surface: ConcreteInstructionLintSurface
-): boolean {
-  if (report.kind === "unsupported") {
-    return false;
-  }
-  if (surface === "chat") {
-    return true;
-  }
-  return !report.excludeAgents.includes(surface);
-}
-
-function appliesToSurface(
-  report: Pick<InternalFileReport, "kind" | "excludeAgents">,
-  surface: InstructionLintSurface
-): boolean {
-  if (report.kind === "unsupported") {
-    return false;
-  }
-  if (isAllSurface(surface)) {
-    return true;
-  }
-  return concreteSurfaceApplies(report, surface as ConcreteInstructionLintSurface);
-}
-
-function surfaceApplicabilityForReport(
-  report: Pick<InternalFileReport, "kind" | "excludeAgents">
-): ConcreteInstructionLintSurface[] {
-  return CONCRETE_SURFACES.filter((surface) => concreteSurfaceApplies(report, surface));
-}
-
-function instructionActivationType(report: Pick<InternalFileReport, "kind" | "preset" | "applyTo" | "description" | "scopePath">): InstructionActivationType {
-  if (report.kind === "unsupported") {
-    return "unsupported";
-  }
-  if (report.kind === "repository") {
-    return "repository";
-  }
-  if (report.preset === "agents-md" && report.scopePath) {
-    return "directory";
-  }
-  if (report.applyTo.length > 0) {
-    return "path";
-  }
-  if (report.description) {
-    return "description";
-  }
-  return "path";
-}
-
-function defaultFindingConfidence(ruleId: InstructionRuleId): InstructionFindingConfidence {
-  if (
-    ruleId === "high-similarity-statement" ||
-    ruleId === "possible-conflict" ||
-    ruleId === "paragraph-narrative" ||
-    ruleId === "vague-instruction"
-  ) {
-    return "medium";
-  }
-  return "high";
-}
-
-function lintLocalRules(
-  report: InternalFileReport,
-  profile: InstructionLintProfile,
-  surface: InstructionLintSurface,
-  budgets: InstructionBudgets
-): void {
-  const seen = new Set<string>();
-  const activationType = instructionActivationType(report);
-  const budgetEligible = activationType !== "description";
-  const fileBudgetGroupId = `file-budget:${report.file}`;
-
-  if (report.kind === "unsupported") {
-    const knownSurface = knownUnsupportedAgentSurface(report.file);
-    if (knownSurface) {
-      addFinding(
-        report,
-        seen,
-        "warning",
-        "unsupported-agent-surface",
-        `${knownSurface} instruction file is present, but Tokn does not lint this agent surface yet.`,
-        1,
-        "Keep this file visible in rollout reports and lint supported AGENTS.md or Copilot instructions until a dedicated preset exists."
-      );
-    } else {
-      addFinding(
-        report,
-        seen,
-        "error",
-        "invalid-file-path",
-        "Instruction file path does not match a supported instruction preset location.",
-        1,
-        "Use .github/copilot-instructions.md, .github/instructions/*.instructions.md, or AGENTS.md."
-      );
-    }
-  }
-
-  if (!report.appliesToSurface) {
-    return;
-  }
-
-  if (
-    isCopilotInstruction(report) &&
-    (surface === "code-review" || isAllSurface(surface)) &&
-    concreteSurfaceApplies(report, "code-review") &&
-    report.chars > COPILOT_CODE_REVIEW_CHAR_LIMIT
-  ) {
-    const isConditional = isAllSurface(surface);
-    addFinding(
-      report,
-      seen,
-      isConditional ? "warning" : "error",
-      "file-char-limit",
-      isConditional
-        ? `File is ${report.chars} characters long and would exceed GitHub Copilot code review's ${COPILOT_CODE_REVIEW_CHAR_LIMIT}-character limit if used for code review.`
-        : `File is ${report.chars} characters long and exceeds GitHub Copilot code review's ${COPILOT_CODE_REVIEW_CHAR_LIMIT}-character limit.`,
-      1,
-      `Split the file or reduce repeated wording when this instruction file is intended for Copilot code review.`,
-      {
-        actual: report.chars,
-        expected: COPILOT_CODE_REVIEW_CHAR_LIMIT,
-        surface: "code-review"
-      },
-      {
-        surfaceApplicability: ["code-review"],
-        groupId: fileBudgetGroupId
-      }
-    );
-  }
-
-  if (budgetEligible && isRepositoryInstruction(report) && report.chars > budgets.repositoryChars) {
-    addFinding(
-      report,
-      seen,
-      "warning",
-      "repository-char-budget",
-      `Repository-scoped instructions use ${report.chars} characters and exceed the ${profile} profile budget of ${budgets.repositoryChars}.`,
-      1,
-      "Keep always-on instructions short and move scoped guidance into narrower instruction files.",
-      {
-        actual: report.chars,
-        expected: budgets.repositoryChars
-      },
-      {
-        groupId: fileBudgetGroupId
-      }
-    );
-  }
-
-  if (budgetEligible && isRepositoryInstruction(report) && report.estimatedTokens > budgets.repositoryTokens) {
-    addFinding(
-      report,
-      seen,
-      "warning",
-      "repository-token-budget",
-      `Repository-scoped instructions use ${report.estimatedTokens} estimated tokens and exceed the ${profile} profile budget of ${budgets.repositoryTokens}.`,
-      1,
-      "Keep global guidance dense and move path- or subsystem-specific rules into narrower instruction files.",
-      {
-        actual: report.estimatedTokens,
-        expected: budgets.repositoryTokens
-      },
-      {
-        groupId: fileBudgetGroupId
-      }
-    );
-  }
-
-  if (budgetEligible && isPathSpecificInstruction(report) && report.chars > budgets.pathSpecificChars) {
-    addFinding(
-      report,
-      seen,
-      "warning",
-      "path-specific-char-budget",
-      `Scoped instructions use ${report.chars} characters and exceed the ${profile} profile budget of ${budgets.pathSpecificChars}.`,
-      1,
-      "Tighten the file to the rules that truly need to stay always-on for this scope.",
-      {
-        actual: report.chars,
-        expected: budgets.pathSpecificChars
-      },
-      {
-        groupId: fileBudgetGroupId
-      }
-    );
-  }
-
-  if (budgetEligible && isPathSpecificInstruction(report) && report.estimatedTokens > budgets.pathSpecificTokens) {
-    addFinding(
-      report,
-      seen,
-      "warning",
-      "path-specific-token-budget",
-      `Scoped instructions use ${report.estimatedTokens} estimated tokens and exceed the ${profile} profile budget of ${budgets.pathSpecificTokens}.`,
-      1,
-      "Trim this file to the rules that are unique to the matched paths.",
-      {
-        actual: report.estimatedTokens,
-        expected: budgets.pathSpecificTokens
-      },
-      {
-        groupId: fileBudgetGroupId
-      }
-    );
-  }
-
-  if (budgetEligible && report.statements.length > budgets.statements) {
-    addFinding(
-      report,
-      seen,
-      "warning",
-      "statement-count-budget",
-      `File contains ${report.statements.length} instruction statements and exceeds the ${profile} profile budget of ${budgets.statements}.`,
-      1,
-      "Trim low-signal rules or split scoped topics into separate instruction files.",
-      {
-        actual: report.statements.length,
-        expected: budgets.statements
-      },
-      {
-        groupId: fileBudgetGroupId
-      }
-    );
-  }
-
-  for (const statement of report.statements) {
-    if (ORDER_DEPENDENT_RE.test(statement.text)) {
-      addFinding(
-        report,
-        seen,
-        "error",
-        "order-dependent-wording",
-        "Instruction relies on relative ordering, but instruction runtimes do not guarantee file order across surfaces and presets.",
-        statement.line,
-        "Rewrite the instruction so it stands alone without referring to rules above or below."
-      );
-    }
-
-    if (statement.wordCount > budgets.wordsPerStatement) {
-      addFinding(
-        report,
-        seen,
-        "warning",
-        "statement-too-long",
-        `Instruction statement uses ${statement.wordCount} words and exceeds the ${profile} profile budget of ${budgets.wordsPerStatement}.`,
-        statement.line,
-        "Rewrite as one short directive with only the necessary why.",
-        {
-          actual: statement.wordCount,
-          expected: budgets.wordsPerStatement
-        }
-      );
-    }
-
-    if (WEAK_MODAL_RE.test(statement.text)) {
-      addFinding(
-        report,
-        seen,
-        "warning",
-        "weak-modal-phrasing",
-        "Instruction uses weak modal phrasing that is easy for assistants to ignore or interpret loosely.",
-        statement.line,
-        "Use direct imperative wording instead of try to, should consider, or best effort language."
-      );
-    }
-
-    if (VAGUE_RE.test(statement.text)) {
-      addFinding(
-        report,
-        seen,
-        "warning",
-        "vague-instruction",
-        "Instruction is too generic to add repository-specific value.",
-        statement.line,
-        "Replace generic quality advice with concrete repository rules, preferred tools, or explicit examples."
-      );
-    }
-
-    if (statement.sourceType === "paragraph" && (statement.sentenceCount >= 3 || statement.wordCount >= 50)) {
-      addFinding(
-        report,
-        seen,
-        "warning",
-        "paragraph-narrative",
-        "Paragraph-style narrative is harder for instruction runtimes to scan than short atomic directives.",
-        statement.line,
-        "Break this paragraph into short bullet rules."
-      );
-    }
-  }
-
-  for (const block of report.blocks.filter((candidate) => candidate.type === "code")) {
-    const codeWords = countWords(block.text);
-    if (block.lines > 12 || block.text.length > 500 || codeWords > 120) {
-      addFinding(
-        report,
-        seen,
-        "warning",
-        "oversized-code-example",
-        "Code example is large enough to crowd out higher-signal instruction text.",
-        block.line,
-        "Keep examples minimal and only show the pattern that Copilot must prefer or avoid.",
-        {
-          actual: block.lines,
-          expected: 12
-        },
-        {
-          groupId: `example-budget:${report.file}`
-        }
-      );
-    }
-  }
-
-  if (isRepositoryInstruction(report)) {
-    const scopedStatements = report.statements.filter((statement) => SCOPED_TOPIC_RE.test(statement.text));
-    if (scopedStatements.length >= 3 && report.statements.length >= 6) {
-      addFinding(
-        report,
-        seen,
-        "warning",
-        "repo-wide-scoped-topics",
-        "Repository-scoped instructions mix in multiple scoped topics that likely belong in narrower instruction files.",
-        scopedStatements[0]?.line ?? 1,
-        "Move language-, path-, or subsystem-specific rules into narrower scoped instruction files."
-      );
-    }
-  }
-}
-
 function resolveMatchedFiles(report: InternalFileReport, repoFiles: string[]): string[] {
   if (isRepositoryInstruction(report)) {
     return [...repoFiles];
@@ -720,60 +216,6 @@ function resolveMatchedFiles(report: InternalFileReport, repoFiles: string[]): s
   }
 
   return [];
-}
-
-function overlapExists(left: InternalFileReport, right: InternalFileReport): boolean {
-  if (left.matchedFileSet.size === 0 || right.matchedFileSet.size === 0) {
-    return false;
-  }
-
-  const smaller = left.matchedFileSet.size <= right.matchedFileSet.size ? left.matchedFileSet : right.matchedFileSet;
-  const larger = smaller === left.matchedFileSet ? right.matchedFileSet : left.matchedFileSet;
-
-  for (const filePath of smaller) {
-    if (larger.has(filePath)) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-function sampleItems(items: string[], limit = 3): string[] {
-  return items.slice(0, limit);
-}
-
-function groupReportsByRepoRoot(reports: InternalFileReport[]): Map<string, InternalFileReport[]> {
-  const grouped = new Map<string, InternalFileReport[]>();
-
-  for (const report of reports) {
-    if (!report.repoRoot) {
-      continue;
-    }
-    const existing = grouped.get(report.repoRoot) ?? [];
-    existing.push(report);
-    grouped.set(report.repoRoot, existing);
-  }
-
-  return grouped;
-}
-
-function compareTargetLoads(left: TargetInstructionLoad, right: TargetInstructionLoad): number {
-  if (left.estimatedTokens !== right.estimatedTokens) {
-    return right.estimatedTokens - left.estimatedTokens;
-  }
-
-  const targetDiff = left.targetFile.localeCompare(right.targetFile);
-  if (targetDiff !== 0) {
-    return targetDiff;
-  }
-
-  const instructionDiff = left.instructionFiles.join("\0").localeCompare(right.instructionFiles.join("\0"));
-  if (instructionDiff !== 0) {
-    return instructionDiff;
-  }
-
-  return left.repoRoot.localeCompare(right.repoRoot);
 }
 
 function buildInstructionCoverageAnalysis(
@@ -843,259 +285,6 @@ function buildInstructionCoverageMap(analysis: InstructionCoverageAnalysis): Ins
         .sort((left, right) => left.localeCompare(right)),
       10
     )
-  };
-}
-
-function overlapDetails(
-  left: InternalFileReport,
-  right: InternalFileReport,
-  limit = 3
-): { count: number; sample: string[] } {
-  if (left.matchedFileSet.size === 0 || right.matchedFileSet.size === 0) {
-    return { count: 0, sample: [] };
-  }
-
-  const smaller = left.matchedFileSet.size <= right.matchedFileSet.size ? left.matchedFileSet : right.matchedFileSet;
-  const larger = smaller === left.matchedFileSet ? right.matchedFileSet : left.matchedFileSet;
-  const sample: string[] = [];
-  let count = 0;
-
-  for (const filePath of smaller) {
-    if (!larger.has(filePath)) {
-      continue;
-    }
-    count += 1;
-    if (sample.length < limit) {
-      sample.push(filePath);
-    }
-  }
-
-  return { count, sample };
-}
-
-function addCrossFileFinding(
-  reportsByPath: Map<string, InternalFileReport>,
-  seen: Set<string>,
-  hostFile: string,
-  severity: InstructionLintSeverity,
-  ruleId: InstructionRuleId,
-  line: number,
-  message: string,
-  suggestion?: string,
-  evidence?: InstructionFindingEvidence
-): void {
-  const report = reportsByPath.get(hostFile);
-  if (!report) {
-    return;
-  }
-
-  const key = `${ruleId}|${hostFile}|${line}|${message}`;
-  if (seen.has(key)) {
-    return;
-  }
-  seen.add(key);
-  report.findings.push(createFinding(report.file, severity, ruleId, message, line, suggestion, evidence));
-}
-
-function lintCrossFileRules(reports: InternalFileReport[]): void {
-  for (const group of groupReportsByRepoRoot(reports).values()) {
-    const eligible = group
-      .filter(
-        (report) =>
-          report.kind !== "unsupported" &&
-          report.appliesToSurface &&
-          report.statements.length > 0
-      )
-      .sort((left, right) => left.file.localeCompare(right.file));
-    const reportsByPath = new Map(eligible.map((report) => [report.absolutePath, report]));
-    const seen = new Set<string>();
-
-    for (let leftIndex = 0; leftIndex < eligible.length; leftIndex += 1) {
-      for (let rightIndex = leftIndex + 1; rightIndex < eligible.length; rightIndex += 1) {
-        const left = eligible[leftIndex];
-        const right = eligible[rightIndex];
-        if (!left || !right || !overlapExists(left, right)) {
-          continue;
-        }
-        const overlap = overlapDetails(left, right);
-
-        for (const leftStatement of left.statements) {
-          for (const rightStatement of right.statements) {
-            if (!leftStatement.normalized || !rightStatement.normalized) {
-              continue;
-            }
-
-            if (leftStatement.normalized === rightStatement.normalized) {
-              addCrossFileFinding(
-                reportsByPath,
-                seen,
-                left.absolutePath,
-                "warning",
-                "exact-duplicate-statement",
-                leftStatement.line,
-                `Instruction duplicates ${right.file}:${rightStatement.line} across overlapping scope.`,
-                "Keep the rule in one file or narrow applyTo so the same instruction is not sent twice.",
-                {
-                  relatedLocation: {
-                    file: right.file,
-                    line: rightStatement.line
-                  },
-                  overlapFileCount: overlap.count,
-                  ...(overlap.sample.length > 0 ? { overlapFilesSample: overlap.sample } : {}),
-                  similarityScore: 1
-                }
-              );
-              continue;
-            }
-
-            const conflictSimilarity = jaccardSimilarity(
-              leftStatement.tokensSansNegation,
-              rightStatement.tokensSansNegation
-            );
-            if (
-              leftStatement.isNegative !== rightStatement.isNegative &&
-              leftStatement.tokensSansNegation.length >= 3 &&
-              rightStatement.tokensSansNegation.length >= 3 &&
-              conflictSimilarity >= 0.78
-            ) {
-              addCrossFileFinding(
-                reportsByPath,
-                seen,
-                left.absolutePath,
-                "warning",
-                "possible-conflict",
-                leftStatement.line,
-                `Instruction may conflict with ${right.file}:${rightStatement.line} because overlapping files express opposite polarity for the same subject.`,
-                "Consolidate the rule or make the scope separation explicit.",
-                {
-                  relatedLocation: {
-                    file: right.file,
-                    line: rightStatement.line
-                  },
-                  overlapFileCount: overlap.count,
-                  ...(overlap.sample.length > 0 ? { overlapFilesSample: overlap.sample } : {}),
-                  similarityScore: conflictSimilarity
-                }
-              );
-              continue;
-            }
-
-            const similarity = jaccardSimilarity(leftStatement.tokens, rightStatement.tokens);
-            if (
-              leftStatement.tokens.length >= 3 &&
-              rightStatement.tokens.length >= 3 &&
-              similarity >= 0.82
-            ) {
-              addCrossFileFinding(
-                reportsByPath,
-                seen,
-                left.absolutePath,
-                "warning",
-                "high-similarity-statement",
-                leftStatement.line,
-                `Instruction is highly similar to ${right.file}:${rightStatement.line} across overlapping scope.`,
-                "Merge the rules or remove the lower-signal variant.",
-                {
-                  relatedLocation: {
-                    file: right.file,
-                    line: rightStatement.line
-                  },
-                  overlapFileCount: overlap.count,
-                  ...(overlap.sample.length > 0 ? { overlapFilesSample: overlap.sample } : {}),
-                  similarityScore: similarity
-                }
-              );
-            }
-          }
-        }
-      }
-    }
-  }
-}
-
-function addApplicableTokenBudgetFindings(
-  coverageAnalysis: InstructionCoverageAnalysis,
-  profile: InstructionLintProfile,
-  surface: InstructionLintSurface,
-  budgets: InstructionBudgets
-): { maxApplicableTokens: number; maxApplicableTargetFile?: string } {
-  const loadsByRoot = new Map<string, TargetInstructionLoad[]>();
-
-  let overallMaxTokens = 0;
-  let overallTargetFile: string | undefined;
-
-  for (const load of coverageAnalysis.targetLoads) {
-    const existing = loadsByRoot.get(load.repoRoot) ?? [];
-    existing.push(load);
-    loadsByRoot.set(load.repoRoot, existing);
-  }
-
-  for (const loads of loadsByRoot.values()) {
-    const maxLoad = loads.slice().sort(compareTargetLoads)[0];
-    if (!maxLoad) {
-      continue;
-    }
-
-    const maxTokens = maxLoad.estimatedTokens;
-    const targetFile = maxLoad.targetFile;
-    const contributors = maxLoad.instructionReports;
-
-    if (maxTokens > overallMaxTokens) {
-      overallMaxTokens = maxTokens;
-      overallTargetFile = targetFile;
-    }
-
-    if (maxTokens <= budgets.maxApplicableTokens || !targetFile || contributors.length === 0) {
-      continue;
-    }
-
-    const hostReport = contributors
-      .slice()
-      .sort((left, right) => {
-        if (left.kind !== right.kind) {
-          return left.kind === "repository" ? -1 : 1;
-        }
-        if (left.estimatedTokens !== right.estimatedTokens) {
-          return right.estimatedTokens - left.estimatedTokens;
-        }
-        return left.file.localeCompare(right.file);
-      })[0];
-
-    if (!hostReport) {
-      continue;
-    }
-
-    hostReport.findings.push(
-      createFinding(
-        hostReport.file,
-        "warning",
-        "applicable-token-budget",
-        `Instructions applicable to ${targetFile} total ${maxTokens} estimated tokens for ${surface} and exceed the ${profile} profile budget of ${budgets.maxApplicableTokens}.`,
-        1,
-        "Reduce overlap, shorten always-on guidance, or narrow the scoped files so no single target pulls in a large instruction bundle.",
-        {
-          actual: maxTokens,
-          expected: budgets.maxApplicableTokens,
-          surface,
-          targetFile,
-          contributorFiles: sampleItems(
-            contributors
-              .map((report) => report.file)
-              .sort((left, right) => left.localeCompare(right))
-          )
-        },
-        {
-          activationType: instructionActivationType(hostReport),
-          surfaceApplicability: surfaceApplicabilityForReport(hostReport),
-          groupId: `target-budget:${targetFile}`
-        }
-      )
-    );
-  }
-
-  return {
-    maxApplicableTokens: overallMaxTokens,
-    ...(overallTargetFile ? { maxApplicableTargetFile: overallTargetFile } : {})
   };
 }
 
