@@ -4,9 +4,10 @@ This directory contains the stable `instructions-lint` engine.
 
 ## Files
 
-- `lint.ts`: executable lint pipeline, policy post-processing, and report assembly
+- `lint.ts`: executable lint pipeline, file parsing, and report assembly
 - `internal.ts`: shared internal report model, surface helpers, grouping, and deterministic sort helpers
 - `findings.ts`: finding construction, default confidence, and sorting
+- `policy.ts`: config/CLI policy resolution, fail thresholds, suppressions, baselines, and final finding policy
 - `scope.ts`: matched-file resolution, scope findings, coverage analysis, and coverage map assembly
 - `rule-checks.ts`: deterministic local, cross-file, and target-load rule execution
 - `discovery.ts`: path normalization, repository-root inference, candidate discovery, and preset classification
@@ -34,6 +35,7 @@ This directory contains the stable `instructions-lint` engine.
 Rule metadata and executable rule logic are intentionally separate.
 
 `rules.ts` answers "what public rule IDs exist?".
+`policy.ts` answers "which rollout/config decisions affect the lint run?".
 `scope.ts` answers "which instruction files apply to which repository files?".
 `rule-checks.ts` answers "which parsed facts make a rule fire?".
 `lint.ts` answers "which deterministic passes run, in what order?".
