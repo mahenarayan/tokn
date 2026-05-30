@@ -1,21 +1,12 @@
-import type { NormalizedInstructionSuppression, ResolvedInstructionLintConfig } from "./config.js";
 import type { CandidateFile } from "./discovery.js";
-import type { InstructionBudgets } from "./limits.js";
 import type { MarkdownBlock, Statement } from "./markdown.js";
 import type {
   InstructionActivationType,
   InstructionExcludeAgent,
   InstructionFileKind,
   InstructionFinding,
-  InstructionLintAppliedConfig,
-  InstructionLintBudgetOverrides,
-  InstructionLintFailOnSeverity,
   InstructionLintPreset,
-  InstructionLintPresetSelector,
-  InstructionLintProfile,
-  InstructionLintSurface,
-  InstructionRuleId,
-  InstructionRuleOverride
+  InstructionLintSurface
 } from "../types.js";
 
 export interface InternalFileReport {
@@ -72,22 +63,6 @@ export interface InstructionCoverageAnalysis {
   coveredTargetFileCount: number;
   uncoveredTargetFiles: string[];
   targetLoads: TargetInstructionLoad[];
-}
-
-export interface ResolvedLintPolicy {
-  config?: ResolvedInstructionLintConfig;
-  appliedConfig?: InstructionLintAppliedConfig;
-  preset: InstructionLintPresetSelector;
-  profile: InstructionLintProfile;
-  failOnSeverity: InstructionLintFailOnSeverity;
-  surface: InstructionLintSurface;
-  budgets: InstructionBudgets;
-  budgetOverrides: InstructionLintBudgetOverrides;
-  model?: string;
-  baselinePath?: string;
-  ignore: string[];
-  suppressions: NormalizedInstructionSuppression[];
-  ruleOverrides: Partial<Record<InstructionRuleId, InstructionRuleOverride>>;
 }
 
 export const CONCRETE_SURFACES = ["code-review", "chat", "coding-agent"] as const;
