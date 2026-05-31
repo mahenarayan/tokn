@@ -3,7 +3,7 @@
 ## Purpose
 
 Tokn analyzes LLM context visibility and instruction quality without modifying files.
-It ingests heterogeneous payloads and traces, normalizes them into a single internal model for prompt analysis, computes token and budget metadata, and exposes the result through a CLI and SDK. It also includes a dedicated instruction-lint subsystem for GitHub Copilot instruction files.
+It ingests heterogeneous payloads and traces, normalizes them into a single internal model for prompt analysis, computes token and budget metadata, and exposes the result through a CLI and SDK. It also includes a dedicated instruction-lint subsystem for repository instruction files such as GitHub Copilot instructions and `AGENTS.md`.
 
 The architecture should optimize for:
 
@@ -24,7 +24,7 @@ flowchart LR
   D --> F["CLI text formatting"]
   D --> G["CLI JSON output"]
   D --> H["SDK consumers"]
-  J["Copilot instruction files"] --> K["Instruction lint subsystem"]
+  J["Repository instruction files"] --> K["Instruction lint subsystem"]
   K --> F
   K --> G
   K --> H
@@ -104,7 +104,16 @@ Instruction linting uses a separate report family because the source objects are
 
 ## Instruction Lint Engine
 
-`instructions-lint` is centered on `src/instructions/lint.ts`. That file is the deterministic pipeline orchestrator. `src/instructions/rules.ts` is the rule registry: it defines stable rule IDs, categories, default severities, and applicability metadata, but it does not run checks by itself. Policy resolution and final finding filtering live in `src/instructions/policy.ts`; scope composition and coverage live in `src/instructions/scope.ts`; executable rule checks live in `src/instructions/rule-checks.ts`.
+`instructions-lint` is centered on `src/instructions/lint.ts`. That file is the deterministic pipeline orchestrator. `src/instructions/rules.ts` is the rule registry: it defines stable rule IDs, categories, default severities, and applicability metadata, but it does not run checks by itself.
+
+The rule engine is split by responsibility:
+
+- `discovery.ts`: repository-root inference, supported instruction surface discovery, and preset classification
+- `markdown.ts`: frontmatter parsing, Markdown block parsing, and statement extraction
+- `policy.ts` and `config.ts`: config loading, CLI precedence, fail thresholds, suppressions, baselines, and final severity policy
+- `scope.ts`: matched target files, stale scope findings, and instruction coverage maps
+- `rule-checks.ts`: executable local, cross-file, and target-load checks
+- `lint.ts`: pass ordering and stable report assembly
 
 The engine is a deterministic pipeline:
 

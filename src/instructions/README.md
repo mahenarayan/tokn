@@ -1,6 +1,9 @@
 # Instruction Lint Subsystem
 
-This directory contains the stable `instructions-lint` engine.
+This directory contains the stable `instructions-lint` engine. The code is
+organized as a deterministic analysis pipeline: discovery, parsing, local
+checks, scope composition, cross-file checks, policy filtering, and report
+assembly.
 
 ## Files
 
@@ -41,3 +44,14 @@ Rule metadata and executable rule logic are intentionally separate.
 `lint.ts` answers "which deterministic passes run, in what order?".
 
 Local rules should use only one parsed instruction file. Cross-file and target-load rules should run after scope resolution because they depend on matched repository files and instruction overlap.
+
+## Change Guidelines
+
+- Put new public rule IDs and metadata in `rules.ts`.
+- Put config parsing, option precedence, suppression, baseline, and severity policy in `policy.ts` or `config.ts`.
+- Put file discovery and preset classification in `discovery.ts`.
+- Put target matching, coverage, and scope-derived findings in `scope.ts`.
+- Put executable lint checks in `rule-checks.ts`; keep formatters out of rule decisions.
+- Add or update feature-level tests in `src/test/` when changing a pass. Golden output changes should be intentional because CLI text is product surface.
+
+Avoid changing `InstructionLintReport`, config schemas, or exported types as an incidental refactor. Those are public contracts and should be reviewed as API changes.

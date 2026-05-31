@@ -46,6 +46,21 @@ Report JSON includes:
 - `schemaPath: "schemas/instructions-lint-report.schema.json"`
 - `coverage`: a deterministic target-to-instruction coverage map, sorted by largest target load first
 
+## How The Engine Runs
+
+Tokn treats instruction linting as static analysis over repository files, not as model review. A run is composed from deterministic passes:
+
+1. Resolve policy from CLI flags and config.
+2. Discover supported instruction files and visible repository target files.
+3. Parse frontmatter, Markdown blocks, and instruction statements.
+4. Run local checks against each instruction file.
+5. Resolve file scope, matched targets, and coverage.
+6. Run cross-file checks for duplicates, conflicts, overlap, and target-load pressure.
+7. Apply suppressions, rule overrides, and baselines.
+8. Assemble the stable report consumed by text, JSON, Markdown, GitHub, Azure, and SDK callers.
+
+This separation matters for maintainers: rule metadata, policy, scope composition, executable checks, and rendering live in different modules so new behavior has a clear place to fit.
+
 ## Config File
 
 Tokn discovers `tokn.config.json` or `.toknrc.json` from the repository root inferred from the input path. You can also pass an explicit config file with `--config`.

@@ -4,6 +4,12 @@ All notable changes to Tokn should be recorded in this file.
 
 ## Unreleased
 
+## 0.5.2
+
+- document the refactored instruction lint pipeline and module responsibilities
+- clarify that instruction lint analysis is deterministic static analysis over repository instruction files
+- release internal instruction-lint architecture cleanup without public API or schema changes
+
 ## 0.5.1
 
 - fix instruction coverage maps for repositories with no discovered instruction files so visible files are reported as uncovered targets instead of zero targets
