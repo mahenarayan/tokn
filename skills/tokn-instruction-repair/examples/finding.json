@@ -1,0 +1,19 @@
+{
+  "findings": [
+    {
+      "ruleId": "vague-instruction",
+      "severity": "warning",
+      "file": ".github/copilot-instructions.md",
+      "line": 4,
+      "message": "\"Follow best practices\" is too generic to guide repository-specific behavior."
+    },
+    {
+      "ruleId": "high-similarity-statement",
+      "severity": "warning",
+      "file": ".github/instructions/typescript.instructions.md",
+      "line": 8,
+      "message": "Overlapping instruction files contain highly similar rules."
+    }
+  ],
+  "verificationCommand": "tokn instructions-lint ."
+}

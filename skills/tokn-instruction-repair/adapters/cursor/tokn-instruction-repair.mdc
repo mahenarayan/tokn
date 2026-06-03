@@ -1,0 +1,14 @@
+---
+description: Repair Tokn instructions-lint findings while preserving instruction intent and making repository guidance crisp, scoped, and consistent.
+globs:
+  - AGENTS.md
+  - .github/copilot-instructions.md
+  - .github/instructions/*.instructions.md
+alwaysApply: false
+---
+
+Use the canonical workflow in `skills/tokn-instruction-repair/skill.md`.
+
+When asked to repair Tokn findings, preserve unique team guidance, remove
+duplication and vague wording, resolve conflicts, and verify with Tokn after
+edits.

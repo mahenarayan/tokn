@@ -1,0 +1,33 @@
+{
+  "name": "tokn-instruction-repair",
+  "version": "0.1.0",
+  "description": "Repair Tokn instructions-lint findings while preserving instruction intent and making repository guidance crisp, scoped, and consistent.",
+  "license": "MIT",
+  "entry": "skill.md",
+  "inputSchema": "input.schema.json",
+  "inputs": [
+    "Tokn instructions-lint findings",
+    "referenced instruction files",
+    "optional repository context"
+  ],
+  "outputs": [
+    "patch or edited files",
+    "repair summary",
+    "remaining or intentionally preserved findings",
+    "Tokn verification result"
+  ],
+  "defaultVerification": "tokn instructions-lint .",
+  "tags": [
+    "tokn",
+    "instructions-lint",
+    "instruction-repair",
+    "context-engineering",
+    "agent-instructions"
+  ],
+  "adapters": {
+    "codex": "adapters/codex/SKILL.md",
+    "claude": "adapters/claude/repair-instructions.md",
+    "cursor": "adapters/cursor/tokn-instruction-repair.mdc",
+    "github-copilot": "adapters/github-copilot/instructions.md"
+  }
+}
