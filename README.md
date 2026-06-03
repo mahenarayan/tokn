@@ -14,6 +14,11 @@ Instruction files are recurring model input. When they become stale, duplicated,
 
 Tokn reads files from disk, reports findings, and does not rewrite files or call AI models during lint analysis.
 
+Tokn also publishes a harness-neutral instruction repair skill for teams that
+want an assistant to apply Tokn findings intentionally. The skill lives under
+`skills/tokn-instruction-repair/` and is separate from the deterministic lint
+engine.
+
 ## Quick Start
 
 Run without installing:
@@ -120,6 +125,16 @@ tokn check <file>
 ```
 
 These commands are useful, but they are not the primary stable public contract and may change more freely than `instructions-lint`.
+
+## Instruction Repair Skill
+
+The package includes `skills/tokn-instruction-repair/`, a portable prompt pack
+for repairing Tokn findings in any harness. It is designed to preserve important
+team guidance while making instruction files crisp, scoped, and consistent.
+
+Use `skills/tokn-instruction-repair/skill.md` as the canonical workflow. Thin
+adapters are included for Codex, Claude, Cursor, and GitHub Copilot style
+instruction formats.
 
 ## Current Limits
 

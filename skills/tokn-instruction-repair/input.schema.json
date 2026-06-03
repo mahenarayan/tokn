@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/mahenarayan/tokn/blob/main/skills/tokn-instruction-repair/input.schema.json",
+  "title": "Tokn Instruction Repair Input",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["findings"],
+  "properties": {
+    "findings": {
+      "description": "Tokn instructions-lint output as text, Markdown, or parsed JSON.",
+      "oneOf": [
+        { "type": "string" },
+        { "type": "object" }
+      ]
+    },
+    "instructionFiles": {
+      "description": "Instruction file paths or path-to-content records supplied by the harness.",
+      "type": "array",
+      "items": {
+        "oneOf": [
+          { "type": "string" },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "content"],
+            "properties": {
+              "path": { "type": "string" },
+              "content": { "type": "string" }
+            }
+          }
+        ]
+      }
+    },
+    "repositoryContext": {
+      "description": "Optional focused repository context needed to resolve scope or intent.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "content"],
+        "properties": {
+          "path": { "type": "string" },
+          "content": { "type": "string" }
+        }
+      }
+    },
+    "verificationCommand": {
+      "description": "Command the harness should run after edits.",
+      "type": "string",
+      "default": "tokn instructions-lint ."
+    },
+    "constraints": {
+      "description": "User or organization constraints that must be preserved during repair.",
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

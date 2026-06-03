@@ -4,6 +4,8 @@ All notable changes to Tokn should be recorded in this file.
 
 ## Unreleased
 
+- add a harness-neutral `tokn-instruction-repair` skill pack for repairing Tokn findings while preserving instruction intent
+
 ## 0.5.2
 
 - document the refactored instruction lint pipeline and module responsibilities

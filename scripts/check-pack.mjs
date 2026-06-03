@@ -32,7 +32,17 @@ const requiredFiles = [
   "dist/index.js",
   "dist/types.d.ts",
   "schemas/instructions-lint-report.schema.json",
-  "schemas/tokn-config.schema.json"
+  "schemas/tokn-config.schema.json",
+  "skills/tokn-instruction-repair/skill.md",
+  "skills/tokn-instruction-repair/manifest.json",
+  "skills/tokn-instruction-repair/input.schema.json",
+  "skills/tokn-instruction-repair/examples/finding.json",
+  "skills/tokn-instruction-repair/examples/before.md",
+  "skills/tokn-instruction-repair/examples/after.md",
+  "skills/tokn-instruction-repair/adapters/codex/SKILL.md",
+  "skills/tokn-instruction-repair/adapters/claude/repair-instructions.md",
+  "skills/tokn-instruction-repair/adapters/cursor/tokn-instruction-repair.mdc",
+  "skills/tokn-instruction-repair/adapters/github-copilot/instructions.md"
 ];
 
 const forbiddenPrefixes = [
