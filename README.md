@@ -19,6 +19,8 @@ want an assistant to apply Tokn findings intentionally. The skill lives under
 `skills/tokn-instruction-repair/` and is separate from the deterministic lint
 engine.
 
+A small real-world example: a [merged Cline PR](https://github.com/cline/cline/pull/11025) updated stale agent guidance that still pointed contributors at an older storage flow after the implementation had moved to file-backed `StateManager` storage. That kind of instruction drift is easy to miss in prose review and exactly the kind of issue Tokn aims to make easier to spot.
+
 ## Quick Start
 
 Run without installing:
@@ -54,6 +56,8 @@ Suggestion: Replace it with a concrete project rule or remove it.
 - known external agent instruction files that are visible but not fully linted yet
 
 Output formats include text, JSON, Markdown, GitHub Actions annotations, and Azure Pipelines logging commands.
+
+Instruction drift detection for older file, command, symbol, and workflow references is an active product direction. The Cline example above is the shape of finding Tokn is being designed to make deterministic.
 
 ## Why Teams Use It
 

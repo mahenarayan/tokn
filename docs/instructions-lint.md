@@ -22,6 +22,8 @@ Instruction files are part of the context supply chain for coding assistants and
 - create baselines so teams can improve instruction quality over time without blocking every existing issue on day one
 - run the same instruction checks across chat, coding-agent, and code-review surfaces
 
+Instruction drift detection for stale file, command, symbol, and workflow references is a first-class product direction, not part of the current stable rule set yet.
+
 Advanced prompt and trace diagnostics build on the same idea, but linting is the first place most teams can adopt this safely because it runs locally, avoids file rewrites, and fits CI.
 
 ## Stable Contract
