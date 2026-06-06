@@ -18,6 +18,7 @@ Instruction files are part of the context supply chain for coding assistants and
 - map which instruction files apply to each repository target and where target load concentrates
 - find duplicated or conflicting guidance across scoped instruction files
 - catch stale path scopes before instructions silently stop applying
+- identify instruction drift where guidance references files, commands, symbols, or workflows that no longer match the repository
 - separate limits that vary by platform from general context budget pressure
 - create baselines so teams can improve instruction quality over time without blocking every existing issue on day one
 - run the same instruction checks across chat, coding-agent, and code-review surfaces
@@ -185,6 +186,7 @@ Tokn groups findings by why they matter, not by style preference alone:
 - Compatibility errors identify platform behavior that can prevent instructions from loading or behaving predictably.
 - Economy warnings identify instruction text that may create context pressure when multiple files apply to one target.
 - Clarity warnings identify instructions that are vague, weakly worded, overly long, or harder for agents to follow.
+- Drift warnings identify instruction text that no longer appears to match repository files, commands, symbols, or architecture facts.
 
 For Copilot `.github/instructions/*.instructions.md` files, `applyTo` enables automatic path matching. `description` enables task-triggered or manually attached instructions in supported editor flows. Tokn accepts description-only files and reports them as active, but skips target-file matching, stale-scope checks, and overlap analysis because there is no deterministic file glob to resolve.
 

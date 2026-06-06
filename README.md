@@ -19,6 +19,8 @@ want an assistant to apply Tokn findings intentionally. The skill lives under
 `skills/tokn-instruction-repair/` and is separate from the deterministic lint
 engine.
 
+A small real-world example: a [merged Cline PR](https://github.com/cline/cline/pull/11025) updated stale agent guidance that still pointed contributors at an older storage flow after the implementation had moved to file-backed `StateManager` storage. That kind of instruction drift is easy to miss in prose review and exactly the kind of issue Tokn aims to make easier to spot.
+
 ## Quick Start
 
 Run without installing:
@@ -48,6 +50,7 @@ Suggestion: Replace it with a concrete project rule or remove it.
 - conflicting guidance for the same paths or assistant surfaces
 - vague directives like "follow best practices" or "write clean code"
 - stale `applyTo` patterns that match no repository files
+- instruction drift where guidance references older files, commands, symbols, or workflows
 - large instruction files and high per-target instruction load
 - coverage maps showing which instruction files apply to each repository target
 - platform-specific compatibility issues, including Copilot code review limits
