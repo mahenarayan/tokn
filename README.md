@@ -50,14 +50,14 @@ Suggestion: Replace it with a concrete project rule or remove it.
 - conflicting guidance for the same paths or assistant surfaces
 - vague directives like "follow best practices" or "write clean code"
 - stale `applyTo` patterns that match no repository files
+- stale backticked file, directory, package-script, and symbol references
 - large instruction files and high per-target instruction load
 - coverage maps showing which instruction files apply to each repository target
 - platform-specific compatibility issues, including Copilot code review limits
 - known external agent instruction files that are visible but not fully linted yet
 
 Output formats include text, JSON, Markdown, GitHub Actions annotations, and Azure Pipelines logging commands.
-
-Instruction drift detection for older file, command, symbol, and workflow references is an active product direction. The Cline example above is the shape of finding Tokn is being designed to make deterministic.
+Initial instruction drift detection is intentionally conservative: Tokn checks explicit references such as backticked paths, package scripts, and symbols, then reports mismatches against the local repository.
 
 ## Why Teams Use It
 
@@ -144,6 +144,7 @@ instruction formats.
 
 - Token counts are local estimates for context pressure, not provider billing numbers.
 - Model context data comes from Tokn's local registry, so budget reporting stays conservative.
+- Drift detection is deterministic and reference-based; it does not infer whether prose describes an outdated architecture unless there is an explicit local reference to check.
 - Claude, Gemini, and Cursor instruction files are detected for rollout visibility but are not fully linted yet.
 - Tokn reports issues only; it does not rewrite instruction files.
 

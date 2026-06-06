@@ -5,7 +5,7 @@ import type {
   InstructionRuleId
 } from "../types.js";
 
-export type InstructionRuleCategory = "compatibility" | "clarity" | "economy";
+export type InstructionRuleCategory = "compatibility" | "clarity" | "economy" | "drift";
 
 export interface InstructionRuleDefinition {
   id: InstructionRuleId;
@@ -217,6 +217,30 @@ export const INSTRUCTION_RULES: Record<InstructionRuleId, InstructionRuleDefinit
     category: "economy",
     defaultSeverity: "warning",
     summary: "The instruction bundle for one target file exceeds the configured token budget.",
+    presets: "all",
+    surfaces: "all"
+  },
+  "missing-file-reference": {
+    id: "missing-file-reference",
+    category: "drift",
+    defaultSeverity: "warning",
+    summary: "Instruction text references a repository file or directory that cannot be found.",
+    presets: "all",
+    surfaces: "all"
+  },
+  "missing-command-reference": {
+    id: "missing-command-reference",
+    category: "drift",
+    defaultSeverity: "warning",
+    summary: "Instruction text references a package script that is not defined.",
+    presets: "all",
+    surfaces: "all"
+  },
+  "missing-symbol-reference": {
+    id: "missing-symbol-reference",
+    category: "drift",
+    defaultSeverity: "warning",
+    summary: "Instruction text references a code symbol that cannot be found in the repository.",
     presets: "all",
     surfaces: "all"
   }
