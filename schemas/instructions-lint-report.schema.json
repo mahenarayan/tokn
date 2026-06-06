@@ -374,7 +374,7 @@
           "enum": ["warning", "error"]
         },
         "category": {
-          "enum": ["compatibility", "clarity", "economy"]
+          "enum": ["compatibility", "clarity", "economy", "drift"]
         },
         "confidence": {
           "enum": ["low", "medium", "high"]
@@ -424,7 +424,10 @@
         "exact-duplicate-statement",
         "possible-conflict",
         "high-similarity-statement",
-        "applicable-token-budget"
+        "applicable-token-budget",
+        "missing-file-reference",
+        "missing-command-reference",
+        "missing-symbol-reference"
       ]
     }
   }

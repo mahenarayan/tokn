@@ -18,11 +18,12 @@ Instruction files are part of the context supply chain for coding assistants and
 - map which instruction files apply to each repository target and where target load concentrates
 - find duplicated or conflicting guidance across scoped instruction files
 - catch stale path scopes before instructions silently stop applying
+- catch explicit stale file, command, and symbol references before agents repeat outdated guidance
 - separate limits that vary by platform from general context budget pressure
 - create baselines so teams can improve instruction quality over time without blocking every existing issue on day one
 - run the same instruction checks across chat, coding-agent, and code-review surfaces
 
-Instruction drift detection for stale file, command, symbol, and workflow references is a first-class product direction, not part of the current stable rule set yet.
+Initial instruction drift detection is part of the stable rule set. It is deliberately reference-based: Tokn checks explicit backticked file, directory, package-script, and symbol references against the local repository instead of asking a model to judge broad prose.
 
 Advanced prompt and trace diagnostics build on the same idea, but linting is the first place most teams can adopt this safely because it runs locally, avoids file rewrites, and fits CI.
 
@@ -57,9 +58,10 @@ Tokn treats instruction linting as static analysis over repository files, not as
 3. Parse frontmatter, Markdown blocks, and instruction statements.
 4. Run local checks against each instruction file.
 5. Resolve file scope, matched targets, and coverage.
-6. Run cross-file checks for duplicates, conflicts, overlap, and target-load pressure.
-7. Apply suppressions, rule overrides, and baselines.
-8. Assemble the stable report consumed by text, JSON, Markdown, GitHub, Azure, and SDK callers.
+6. Run deterministic drift checks for explicit stale local references.
+7. Run cross-file checks for duplicates, conflicts, overlap, and target-load pressure.
+8. Apply suppressions, rule overrides, and baselines.
+9. Assemble the stable report consumed by text, JSON, Markdown, GitHub, Azure, and SDK callers.
 
 This separation matters for maintainers: rule metadata, policy, scope composition, executable checks, and rendering live in different modules so new behavior has a clear place to fit.
 
@@ -337,11 +339,15 @@ For restricted environments, install `@tokn-labs/tokn` from an approved internal
 | `possible-conflict` | warning | economy | overlapping supported files |
 | `high-similarity-statement` | warning | economy | overlapping supported files |
 | `applicable-token-budget` | warning | economy | effective per target instruction bundles |
+| `missing-file-reference` | warning | drift | explicit backticked file or directory references |
+| `missing-command-reference` | warning | drift | explicit package-script command references |
+| `missing-symbol-reference` | warning | drift | explicit backticked symbol references |
 
 ## Scope Notes
 
 - `instructions-lint` does not modify files.
 - Tokn does not rewrite instructions or generate fixes in the stable surface.
+- Drift checks are conservative and local; they do not execute commands or perform semantic architecture inference.
 - Detection of `CLAUDE.md`, `GEMINI.md`, and Cursor rule files is visibility-only in `auto` mode.
 - Symlinked instruction files that resolve to regular files are discovered; symlinked directories are skipped to avoid traversal loops.
 - Advanced prompt and trace diagnostics remain experimental and are not part of this contract yet.

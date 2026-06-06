@@ -19,7 +19,7 @@ export type InstructionLintPreset = "copilot" | "agents-md";
 export type InstructionLintPresetSelector = "auto" | InstructionLintPreset;
 export type InstructionLintRolloutStage = "advisory" | "baseline" | "enforced";
 export type InstructionExcludeAgent = "code-review" | "coding-agent";
-export type InstructionFindingCategory = "compatibility" | "clarity" | "economy";
+export type InstructionFindingCategory = "compatibility" | "clarity" | "economy" | "drift";
 export type InstructionFindingConfidence = "low" | "medium" | "high";
 export type InstructionActivationType = "repository" | "path" | "description" | "directory" | "unsupported";
 export type InstructionRuleId =
@@ -47,7 +47,10 @@ export type InstructionRuleId =
   | "exact-duplicate-statement"
   | "possible-conflict"
   | "high-similarity-statement"
-  | "applicable-token-budget";
+  | "applicable-token-budget"
+  | "missing-file-reference"
+  | "missing-command-reference"
+  | "missing-symbol-reference";
 export type InstructionRuleSelector = InstructionRuleId | "*";
 export type InstructionFileKind =
   | "repository"

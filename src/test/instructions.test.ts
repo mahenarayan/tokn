@@ -791,6 +791,95 @@ test("lintInstructions exposes statement token estimates only in verbose reports
   assert.match(verboseFile?.statementEstimates?.[0]?.text ?? "", /explicit return types/);
 });
 
+test("lintInstructions reports explicit stale file and directory references", () => {
+  const repoRoot = createInstructionRepo(
+    {
+      ".github/copilot-instructions.md": [
+        "# Repository Instructions",
+        "",
+        "- Keep `src/` conventions aligned with `missing/legacy.ts` before changing handlers."
+      ].join("\n"),
+      "src/index.ts": "export const value = 1;\n"
+    },
+    "tokn-instructions-drift-paths-"
+  );
+
+  const report = lintInstructions(repoRoot, { failOnSeverity: "off" });
+
+  assert.ok(!report.findings.some((finding) => (
+    finding.ruleId === "missing-file-reference" && finding.evidence?.actual === "src/"
+  )));
+  const finding = report.findings.find((candidate) => candidate.ruleId === "missing-file-reference");
+  assert.equal(finding?.category, "drift");
+  assert.equal(finding?.evidence?.actual, "missing/legacy.ts");
+  assert.equal(finding?.confidence, "high");
+});
+
+test("lintInstructions reports stale package script references", () => {
+  const repoRoot = createInstructionRepo(
+    {
+      "package.json": JSON.stringify(
+        {
+          scripts: {
+            "lint": "eslint ."
+          }
+        },
+        null,
+        2
+      ),
+      ".github/copilot-instructions.md": [
+        "# Repository Instructions",
+        "",
+        "- Validate changes with npm run lint, npm run build, and npm run verify:legacy before opening a PR.",
+        "- Use npm install after dependency updates."
+      ].join("\n"),
+      "src/index.ts": "export const value = 1;\n"
+    },
+    "tokn-instructions-drift-scripts-"
+  );
+
+  const report = lintInstructions(repoRoot, { failOnSeverity: "off" });
+
+  assert.ok(!report.findings.some((finding) => (
+    finding.ruleId === "missing-command-reference" && finding.evidence?.actual === "lint"
+  )));
+  assert.ok(!report.findings.some((finding) => (
+    finding.ruleId === "missing-command-reference" && finding.evidence?.actual === "install"
+  )));
+  const findings = report.findings.filter((candidate) => candidate.ruleId === "missing-command-reference");
+  assert.deepEqual(findings.map((finding) => finding.evidence?.actual), ["build", "verify:legacy"]);
+  assert.equal(findings[0]?.category, "drift");
+  assert.equal(findings[0]?.confidence, "high");
+});
+
+test("lintInstructions reports stale backticked symbol references conservatively", () => {
+  const repoRoot = createInstructionRepo(
+    {
+      ".github/copilot-instructions.md": [
+        "# Repository Instructions",
+        "",
+        "- Prefer `loadUser()` for user lookup and never call `legacyLookup()` in new code."
+      ].join("\n"),
+      "src/users.ts": [
+        "export function loadUser() {",
+        "  return { id: 'u1' };",
+        "}"
+      ].join("\n")
+    },
+    "tokn-instructions-drift-symbols-"
+  );
+
+  const report = lintInstructions(repoRoot, { failOnSeverity: "off" });
+
+  assert.ok(!report.findings.some((finding) => (
+    finding.ruleId === "missing-symbol-reference" && finding.evidence?.actual === "loadUser()"
+  )));
+  const finding = report.findings.find((candidate) => candidate.ruleId === "missing-symbol-reference");
+  assert.equal(finding?.category, "drift");
+  assert.equal(finding?.evidence?.actual, "legacyLookup()");
+  assert.equal(finding?.confidence, "medium");
+});
+
 test("lintInstructions emits a stable schema contract and discovers config defaults", () => {
   const repoRoot = createInstructionRepo(
     {

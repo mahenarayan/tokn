@@ -35,11 +35,11 @@ Good drift findings are usually more valuable than generic wording feedback beca
 - a rule describes a workflow that another instruction file has superseded
 - a global instruction points agents at an old architecture boundary
 
-## Tokn Direction
+## Tokn Checks Today
 
-Tokn should make drift detection a first-class `instructions-lint` pillar.
+Tokn treats drift detection as a first-class `instructions-lint` pillar.
 
-The initial feature set should stay deterministic and local:
+The initial feature set is deterministic and local:
 
 - extract paths, commands, symbols, and config keys from instruction files
 - check whether referenced files exist
@@ -47,14 +47,15 @@ The initial feature set should stay deterministic and local:
 - check whether referenced symbols appear in the repository
 - report structured evidence and confidence
 
-Potential rule IDs:
+Current rule IDs:
 
 | Rule | Purpose |
 | --- | --- |
 | `missing-file-reference` | instruction references a file or directory that does not exist |
 | `missing-command-reference` | instruction references a package script or command target that is not defined |
 | `missing-symbol-reference` | instruction references a code symbol that cannot be found locally |
-| `stale-instruction-reference` | instruction likely points to an older project concept superseded elsewhere |
+
+Tokn intentionally does not try to infer every stale architecture sentence. It checks explicit local references first because those findings are reviewable, suppressible, and suitable for CI.
 
 ## What Good Looks Like
 

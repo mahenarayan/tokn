@@ -30,6 +30,9 @@ import {
   lintLocalRules
 } from "./rule-checks.js";
 import {
+  lintInstructionDrift
+} from "./drift.js";
+import {
   countWords
 } from "./text.js";
 import {
@@ -481,6 +484,7 @@ export function lintInstructions(
   const internalReports = buildInternalFileReports(candidates, policy, notes);
   resolveInstructionScopeFindings(internalReports, repoFilesByRoot, warnings);
 
+  lintInstructionDrift(internalReports, repoFilesByRoot);
   lintCrossFileRules(internalReports);
   const coverageAnalysis = buildInstructionCoverageAnalysis(internalReports, repoFilesByRoot);
   const coverage = buildInstructionCoverageMap(coverageAnalysis);
