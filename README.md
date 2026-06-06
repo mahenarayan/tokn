@@ -50,13 +50,14 @@ Suggestion: Replace it with a concrete project rule or remove it.
 - conflicting guidance for the same paths or assistant surfaces
 - vague directives like "follow best practices" or "write clean code"
 - stale `applyTo` patterns that match no repository files
-- instruction drift where guidance references older files, commands, symbols, or workflows
 - large instruction files and high per-target instruction load
 - coverage maps showing which instruction files apply to each repository target
 - platform-specific compatibility issues, including Copilot code review limits
 - known external agent instruction files that are visible but not fully linted yet
 
 Output formats include text, JSON, Markdown, GitHub Actions annotations, and Azure Pipelines logging commands.
+
+Instruction drift detection for older file, command, symbol, and workflow references is an active product direction. The Cline example above is the shape of finding Tokn is being designed to make deterministic.
 
 ## Why Teams Use It
 
