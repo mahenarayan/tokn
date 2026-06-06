@@ -58,6 +58,7 @@ Suggestion: Replace it with a concrete project rule or remove it.
 
 Output formats include text, JSON, Markdown, GitHub Actions annotations, and Azure Pipelines logging commands.
 Initial instruction drift detection is intentionally conservative: Tokn checks explicit references such as backticked paths, package scripts, and symbols, then reports mismatches against the local repository.
+When drift exists, JSON/text/Markdown output includes an aggregate rollup for rule counts, confidence levels, repeated stale references, and instruction files with the most drift.
 
 ## Why Teams Use It
 

@@ -4,6 +4,14 @@ All notable changes to Tokn should be recorded in this file.
 
 ## Unreleased
 
+- No changes yet.
+
+## 0.6.0
+
+- add deterministic instruction drift checks for stale file, directory, package-script, and symbol references
+- add drift rule IDs to the public instruction lint type and JSON schema contracts
+- add drift aggregation in JSON, text, and Markdown reports for large instruction sets
+- add a scale-oriented drift example for advisory rollout, triage, baselines, and CI enforcement
 - add a harness-neutral `tokn-instruction-repair` skill pack for repairing Tokn findings while preserving instruction intent
 
 ## 0.5.2

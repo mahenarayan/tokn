@@ -345,6 +345,65 @@ function appendInstructionCoverageMarkdown(lines: string[], report: InstructionL
   );
 }
 
+function appendInstructionDriftText(lines: string[], report: InstructionLintReport): void {
+  if (!report.drift) {
+    return;
+  }
+
+  lines.push("", "Instruction Drift:");
+  lines.push(`- Drift findings: ${report.drift.totalFindings}`);
+  if (report.drift.byRule.length > 0) {
+    lines.push(`- By rule: ${report.drift.byRule.map((entry) => `${entry.ruleId}=${entry.count}`).join(", ")}`);
+  }
+  if (report.drift.byConfidence.length > 0) {
+    lines.push(`- By confidence: ${report.drift.byConfidence.map((entry) => `${entry.confidence}=${entry.count}`).join(", ")}`);
+  }
+  if (report.drift.files.length > 0) {
+    lines.push(`- Top files: ${report.drift.files.map((entry) => `${entry.file} (${entry.count})`).join(", ")}`);
+  }
+  if (report.drift.references.length > 0) {
+    lines.push(`- Repeated references: ${report.drift.references.map((entry) => `${entry.value} (${entry.count})`).join(", ")}`);
+  }
+}
+
+function appendInstructionDriftMarkdown(lines: string[], report: InstructionLintReport): void {
+  if (!report.drift) {
+    return;
+  }
+
+  lines.push("", "## Instruction Drift");
+  lines.push(`- Drift findings: ${report.drift.totalFindings}`);
+  if (report.drift.byRule.length > 0) {
+    lines.push(`- By rule: ${report.drift.byRule.map((entry) => `${entry.ruleId}=${entry.count}`).join(", ")}`);
+  }
+  if (report.drift.byConfidence.length > 0) {
+    lines.push(`- By confidence: ${report.drift.byConfidence.map((entry) => `${entry.confidence}=${entry.count}`).join(", ")}`);
+  }
+  if (report.drift.files.length > 0) {
+    lines.push(
+      "",
+      ...markdownTable(
+        ["Instruction File", "Drift Findings"],
+        report.drift.files.map((entry) => [entry.file, String(entry.count)])
+      )
+    );
+  }
+  if (report.drift.references.length > 0) {
+    lines.push(
+      "",
+      ...markdownTable(
+        ["Reference", "Count", "Rules", "Files"],
+        report.drift.references.map((entry) => [
+          entry.value,
+          String(entry.count),
+          entry.ruleIds.join(", "),
+          entry.files.join(", ")
+        ])
+      )
+    );
+  }
+}
+
 function appendInstructionStatementEstimateText(
   lines: string[],
   file: InstructionLintReport["files"][number]
@@ -928,6 +987,7 @@ export function formatInstructionLintReport(report: InstructionLintReport): stri
   }
 
   appendInstructionCoverageText(lines, report);
+  appendInstructionDriftText(lines, report);
 
   lines.push("", "Findings:");
   if (report.findings.length === 0) {
@@ -1088,6 +1148,7 @@ export function formatInstructionLintReportMarkdown(report: InstructionLintRepor
   }
 
   appendInstructionCoverageMarkdown(lines, report);
+  appendInstructionDriftMarkdown(lines, report);
 
   lines.push("", "## Findings");
   if (report.findings.length === 0) {

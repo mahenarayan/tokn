@@ -317,6 +317,36 @@ export interface InstructionCoverageMap {
   uncoveredTargetFilesSample: string[];
 }
 
+export interface InstructionDriftRuleSummary {
+  ruleId: InstructionRuleId;
+  count: number;
+}
+
+export interface InstructionDriftConfidenceSummary {
+  confidence: InstructionFindingConfidence;
+  count: number;
+}
+
+export interface InstructionDriftFileSummary {
+  file: string;
+  count: number;
+}
+
+export interface InstructionDriftReferenceSummary {
+  value: string;
+  count: number;
+  ruleIds: InstructionRuleId[];
+  files: string[];
+}
+
+export interface InstructionDriftSummary {
+  totalFindings: number;
+  byRule: InstructionDriftRuleSummary[];
+  byConfidence: InstructionDriftConfidenceSummary[];
+  files: InstructionDriftFileSummary[];
+  references: InstructionDriftReferenceSummary[];
+}
+
 export interface InstructionLintStats {
   totalFiles: number;
   repositoryFiles: number;
@@ -355,6 +385,7 @@ export interface InstructionLintReport {
   failOnSeverity: InstructionLintFailOnSeverity;
   config?: InstructionLintAppliedConfig;
   coverage?: InstructionCoverageMap;
+  drift?: InstructionDriftSummary;
   stats: InstructionLintStats;
   files: InstructionFileReport[];
   findings: InstructionFinding[];

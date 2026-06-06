@@ -30,6 +30,7 @@ import {
   lintLocalRules
 } from "./rule-checks.js";
 import {
+  buildInstructionDriftSummary,
   lintInstructionDrift
 } from "./drift.js";
 import {
@@ -530,6 +531,7 @@ export function lintInstructions(
   const findings = files
     .flatMap((file) => file.findings)
     .sort(findingSort);
+  const drift = buildInstructionDriftSummary(findings);
   const stats = buildStats(files, findings, applicableTokenSummary, ignoreSummary, postProcessSummary);
   const passed = findings.every((finding) => !isSeverityFailing(finding, failOnSeverity));
   const detectedPresets = [...new Set(files.flatMap((file) => (file.preset ? [file.preset] : [])))].sort();
@@ -555,6 +557,7 @@ export function lintInstructions(
     failOnSeverity,
     ...(policy.appliedConfig ? { config: policy.appliedConfig } : {}),
     coverage,
+    ...(drift ? { drift } : {}),
     stats,
     files,
     findings,

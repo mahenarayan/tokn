@@ -880,6 +880,66 @@ test("lintInstructions reports stale backticked symbol references conservatively
   assert.equal(finding?.confidence, "medium");
 });
 
+test("lintInstructions aggregates drift findings for large instruction sets", () => {
+  const repoRoot = createInstructionRepo(
+    {
+      "package.json": JSON.stringify({ scripts: { lint: "eslint ." } }, null, 2),
+      ".github/instructions/api.instructions.md": [
+        "---",
+        'applyTo: "src/**/*.ts"',
+        "---",
+        "",
+        "- Replace legacy calls to `missingApi()` and keep `missing/legacy.ts` out of new code.",
+        "- Validate API work with npm run verify:legacy."
+      ].join("\n"),
+      ".github/instructions/web.instructions.md": [
+        "---",
+        'applyTo: "web/**/*.ts"',
+        "---",
+        "",
+        "- Do not call `missingApi()` from web handlers.",
+        "- Keep `missing/legacy.ts` references out of UI state."
+      ].join("\n"),
+      "src/index.ts": "export function currentApi() { return 1; }\n",
+      "web/index.ts": "export const value = 1;\n"
+    },
+    "tokn-instructions-drift-summary-"
+  );
+
+  const report = lintInstructions(repoRoot, { failOnSeverity: "off" });
+
+  assert.equal(report.drift?.totalFindings, 5);
+  assert.deepEqual(report.drift?.byRule, [
+    { ruleId: "missing-file-reference", count: 2 },
+    { ruleId: "missing-symbol-reference", count: 2 },
+    { ruleId: "missing-command-reference", count: 1 }
+  ]);
+  assert.deepEqual(report.drift?.byConfidence, [
+    { confidence: "high", count: 3 },
+    { confidence: "medium", count: 2 }
+  ]);
+  assert.deepEqual(report.drift?.references.slice(0, 2), [
+    {
+      value: "missing/legacy.ts",
+      count: 2,
+      ruleIds: ["missing-file-reference"],
+      files: [
+        ".github/instructions/api.instructions.md",
+        ".github/instructions/web.instructions.md"
+      ]
+    },
+    {
+      value: "missingApi()",
+      count: 2,
+      ruleIds: ["missing-symbol-reference"],
+      files: [
+        ".github/instructions/api.instructions.md",
+        ".github/instructions/web.instructions.md"
+      ]
+    }
+  ]);
+});
+
 test("lintInstructions emits a stable schema contract and discovers config defaults", () => {
   const repoRoot = createInstructionRepo(
     {

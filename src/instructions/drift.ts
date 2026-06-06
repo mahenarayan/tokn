@@ -2,6 +2,12 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { readText } from "../helpers.js";
+import type {
+  InstructionDriftSummary,
+  InstructionFinding,
+  InstructionFindingConfidence,
+  InstructionRuleId
+} from "../types.js";
 import { addFinding } from "./findings.js";
 import {
   type InternalFileReport,
@@ -59,6 +65,34 @@ const COMMON_SYMBOLS = new Set([
   "set",
   "test"
 ]);
+
+const DRIFT_RULE_IDS = new Set<InstructionRuleId>([
+  "missing-file-reference",
+  "missing-command-reference",
+  "missing-symbol-reference"
+]);
+
+const CONFIDENCE_ORDER: InstructionFindingConfidence[] = ["high", "medium", "low"];
+
+function incrementMap(map: Map<string, number>, key: string): void {
+  map.set(key, (map.get(key) ?? 0) + 1);
+}
+
+function sortCountEntries(left: { count: number; key: string }, right: { count: number; key: string }): number {
+  return right.count - left.count || left.key.localeCompare(right.key);
+}
+
+function topCountEntries(map: Map<string, number>, limit: number): Array<{ key: string; count: number }> {
+  return [...map.entries()]
+    .map(([key, count]) => ({ key, count }))
+    .sort(sortCountEntries)
+    .slice(0, limit);
+}
+
+function findingReferenceValue(finding: InstructionFinding): string | undefined {
+  const value = finding.evidence?.actual;
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
 
 function collectBacktickReferences(report: InternalFileReport): ReferenceCandidate[] {
   const references: ReferenceCandidate[] = [];
@@ -309,4 +343,62 @@ export function lintInstructionDrift(
       }
     }
   }
+}
+
+export function buildInstructionDriftSummary(
+  findings: InstructionFinding[]
+): InstructionDriftSummary | undefined {
+  const driftFindings = findings.filter((finding) => DRIFT_RULE_IDS.has(finding.ruleId));
+  if (driftFindings.length === 0) {
+    return undefined;
+  }
+
+  const byRule = new Map<string, number>();
+  const byConfidence = new Map<string, number>();
+  const byFile = new Map<string, number>();
+  const referenceCounts = new Map<string, number>();
+  const referenceRuleIds = new Map<string, Set<InstructionRuleId>>();
+  const referenceFiles = new Map<string, Set<string>>();
+
+  for (const finding of driftFindings) {
+    incrementMap(byRule, finding.ruleId);
+    incrementMap(byConfidence, finding.confidence ?? "medium");
+    incrementMap(byFile, finding.file);
+
+    const reference = findingReferenceValue(finding);
+    if (reference) {
+      incrementMap(referenceCounts, reference);
+      const ruleIds = referenceRuleIds.get(reference) ?? new Set<InstructionRuleId>();
+      ruleIds.add(finding.ruleId);
+      referenceRuleIds.set(reference, ruleIds);
+
+      const files = referenceFiles.get(reference) ?? new Set<string>();
+      files.add(finding.file);
+      referenceFiles.set(reference, files);
+    }
+  }
+
+  return {
+    totalFindings: driftFindings.length,
+    byRule: topCountEntries(byRule, 10).map((entry) => ({
+      ruleId: entry.key as InstructionRuleId,
+      count: entry.count
+    })),
+    byConfidence: CONFIDENCE_ORDER
+      .filter((confidence) => byConfidence.has(confidence))
+      .map((confidence) => ({
+        confidence,
+        count: byConfidence.get(confidence) ?? 0
+      })),
+    files: topCountEntries(byFile, 10).map((entry) => ({
+      file: entry.key,
+      count: entry.count
+    })),
+    references: topCountEntries(referenceCounts, 10).map((entry) => ({
+      value: entry.key,
+      count: entry.count,
+      ruleIds: [...(referenceRuleIds.get(entry.key) ?? [])].sort(),
+      files: [...(referenceFiles.get(entry.key) ?? [])].sort().slice(0, 10)
+    }))
+  };
 }

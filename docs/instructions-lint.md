@@ -48,6 +48,7 @@ Report JSON includes:
 - `schemaVersion: "instructions-lint-report/v1"`
 - `schemaPath: "schemas/instructions-lint-report.schema.json"`
 - `coverage`: a deterministic target-to-instruction coverage map, sorted by largest target load first
+- `drift`: present when drift findings exist, with counts by rule, confidence, instruction file, and repeated stale reference
 
 ## How The Engine Runs
 
