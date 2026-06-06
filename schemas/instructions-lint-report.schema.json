@@ -70,6 +70,9 @@
     "coverage": {
       "$ref": "#/$defs/coverageMap"
     },
+    "drift": {
+      "$ref": "#/$defs/driftSummary"
+    },
     "stats": {
       "$ref": "#/$defs/stats"
     },
@@ -201,6 +204,74 @@
         "estimatedTokens": { "type": "number" },
         "instructionCount": { "type": "number" },
         "instructionFiles": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "driftSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["totalFindings", "byRule", "byConfidence", "files", "references"],
+      "properties": {
+        "totalFindings": { "type": "number" },
+        "byRule": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/driftRuleSummary" }
+        },
+        "byConfidence": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/driftConfidenceSummary" }
+        },
+        "files": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/driftFileSummary" }
+        },
+        "references": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/driftReferenceSummary" }
+        }
+      }
+    },
+    "driftRuleSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ruleId", "count"],
+      "properties": {
+        "ruleId": { "$ref": "#/$defs/ruleId" },
+        "count": { "type": "number" }
+      }
+    },
+    "driftConfidenceSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["confidence", "count"],
+      "properties": {
+        "confidence": { "enum": ["low", "medium", "high"] },
+        "count": { "type": "number" }
+      }
+    },
+    "driftFileSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["file", "count"],
+      "properties": {
+        "file": { "type": "string" },
+        "count": { "type": "number" }
+      }
+    },
+    "driftReferenceSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "count", "ruleIds", "files"],
+      "properties": {
+        "value": { "type": "string" },
+        "count": { "type": "number" },
+        "ruleIds": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ruleId" }
+        },
+        "files": {
           "type": "array",
           "items": { "type": "string" }
         }
