@@ -174,6 +174,8 @@ export interface InstructionLintOptions {
   model?: string;
   preset?: InstructionLintPresetSelector;
   verbose?: boolean;
+  onlyCategories?: InstructionFindingCategory[];
+  onlyRules?: InstructionRuleId[];
   configPath?: string;
   baseline?: string;
   ignore?: string[];

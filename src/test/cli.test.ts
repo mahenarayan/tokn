@@ -960,3 +960,64 @@ test("cli instructions-lint supports advisory fail threshold", () => {
   assert.match(result.stdout, /Fail threshold: off/);
   assert.match(result.stdout, /invalid-file-path/);
 });
+
+test("cli instructions-lint filters findings by category and rule", () => {
+  const repoRoot = createInstructionRepo(
+    {
+      ".github/copilot-instructions.md": [
+        "# Repository Instructions",
+        "",
+        "- Follow best practices.",
+        "- Do not call `missingApi()` from new code."
+      ].join("\n"),
+      "src/index.ts": "export const value = 1;\n"
+    },
+    "tokn-cli-filter-"
+  );
+
+  const drift = runCliJson([
+    "instructions-lint",
+    repoRoot,
+    "--fail-on-severity",
+    "off",
+    "--only-category",
+    "drift",
+    "--format",
+    "json"
+  ]) as { findings: Array<{ category?: string; ruleId: string }>; drift?: { totalFindings: number } };
+  const vague = runCliJson([
+    "instructions-lint",
+    repoRoot,
+    "--fail-on-severity",
+    "off",
+    "--only-rule",
+    "vague-instruction",
+    "--format",
+    "json"
+  ]) as { findings: Array<{ category?: string; ruleId: string }>; drift?: unknown };
+
+  assert.deepEqual(drift.findings.map((finding) => finding.category), ["drift"]);
+  assert.equal(drift.drift?.totalFindings, 1);
+  assert.deepEqual(vague.findings.map((finding) => finding.ruleId), ["vague-instruction"]);
+  assert.equal(vague.drift, undefined);
+});
+
+test("cli instructions-lint rejects unknown finding filters", () => {
+  const category = runCliProcess([
+    "instructions-lint",
+    "fixtures/instructions/valid-repo",
+    "--only-category",
+    "security"
+  ]);
+  const rule = runCliProcess([
+    "instructions-lint",
+    "fixtures/instructions/valid-repo",
+    "--only-rule",
+    "unknown-rule"
+  ]);
+
+  assert.equal(category.status, 1);
+  assert.match(category.stderr, /--only-category must use one of/);
+  assert.equal(rule.status, 1);
+  assert.match(rule.stderr, /--only-rule contains unknown rule ID/);
+});

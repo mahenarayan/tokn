@@ -19,16 +19,19 @@ import {
 } from "./format.js";
 import { isObject, readText, safeJsonParse } from "./helpers.js";
 import { lintInstructions } from "./instructions/lint.js";
+import { isInstructionRuleId } from "./instructions/rules.js";
 import type {
   CheckRiskThreshold,
   CheckThresholds,
   ContextReport,
+  InstructionFindingCategory,
   InstructionLintFailOnSeverity,
   InstructionLintBudgetOverrides,
   InstructionLintPresetSelector,
   InstructionLintProfile,
   InstructionLintReport,
   InstructionLintSurface,
+  InstructionRuleId,
   SegmentType
 } from "./types.js";
 
@@ -59,13 +62,16 @@ const VALUE_FLAGS = new Set([
   "--surface",
   "--preset",
   "--config",
-  "--ignore"
+  "--ignore",
+  "--only-category",
+  "--only-rule"
 ]);
 const RISK_THRESHOLDS = new Set<CheckRiskThreshold>(["low", "medium", "high"]);
 const INSTRUCTION_PROFILES = new Set<InstructionLintProfile>(["lite", "standard", "strict"]);
 const INSTRUCTION_FAIL_ON_SEVERITIES = new Set<InstructionLintFailOnSeverity>(["off", "warning", "error"]);
 const INSTRUCTION_SURFACES = new Set<InstructionLintSurface>(["all", "auto", "code-review", "chat", "coding-agent"]);
 const INSTRUCTION_PRESETS = new Set<InstructionLintPresetSelector>(["auto", "copilot", "agents-md"]);
+const INSTRUCTION_FINDING_CATEGORIES = new Set<InstructionFindingCategory>(["compatibility", "clarity", "economy", "drift"]);
 const SEGMENT_TYPES = new Set<SegmentType>(KNOWN_SEGMENT_TYPES);
 const OUTPUT_FORMATS = new Set(["text", "json", "markdown", "github", "azure"]);
 type OutputMode = "text" | "json" | "markdown" | "github" | "azure";
@@ -97,6 +103,8 @@ const INSTRUCTIONS_LINT_FLAGS = new Set([
   "--surface",
   "--model",
   "--fail-on-severity",
+  "--only-category",
+  "--only-rule",
   "--verbose"
 ]);
 const INSTRUCTIONS_INIT_FLAGS = new Set([
@@ -113,7 +121,7 @@ const COMMAND_HELP: Record<string, CommandHelp> = {
   "instructions-lint": {
     summary: "Lint repository instruction files for duplicated, conflicting, vague, stale, or oversized guidance.",
     usage:
-      "tokn instructions-lint <path> [--init-config] [--config <file>] [--baseline <file>] [--ignore <glob>] [--preset <auto|copilot|agents-md>] [--profile <lite|standard|strict>] [--surface <all|auto|code-review|chat|coding-agent>] [--model <id>] [--fail-on-severity <off|warning|error>] [--verbose] [--format <text|json|markdown|github|azure>]",
+      "tokn instructions-lint <path> [--init-config] [--config <file>] [--baseline <file>] [--ignore <glob>] [--preset <auto|copilot|agents-md>] [--profile <lite|standard|strict>] [--surface <all|auto|code-review|chat|coding-agent>] [--model <id>] [--fail-on-severity <off|warning|error>] [--only-category <compatibility|clarity|economy|drift>] [--only-rule <rule-id>] [--verbose] [--format <text|json|markdown|github|azure>]",
     options: [
       "--config <file>                 Read instructions-lint config from a JSON file.",
       "--baseline <file>               Suppress findings already present in a previous JSON report.",
@@ -124,6 +132,8 @@ const COMMAND_HELP: Record<string, CommandHelp> = {
       "--surface <all|auto|code-review|chat|coding-agent>",
       "--model <id>                    Include model-aware context budget fields when available.",
       "--fail-on-severity <off|warning|error>",
+      "--only-category <category>      Show only findings in a category; repeat or comma-separate values.",
+      "--only-rule <rule-id>           Show only findings for a rule ID; repeat or comma-separate values.",
       "--verbose                       Show statement-level token estimates.",
       "--format <text|json|markdown|github|azure>",
       "--json                          Alias for --format json."
@@ -133,6 +143,8 @@ const COMMAND_HELP: Record<string, CommandHelp> = {
       "tokn instructions-lint . --init-config",
       "tokn instructions-lint . --config ./tokn.config.json",
       "tokn instructions-lint . --baseline ./.tokn/instructions-baseline.json",
+      "tokn instructions-lint . --only-category drift --fail-on-severity off",
+      "tokn instructions-lint . --only-rule missing-file-reference --format json",
       "tokn instructions-lint . --surface coding-agent --preset agents-md",
       "tokn instructions-lint . --format github --fail-on-severity warning"
     ],
@@ -394,6 +406,13 @@ function getAllValues(parsed: ParsedArgs, flag: string): string[] {
   return parsed.values.get(flag) ?? [];
 }
 
+function splitCliList(values: string[]): string[] {
+  return values
+    .flatMap((value) => value.split(","))
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
 function validateAllowedOptions(parsed: ParsedArgs, command: string, allowedFlags: Set<string>): void {
   const usedFlags = new Set([
     ...parsed.flags,
@@ -601,6 +620,26 @@ function parseInstructionPreset(parsed: ParsedArgs): InstructionLintPresetSelect
     throw new Error("--preset must be one of: auto, copilot, agents-md.");
   }
   return preset as InstructionLintPresetSelector;
+}
+
+function parseInstructionOnlyCategories(parsed: ParsedArgs): InstructionFindingCategory[] {
+  const categories = splitCliList(getAllValues(parsed, "--only-category"));
+  const invalid = categories.filter((category) => !INSTRUCTION_FINDING_CATEGORIES.has(category as InstructionFindingCategory));
+  if (invalid.length > 0) {
+    throw new Error("--only-category must use one of: compatibility, clarity, economy, drift.");
+  }
+  return [...new Set(categories as InstructionFindingCategory[])]
+    .sort((left, right) => left.localeCompare(right));
+}
+
+function parseInstructionOnlyRules(parsed: ParsedArgs): InstructionRuleId[] {
+  const rules = splitCliList(getAllValues(parsed, "--only-rule"));
+  const invalid = rules.filter((rule) => !isInstructionRuleId(rule));
+  if (invalid.length > 0) {
+    throw new Error(`--only-rule contains unknown rule ID: ${invalid.join(", ")}.`);
+  }
+  return [...new Set(rules as InstructionRuleId[])]
+    .sort((left, right) => left.localeCompare(right));
 }
 
 function roundBudget(value: number, floor: number, step: number): number {
@@ -821,6 +860,8 @@ async function main(): Promise<void> {
         const configPath = getLastValue(parsed, "--config");
         const baseline = getLastValue(parsed, "--baseline");
         const ignore = getAllValues(parsed, "--ignore");
+        const onlyCategories = parseInstructionOnlyCategories(parsed);
+        const onlyRules = parseInstructionOnlyRules(parsed);
         const initConfig = parsed.flags.has("--init-config") || parsed.flags.has("--calibrate");
         const verbose = parsed.flags.has("--verbose");
         const report = lintInstructions(inputPath, {
@@ -830,6 +871,8 @@ async function main(): Promise<void> {
           ...(surface ? { surface } : {}),
           ...(model ? { model } : {}),
           ...(verbose ? { verbose } : {}),
+          ...(onlyCategories.length > 0 ? { onlyCategories } : {}),
+          ...(onlyRules.length > 0 ? { onlyRules } : {}),
           ...(configPath ? { configPath } : {}),
           ...(baseline ? { baseline } : {}),
           ...(ignore.length > 0 ? { ignore } : {})

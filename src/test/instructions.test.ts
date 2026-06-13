@@ -940,6 +940,39 @@ test("lintInstructions aggregates drift findings for large instruction sets", ()
   ]);
 });
 
+test("lintInstructions filters findings by category and rule for triage", () => {
+  const repoRoot = createInstructionRepo(
+    {
+      ".github/copilot-instructions.md": [
+        "# Repository Instructions",
+        "",
+        "- Follow best practices.",
+        "- Do not call `missingApi()` from new code."
+      ].join("\n"),
+      "src/index.ts": "export const value = 1;\n"
+    },
+    "tokn-instructions-filter-"
+  );
+
+  const all = lintInstructions(repoRoot, { failOnSeverity: "off" });
+  const driftOnly = lintInstructions(repoRoot, {
+    failOnSeverity: "off",
+    onlyCategories: ["drift"]
+  });
+  const vagueOnly = lintInstructions(repoRoot, {
+    failOnSeverity: "off",
+    onlyRules: ["vague-instruction"]
+  });
+
+  assert.ok(all.findings.some((finding) => finding.ruleId === "vague-instruction"));
+  assert.ok(all.findings.some((finding) => finding.ruleId === "missing-symbol-reference"));
+  assert.deepEqual(driftOnly.findings.map((finding) => finding.category), ["drift"]);
+  assert.equal(driftOnly.drift?.totalFindings, 1);
+  assert.deepEqual(vagueOnly.findings.map((finding) => finding.ruleId), ["vague-instruction"]);
+  assert.equal(vagueOnly.drift, undefined);
+  assert.equal(vagueOnly.stats.warningCount, 1);
+});
+
 test("lintInstructions emits a stable schema contract and discovers config defaults", () => {
   const repoRoot = createInstructionRepo(
     {
