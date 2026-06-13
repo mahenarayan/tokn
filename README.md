@@ -19,7 +19,7 @@ want an assistant to apply Tokn findings intentionally. The skill lives under
 `skills/tokn-instruction-repair/` and is separate from the deterministic lint
 engine.
 
-A small real-world example: a [merged Cline PR](https://github.com/cline/cline/pull/11025) updated stale agent guidance that still pointed contributors at an older storage flow after the implementation had moved to file-backed `StateManager` storage. That kind of instruction drift is easy to miss in prose review and exactly the kind of issue Tokn aims to make easier to spot.
+A small real-world example: a [merged Cline PR](https://github.com/cline/cline/pull/11025) updated stale agent guidance that still pointed contributors at an older storage flow after the implementation had moved to file-backed `StateManager` storage. That kind of instruction drift is easy to miss in prose review and exactly the kind of issue Tokn aims to make easier to spot. See the [Cline case study](https://github.com/mahenarayan/tokn/blob/main/docs/examples/cline-instruction-drift-case-study.md) for the concise write-up.
 
 ## Quick Start
 
@@ -77,6 +77,8 @@ tokn instructions-lint .
 tokn instructions-lint . --format markdown
 tokn instructions-lint . --format json
 tokn instructions-lint . --baseline ./.tokn/instructions-baseline.json
+tokn instructions-lint . --only-category drift --fail-on-severity off
+tokn instructions-lint . --only-rule missing-file-reference --format json
 tokn instructions-lint . --preset agents-md
 tokn init . > tokn.config.json
 ```
