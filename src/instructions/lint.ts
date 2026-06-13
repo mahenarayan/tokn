@@ -62,6 +62,7 @@ import type {
   InstructionExcludeAgent,
   InstructionFileReport,
   InstructionFinding,
+  InstructionFindingCategory,
   InstructionLintOptions,
   InstructionLintReport,
   InstructionLintStats
@@ -200,6 +201,20 @@ function buildStats(
     warningCount: findings.filter((finding) => finding.severity === "warning").length,
     errorCount: findings.filter((finding) => finding.severity === "error").length
   };
+}
+
+function matchesFindingFilters(
+  finding: InstructionFinding,
+  onlyCategories: InstructionFindingCategory[],
+  onlyRules: InstructionFinding["ruleId"][]
+): boolean {
+  if (onlyCategories.length > 0 && (!finding.category || !onlyCategories.includes(finding.category))) {
+    return false;
+  }
+  if (onlyRules.length > 0 && !onlyRules.includes(finding.ruleId)) {
+    return false;
+  }
+  return true;
 }
 
 function collectVisibleRepoFiles(
@@ -469,6 +484,8 @@ export function lintInstructions(
   const budgets = policy.budgets;
   const model = policy.model;
   const verbose = options.verbose === true;
+  const onlyCategories = options.onlyCategories ?? [];
+  const onlyRules = options.onlyRules ?? [];
   const modelLimit = getModelLimit(model);
   const notes = new Set<string>();
   const {
@@ -525,7 +542,9 @@ export function lintInstructions(
           }
         : {}),
       ...(report.kind !== "unsupported" ? { matchedFileCount: report.matchedFiles.length } : {}),
-      findings: [...report.findings].sort(findingSort)
+      findings: report.findings
+        .filter((finding) => matchesFindingFilters(finding, onlyCategories, onlyRules))
+        .sort(findingSort)
     }));
 
   const findings = files

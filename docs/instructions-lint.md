@@ -121,6 +121,25 @@ tokn instructions-lint . \
 
 Add `--verbose` when optimizing instruction budget. Verbose reports include statement-level token estimates with line, statement type, word count, character count, statement text, and Tokn's heuristic formula.
 
+## Finding Filters
+
+Use finding filters when a repository already has many findings and you need a narrow triage view:
+
+```bash
+tokn instructions-lint . --only-category drift --fail-on-severity off
+tokn instructions-lint . --only-rule missing-file-reference --format json
+tokn instructions-lint . --only-category drift --only-rule missing-symbol-reference
+```
+
+Filters are applied after rule overrides, suppressions, and baselines. If both `--only-category` and `--only-rule` are provided, both must match.
+
+Supported categories:
+
+- `compatibility`
+- `clarity`
+- `economy`
+- `drift`
+
 ## Rollout Controls
 
 Tokn keeps rollout controls intentionally small:
