@@ -4,6 +4,8 @@ All notable changes to Tokn should be recorded in this file.
 
 ## Unreleased
 
+## 0.6.1
+
 - add `--only-category` and `--only-rule` filters for instruction lint triage
 - add a deterministic instruction drift demo fixture and example workflow
 
